@@ -212,6 +212,8 @@ dex_weak_ref_init (DexWeakRef *weak_ref,
                    gpointer    mem_block)
 {
   g_return_if_fail (weak_ref != NULL);
+  g_return_if_fail (!mem_block || DEX_IS_OBJECT (mem_block));
+  g_return_if_fail (!mem_block || DEX_OBJECT (mem_block)->ref_count > 0);
 
   memset (weak_ref, 0, sizeof *weak_ref);
   g_mutex_init (&weak_ref->mutex);
@@ -343,6 +345,8 @@ dex_weak_ref_set (DexWeakRef *weak_ref,
   gpointer old_mem_block;
 
   g_return_if_fail (weak_ref != NULL);
+  g_return_if_fail (!mem_block || DEX_IS_OBJECT (mem_block));
+  g_return_if_fail (!mem_block || DEX_OBJECT (mem_block)->ref_count > 0);
 
   g_mutex_lock (&weak_ref->mutex);
 
