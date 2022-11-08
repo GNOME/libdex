@@ -53,7 +53,6 @@ dex_unref (gpointer data)
   guint watermark;
 
   g_return_if_fail (object != NULL);
-  g_return_if_fail (object->ref_count > 0);
 
   /* Fetch a watermark before we decrement so that we can be
    * sure that if we reached zero, that anything that extended
