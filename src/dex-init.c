@@ -42,6 +42,7 @@ dex_init_once (void)
 
   /* Future types */
   g_type_ensure (DEX_TYPE_FUTURE);
+  g_type_ensure (DEX_TYPE_ASYNC_PAIR);
   g_type_ensure (DEX_TYPE_BLOCK);
   g_type_ensure (DEX_TYPE_CANCELLABLE);
   g_type_ensure (DEX_TYPE_PROMISE);
