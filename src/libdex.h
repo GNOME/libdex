@@ -32,6 +32,7 @@ G_BEGIN_DECLS
 # include "dex-enums.h"
 # include "dex-function.h"
 # include "dex-future.h"
+# include "dex-future-set.h"
 # include "dex-init.h"
 # include "dex-main-scheduler.h"
 # include "dex-object.h"

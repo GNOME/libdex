@@ -356,3 +356,87 @@ dex_future_finally (DexFuture         *future,
                         callback_data,
                         callback_data_destroy);
 }
+
+/**
+ * dex_future_all:
+ * @first_future: (transfer full): a #DexFuture
+ * @...: a %NULL terminated list of futures
+ *
+ * Creates a new #DexFuture that will resolve or reject when all futures
+ * either resolve or reject.
+ *
+ * This method will return a #DexFutureSet which provides API to get
+ * the exact values of the dependent futures. The value of the future
+ * if resolved will be a %G_TYPE_BOOLEAN of %TRUE.
+ *
+ * Returns: (transfer full) (type DexFutureSet): a #DexFuture
+ */
+DexFuture *
+dex_future_all (DexFuture *first_future,
+                ...)
+{
+  DexFutureSet *future_set;
+  DexFuture *future = first_future;
+  GPtrArray *ar;
+  va_list args;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (first_future), NULL);
+
+  ar = g_ptr_array_new ();
+
+  va_start (args, first_future);
+  while (future != NULL)
+    {
+      g_ptr_array_add (ar, future);
+      future = va_arg (args, DexFuture *);
+    }
+  va_end (args);
+
+  future_set = dex_future_set_new ((DexFuture **)ar->pdata, ar->len, ar->len, FALSE, FALSE);
+
+  g_ptr_array_unref (ar);
+
+  return DEX_FUTURE (future_set);
+}
+
+/**
+ * dex_future_any:
+ * @first_future: (transfer full): a #DexFuture
+ * @...: a %NULL terminated list of futures
+ *
+ * Creates a new #DexFuture that will resolve or reject when any futures
+ * either resolve or reject.
+ *
+ * This method will return a #DexFutureSet which provides API to get
+ * the exact values of the dependent futures. The value of the future
+ * will be propagated from the resolved or rejected future.
+ *
+ * Returns: (transfer full) (type DexFutureSet): a #DexFuture
+ */
+DexFuture *
+dex_future_any (DexFuture *first_future,
+                ...)
+{
+  DexFutureSet *future_set;
+  DexFuture *future = first_future;
+  GPtrArray *ar;
+  va_list args;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (first_future), NULL);
+
+  ar = g_ptr_array_new ();
+
+  va_start (args, first_future);
+  while (future != NULL)
+    {
+      g_ptr_array_add (ar, future);
+      future = va_arg (args, DexFuture *);
+    }
+  va_end (args);
+
+  future_set = dex_future_set_new ((DexFuture **)ar->pdata, ar->len, 1, TRUE, TRUE);
+
+  g_ptr_array_unref (ar);
+
+  return DEX_FUTURE (future_set);
+}

@@ -23,6 +23,7 @@
 
 #include "dex-object.h"
 #include "dex-future.h"
+#include "dex-future-set.h"
 
 G_BEGIN_DECLS
 
@@ -157,6 +158,12 @@ void dex_future_complete      (DexFuture    *future,
                                GError       *error);
 void dex_future_complete_from (DexFuture    *future,
                                DexFuture    *completed);
+
+DexFutureSet *dex_future_set_new (DexFuture **futures,
+                                  guint       n_futures,
+                                  guint       n_success,
+                                  gboolean    can_race,
+                                  gboolean    propagate_first);
 
 #define DEX_TYPE_BLOCK    (dex_block_get_type())
 #define DEX_BLOCK(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_BLOCK, DexBlock))
