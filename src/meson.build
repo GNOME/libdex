@@ -54,6 +54,7 @@ libdex_deps = [
 libdex_c_args = [
   deprecated_c_args,
   hidden_visibility_args,
+  '-DG_LOG_DOMAIN="Dex"',
   '-DDEX_COMPILATION',
 ]
 
