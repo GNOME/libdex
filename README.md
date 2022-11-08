@@ -1,5 +1,7 @@
 # Dex
 
+**This library is unfinished and still being created, Don't use it**
+
 Dex is a library supporting "(D)eferred (Ex)ecution" with the explicit goal
 of integrating with GNOME and GTK-based applications.
 
