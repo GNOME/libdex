@@ -26,18 +26,20 @@
 G_BEGIN_DECLS
 
 #define DEX_INSIDE
-# include "dex-init.h"
 # include "dex-callable.h"
 # include "dex-cancellable.h"
 # include "dex-enums.h"
 # include "dex-function.h"
 # include "dex-future.h"
+# include "dex-init.h"
+# include "dex-main-scheduler.h"
 # include "dex-object.h"
 # include "dex-promise.h"
 # include "dex-scheduler.h"
 # include "dex-tasklet.h"
 # include "dex-timeout.h"
 # include "dex-version.h"
+# include "dex-version-macros.h"
 #undef DEX_INSIDE
 
 G_END_DECLS
