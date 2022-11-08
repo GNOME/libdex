@@ -236,6 +236,116 @@ test_promise_resolve (void)
   dex_unref (promise);
 }
 
+typedef struct _TestBoolean TestBoolean;
+
+static void
+test_boolean_async (TestBoolean         *instance,
+                    GCancellable        *cancellable,
+                    GAsyncReadyCallback  callback,
+                    gpointer             user_data)
+{
+  GTask *task = g_task_new (instance, cancellable, callback, user_data);
+  g_assert (G_IS_OBJECT (instance));
+  g_assert (!cancellable || G_IS_CANCELLABLE (cancellable));
+  g_assert (callback != NULL);
+  g_task_return_boolean (task, TRUE);
+  g_object_unref (task);
+}
+
+static gboolean
+test_boolean_finish (TestBoolean   *instance,
+                     GAsyncResult  *result,
+                     GError       **error)
+{
+  g_assert (G_IS_TASK (result));
+  g_assert (G_IS_OBJECT (instance));
+  return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+static DexFuture *
+test_boolean_complete (DexFuture *future,
+                       gpointer   user_data)
+{
+  GMainLoop *main_loop = user_data;
+  GError *error = NULL;
+  const GValue *value = dex_future_get_value (future, &error);
+  g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_RESOLVED);
+  g_assert_no_error (error);
+  g_assert_true (G_VALUE_HOLDS_BOOLEAN (value));
+  g_assert_true (g_value_get_boolean (value));
+  g_main_loop_quit (main_loop);
+  return NULL;
+}
+
+static void
+test_async_pair_boolean (void)
+{
+  GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
+  GObject *object = G_OBJECT (g_menu_new ());
+  DexFuture *future = dex_async_pair_new (object,
+                                          &DEX_ASYNC_PAIR_INFO_BOOLEAN (test_boolean_async,
+                                                                        test_boolean_finish));
+  future = dex_future_finally (future, test_boolean_complete, main_loop, NULL);
+  g_main_loop_run (main_loop);
+  dex_unref (future);
+  g_main_loop_unref (main_loop);
+}
+
+typedef struct _AsyncObject AsyncObject;
+
+static void
+test_object_async (AsyncObject         *instance,
+                   GCancellable        *cancellable,
+                   GAsyncReadyCallback  callback,
+                   gpointer             user_data)
+{
+  GTask *task = g_task_new (instance, cancellable, callback, user_data);
+  g_assert (G_IS_OBJECT (instance));
+  g_assert (!cancellable || G_IS_CANCELLABLE (cancellable));
+  g_assert (callback != NULL);
+  g_task_return_pointer (task, g_object_ref (instance), g_object_unref);
+  g_object_unref (task);
+}
+
+static GObject *
+test_object_finish (AsyncObject   *instance,
+                    GAsyncResult  *result,
+                    GError       **error)
+{
+  g_assert (G_IS_TASK (result));
+  g_assert (G_IS_OBJECT (instance));
+  return g_task_propagate_pointer (G_TASK (result), error);
+}
+
+static DexFuture *
+test_object_complete (DexFuture *future,
+                      gpointer   user_data)
+{
+  GMainLoop *main_loop = user_data;
+  GError *error = NULL;
+  const GValue *value = dex_future_get_value (future, &error);
+  g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_RESOLVED);
+  g_assert_no_error (error);
+  g_assert_true (G_VALUE_HOLDS_OBJECT (value));
+  g_assert_nonnull (g_value_get_object (value));
+  g_main_loop_quit (main_loop);
+  return NULL;
+}
+
+static void
+test_async_pair_object (void)
+{
+  GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
+  GObject *object = G_OBJECT (g_menu_new ());
+  DexFuture *future = dex_async_pair_new (object,
+                                          &DEX_ASYNC_PAIR_INFO_OBJECT (test_object_async,
+                                                                       test_object_finish));
+  future = dex_future_finally (future, test_object_complete, main_loop, NULL);
+  g_main_loop_run (main_loop);
+  dex_unref (future);
+  g_main_loop_unref (main_loop);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -249,5 +359,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Promise/new", test_promise_new);
   g_test_add_func ("/Dex/TestSuite/Promise/resolve", test_promise_resolve);
   g_test_add_func ("/Dex/TestSuite/Timeout/timed-out", test_timeout);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/boolean", test_async_pair_boolean);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/object", test_async_pair_object);
   return g_test_run ();
 }

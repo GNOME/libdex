@@ -1,4 +1,5 @@
 libdex_sources = [
+  'dex-async-pair.c',
   'dex-block.c',
   'dex-callable.c',
   'dex-cancellable.c',
@@ -15,6 +16,7 @@ libdex_sources = [
 ]
 
 libdex_headers = [
+  'dex-async-pair.h',
   'dex-callable.h',
   'dex-cancellable.h',
   'dex-enums.h',

@@ -26,6 +26,7 @@
 G_BEGIN_DECLS
 
 #define DEX_INSIDE
+# include "dex-async-pair.h"
 # include "dex-callable.h"
 # include "dex-cancellable.h"
 # include "dex-enums.h"
