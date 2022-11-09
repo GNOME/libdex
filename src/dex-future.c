@@ -458,16 +458,19 @@ DexFuture *
 dex_future_all (DexFuture *first_future,
                 ...)
 {
+  DexFuture *ret;
   GPtrArray *ar;
   va_list args;
 
   va_start (args, first_future);
   ar = dex_future_collect_futures (first_future, &args);
   va_end (args);
+  ret = DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
+                                        ar->len,
+                                        DEX_FUTURE_SET_FLAGS_NONE));
+  g_ptr_array_unref (ar);
 
-  return DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
-                                         ar->len,
-                                         DEX_FUTURE_SET_FLAGS_NONE));
+  return ret;
 }
 
 /**
@@ -486,6 +489,7 @@ DexFuture *
 dex_future_any (DexFuture *first_future,
                 ...)
 {
+  DexFuture *ret;
   GPtrArray *ar;
   va_list args;
 
@@ -493,10 +497,13 @@ dex_future_any (DexFuture *first_future,
   ar = dex_future_collect_futures (first_future, &args);
   va_end (args);
 
-  return DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
-                                         ar->len,
-                                         (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
-                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE)));
+  ret = DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
+                                        ar->len,
+                                        (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                                         DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE)));
+  g_ptr_array_unref (ar);
+
+  return ret;
 }
 
 /**
@@ -520,6 +527,7 @@ DexFuture *
 dex_future_all_race (DexFuture *first_future,
                      ...)
 {
+  DexFuture *ret;
   GPtrArray *ar;
   va_list args;
 
@@ -527,10 +535,13 @@ dex_future_all_race (DexFuture *first_future,
   ar = dex_future_collect_futures (first_future, &args);
   va_end (args);
 
-  return DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
-                                         ar->len,
-                                         (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
-                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
+  ret = DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
+                                        ar->len,
+                                        (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                                         DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
+  g_ptr_array_unref (ar);
+
+  return ret;
 }
 
 /**
@@ -548,18 +559,21 @@ DexFuture *
 dex_future_any_race (DexFuture *first_future,
                      ...)
 {
+  DexFuture *ret;
   GPtrArray *ar;
   va_list args;
 
   va_start (args, first_future);
   ar = dex_future_collect_futures (first_future, &args);
   va_end (args);
+  ret = DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
+                                        ar->len,
+                                        (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                                         DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE |
+                                         DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
+  g_ptr_array_unref (ar);
 
-  return DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
-                                         ar->len,
-                                         (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
-                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE |
-                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
+  return ret;
 }
 
 /**
