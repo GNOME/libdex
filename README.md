@@ -25,6 +25,27 @@ used very similarly to GObject's but with different macro names.
 
 You can see this elsewhere in both GStreamer and GTK 4's render nodes.
 
+## Terminology
+
+ * **Future** describes something that can either resolve (succeed) or
+   reject (fail) now or in the future. It's resolved/rejected value is
+   immutable after completing.
+ * **Resolved** indicates that a future has completed successfully and
+   provided a value which can be read by the consumer.
+ * **Rejected** indicates that a future has completed with failure and
+   provided an error which can be read by the consumer.
+ * **Promise** is a **Future** that allows user code to set the resolved
+   or rejected value once.
+ * **Tasklet** is a **Future** that allows specifying a function to be
+   called once future parameters have been resolved. It is run by a
+   scheduler and eventually resolves or rejects based on the attached
+   callable.
+ * **Callable** is an abstraction on a C function/closure or some other
+   trampolined code that can be invoked and provided arguments along with
+   a return value.
+ * **Parameter** contain type information and position to a **Callable**
+ * **Arguments** are the values for **Parameters**
+
 ## Types
 
  * DexObject (Abstract)
