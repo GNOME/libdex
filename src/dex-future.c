@@ -37,6 +37,7 @@ typedef struct _DexChainedFuture
 {
   GList      link;
   DexWeakRef wr;
+  guint      awaiting : 1;
 } DexChainedFuture;
 
 static DexChainedFuture *
@@ -46,6 +47,7 @@ dex_chained_future_new (gpointer object)
 
   cf = g_new0 (DexChainedFuture, 1);
   cf->link.data = cf;
+  cf->awaiting = TRUE;
   dex_weak_ref_init (&cf->wr, object);
 
   return cf;
@@ -125,6 +127,11 @@ dex_future_complete (DexFuture    *future,
 
       g_assert (!chained || DEX_IS_FUTURE (chained));
 
+      /* Always notify even if the future isn't awaiting as
+       * it can provide a bit more information to futures that
+       * are bringing in results until their callbacks are
+       * scheduled for execution.
+       */
       if (chained != NULL)
         {
           dex_future_propagate (chained, future);
@@ -271,6 +278,60 @@ dex_future_chain (DexFuture *future,
 
   if (!did_chain)
     dex_future_propagate (chained, future);
+}
+
+void
+dex_future_discard (DexFuture *future,
+                    DexFuture *chained)
+{
+  gboolean has_awaiting = FALSE;
+  gboolean matched = FALSE;
+
+  g_return_if_fail (DEX_IS_FUTURE (future));
+  g_return_if_fail (DEX_IS_FUTURE (chained));
+
+  /* Mark the chained future as no longer necessary to dispatch to.
+   * If so, we can possibly request that @future discard any ongoing
+   * operations so that we propagate cancellation.
+   */
+  dex_object_lock (future);
+  for (const GList *iter = future->chained; iter; iter = iter->next)
+    {
+      DexChainedFuture *cf = iter->data;
+      DexFuture *obj;
+
+      g_assert (cf != NULL);
+
+      if ((obj = dex_weak_ref_get (&cf->wr)))
+        {
+          if (obj == chained)
+            {
+              if (cf->awaiting == TRUE)
+                {
+                  matched = TRUE;
+                  cf->awaiting = FALSE;
+                }
+            }
+
+          has_awaiting |= cf->awaiting;
+          dex_unref (obj);
+        }
+    }
+  dex_object_unlock (future);
+
+  /* If we discarded the chained future and there are no more futures
+   * awaiting our response, then request the class discard the future,
+   * possibly cancelling anything in flight.
+   */
+  if (matched && !has_awaiting)
+    {
+      if (DEX_FUTURE_GET_CLASS (future)->discard)
+        {
+          dex_ref (future);
+          DEX_FUTURE_GET_CLASS (future)->discard (future);
+          dex_unref (future);
+        }
+    }
 }
 
 /**

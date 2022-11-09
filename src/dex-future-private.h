@@ -44,6 +44,7 @@ typedef struct _DexFutureClass
 
   gboolean (*propagate) (DexFuture *future,
                          DexFuture *completed);
+  void     (*discard)   (DexFuture *future);
 } DexFutureClass;
 
 void dex_future_chain         (DexFuture    *future,
@@ -53,5 +54,7 @@ void dex_future_complete      (DexFuture    *future,
                                GError       *error);
 void dex_future_complete_from (DexFuture    *future,
                                DexFuture    *completed);
+void dex_future_discard       (DexFuture    *future,
+                               DexFuture    *chained);
 
 G_END_DECLS
