@@ -23,8 +23,7 @@
 
 #include <gobject/gvaluecollector.h>
 
-#include "dex-object.h"
-#include "dex-private.h"
+#include "dex-object-private.h"
 
 static void
 dex_object_finalize (DexObject *object)
