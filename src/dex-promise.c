@@ -52,6 +52,14 @@ dex_promise_new (void)
   return (DexPromise *)g_type_create_instance (dex_promise_type);
 }
 
+/**
+ * dex_promise_new_for_value: (constructor)
+ * @value: a #GValue containing the resolved value
+ *
+ * Creates a new #DexPromise which is already resolved.
+ *
+ * Returns: (transfer full): a resolved #DexPromise
+ */
 DexPromise *
 dex_promise_new_for_value (const GValue *value)
 {
@@ -67,6 +75,14 @@ dex_promise_new_for_value (const GValue *value)
   return promise;
 }
 
+/**
+ * dex_promise_new_for_boolean: (constructor)
+ * @v_bool: the resolved value for the promise
+ *
+ * Creates a new #DexPromise and resolves it with @v_bool.
+ *
+ * Returns: (transfer full): a resolved #DexPromise
+ */
 DexPromise *
 dex_promise_new_for_boolean (gboolean v_bool)
 {
@@ -81,6 +97,14 @@ dex_promise_new_for_boolean (gboolean v_bool)
   return promise;
 }
 
+/**
+ * dex_promise_new_for_int: (constructor)
+ * @v_int: the resolved value for the promise
+ *
+ * Creates a new #DexPromise and resolves it with @v_int.
+ *
+ * Returns: (transfer full): a resolved #DexPromise
+ */
 DexPromise *
 dex_promise_new_for_int (int v_int)
 {
@@ -95,6 +119,14 @@ dex_promise_new_for_int (int v_int)
   return promise;
 }
 
+/**
+ * dex_promise_new_for_string: (constructor)
+ * @string: the resolved value for the promise
+ *
+ * Creates a new #DexPromise and resolves it with @string.
+ *
+ * Returns: (transfer full): a resolved #DexPromise
+ */
 DexPromise *
 dex_promise_new_for_string (const char *string)
 {
@@ -110,8 +142,8 @@ dex_promise_new_for_string (const char *string)
 }
 
 /**
- * dex_promise_new_for_error:
- * @error: (transfer full): a #GError
+ * dex_promise_new_for_error: (constructor)
+ * @error: (transfer full): a #GError containing the rejection
  *
  * Creates a new #DexPromise that is rejeced.
  *
