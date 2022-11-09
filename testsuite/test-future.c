@@ -247,9 +247,9 @@ test_boolean_async (TestBoolean         *instance,
                     gpointer             user_data)
 {
   GTask *task = g_task_new (instance, cancellable, callback, user_data);
-  g_assert (G_IS_OBJECT (instance));
-  g_assert (!cancellable || G_IS_CANCELLABLE (cancellable));
-  g_assert (callback != NULL);
+  g_assert_true (G_IS_OBJECT (instance));
+  g_assert_true (!cancellable || G_IS_CANCELLABLE (cancellable));
+  g_assert_true (callback != NULL);
   g_task_return_boolean (task, TRUE);
   g_object_unref (task);
 }
@@ -259,8 +259,8 @@ test_boolean_finish (TestBoolean   *instance,
                      GAsyncResult  *result,
                      GError       **error)
 {
-  g_assert (G_IS_TASK (result));
-  g_assert (G_IS_OBJECT (instance));
+  g_assert_true (G_IS_TASK (result));
+  g_assert_true (G_IS_OBJECT (instance));
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
@@ -302,9 +302,9 @@ test_object_async (AsyncObject         *instance,
                    gpointer             user_data)
 {
   GTask *task = g_task_new (instance, cancellable, callback, user_data);
-  g_assert (G_IS_OBJECT (instance));
-  g_assert (!cancellable || G_IS_CANCELLABLE (cancellable));
-  g_assert (callback != NULL);
+  g_assert_true (G_IS_OBJECT (instance));
+  g_assert_true (!cancellable || G_IS_CANCELLABLE (cancellable));
+  g_assert_true (callback != NULL);
   g_task_return_pointer (task, g_object_ref (instance), g_object_unref);
   g_object_unref (task);
 }
@@ -314,8 +314,8 @@ test_object_finish (AsyncObject   *instance,
                     GAsyncResult  *result,
                     GError       **error)
 {
-  g_assert (G_IS_TASK (result));
-  g_assert (G_IS_OBJECT (instance));
+  g_assert_true (G_IS_TASK (result));
+  g_assert_true (G_IS_OBJECT (instance));
   return g_task_propagate_pointer (G_TASK (result), error);
 }
 
@@ -386,7 +386,8 @@ test_future_all (void)
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
   g_clear_error (&error);
 
-  g_assert (DEX_IS_FUTURE_SET (future));
+  g_assert_true (DEX_IS_FUTURE_SET (future));
+  g_assert_cmpint (dex_future_set_get_size (DEX_FUTURE_SET (future)), ==, 3);
 
   for (guint i = 0; i < dex_future_set_get_size (DEX_FUTURE_SET (future)); i++)
     {
@@ -441,8 +442,9 @@ test_future_all_race (void)
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
   g_clear_error (&error);
 
-  g_assert (DEX_IS_FUTURE_SET (future));
+  g_assert_true (DEX_IS_FUTURE_SET (future));
 
+  g_assert_cmpint (dex_future_set_get_size (DEX_FUTURE_SET (future)), ==, 3);
   for (guint i = 0; i < dex_future_set_get_size (DEX_FUTURE_SET (future)); i++)
     {
       DexFuture *dep = dex_future_set_get_future (DEX_FUTURE_SET (future), i);
@@ -496,8 +498,9 @@ test_future_any (void)
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
   g_clear_error (&error);
 
-  g_assert (DEX_IS_FUTURE_SET (future));
+  g_assert_true (DEX_IS_FUTURE_SET (future));
 
+  g_assert_cmpint (dex_future_set_get_size (DEX_FUTURE_SET (future)), ==, 3);
   for (guint i = 0; i < dex_future_set_get_size (DEX_FUTURE_SET (future)); i++)
     {
       DexFuture *dep = dex_future_set_get_future (DEX_FUTURE_SET (future), i);
@@ -551,8 +554,9 @@ test_future_any_race (void)
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
   g_clear_error (&error);
 
-  g_assert (DEX_IS_FUTURE_SET (future));
+  g_assert_true (DEX_IS_FUTURE_SET (future));
 
+  g_assert_cmpint (dex_future_set_get_size (DEX_FUTURE_SET (future)), ==, 3);
   for (guint i = 0; i < dex_future_set_get_size (DEX_FUTURE_SET (future)); i++)
     {
       DexFuture *dep = dex_future_set_get_future (DEX_FUTURE_SET (future), i);
