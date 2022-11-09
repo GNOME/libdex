@@ -159,11 +159,23 @@ void dex_future_complete      (DexFuture    *future,
 void dex_future_complete_from (DexFuture    *future,
                                DexFuture    *completed);
 
-DexFutureSet *dex_future_set_new (DexFuture **futures,
-                                  guint       n_futures,
-                                  guint       n_success,
-                                  gboolean    can_race,
-                                  gboolean    propagate_first);
+typedef enum _DexFutureSetFlags
+{
+  DEX_FUTURE_SET_FLAGS_NONE = 0,
+
+  /* Propagate first resolve/reject (use extra flags to specify) */
+  DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST = 1 << 0,
+
+  /* with PROPAGATE_FIRST, propagates on first resolve */
+  DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE = 1 << 1,
+
+  /* with PROPAGATE_FIRST, propagates on first reject */
+  DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT = 1 << 2,
+} DexFutureSetFlags;
+
+DexFutureSet *dex_future_set_new (DexFuture         **futures,
+                                  guint               n_futures,
+                                  DexFutureSetFlags   flags);
 
 #define DEX_TYPE_BLOCK    (dex_block_get_type())
 #define DEX_BLOCK(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_BLOCK, DexBlock))

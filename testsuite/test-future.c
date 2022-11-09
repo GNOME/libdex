@@ -404,6 +404,61 @@ test_future_all (void)
 }
 
 static void
+test_future_all_race (void)
+{
+  DexCancellable *cancel1 = dex_cancellable_new ();
+  DexCancellable *cancel2 = dex_cancellable_new ();
+  DexCancellable *cancel3 = dex_cancellable_new ();
+  const GValue *value;
+  DexFuture *future;
+  GError *error = NULL;
+
+  future = dex_future_all_race (dex_ref (cancel1), dex_ref (cancel2), dex_ref (cancel3), NULL);
+  ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (cancel2, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (cancel3, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_PENDING);
+
+  dex_cancellable_cancel (cancel1);
+  ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (cancel2, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (cancel3, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_REJECTED);
+
+  dex_cancellable_cancel (cancel2);
+  ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (cancel2, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (cancel3, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_REJECTED);
+
+  dex_cancellable_cancel (cancel3);
+  ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (cancel2, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (cancel3, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_REJECTED);
+  value = dex_future_get_value (future, &error);
+  g_assert_null (value);
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+  g_clear_error (&error);
+
+  g_assert (DEX_IS_FUTURE_SET (future));
+
+  for (guint i = 0; i < dex_future_set_get_size (DEX_FUTURE_SET (future)); i++)
+    {
+      DexFuture *dep = dex_future_set_get_future (DEX_FUTURE_SET (future), i);
+      value = dex_future_get_value (dep, &error);
+      g_assert_null (value);
+      g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+      g_clear_error (&error);
+    }
+
+  dex_clear (&cancel1);
+  dex_clear (&cancel2);
+  dex_clear (&cancel3);
+  dex_clear (&future);
+}
+
+static void
 test_future_any (void)
 {
   DexCancellable *cancel1 = dex_cancellable_new ();
@@ -414,6 +469,61 @@ test_future_any (void)
   GError *error = NULL;
 
   future = dex_future_any (dex_ref (cancel1), dex_ref (cancel2), dex_ref (cancel3), NULL);
+  ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (cancel2, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (cancel3, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_PENDING);
+
+  dex_cancellable_cancel (cancel1);
+  ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (cancel2, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (cancel3, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_PENDING);
+
+  dex_cancellable_cancel (cancel2);
+  ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (cancel2, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (cancel3, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_PENDING);
+
+  dex_cancellable_cancel (cancel3);
+  ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (cancel2, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (cancel3, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_REJECTED);
+  value = dex_future_get_value (future, &error);
+  g_assert_null (value);
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_clear_error (&error);
+
+  g_assert (DEX_IS_FUTURE_SET (future));
+
+  for (guint i = 0; i < dex_future_set_get_size (DEX_FUTURE_SET (future)); i++)
+    {
+      DexFuture *dep = dex_future_set_get_future (DEX_FUTURE_SET (future), i);
+      value = dex_future_get_value (dep, &error);
+      g_assert_null (value);
+      g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+      g_clear_error (&error);
+    }
+
+  dex_clear (&cancel1);
+  dex_clear (&cancel2);
+  dex_clear (&cancel3);
+  dex_clear (&future);
+}
+
+static void
+test_future_any_race (void)
+{
+  DexCancellable *cancel1 = dex_cancellable_new ();
+  DexCancellable *cancel2 = dex_cancellable_new ();
+  DexCancellable *cancel3 = dex_cancellable_new ();
+  const GValue *value;
+  DexFuture *future;
+  GError *error = NULL;
+
+  future = dex_future_any_race (dex_ref (cancel1), dex_ref (cancel2), dex_ref (cancel3), NULL);
   ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_PENDING);
   ASSERT_STATUS (cancel2, DEX_FUTURE_STATUS_PENDING);
   ASSERT_STATUS (cancel3, DEX_FUTURE_STATUS_PENDING);
@@ -474,6 +584,8 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/AsyncPair/boolean", test_async_pair_boolean);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/object", test_async_pair_object);
   g_test_add_func ("/Dex/TestSuite/Future/all", test_future_all);
+  g_test_add_func ("/Dex/TestSuite/Future/all_race", test_future_all_race);
   g_test_add_func ("/Dex/TestSuite/Future/any", test_future_any);
+  g_test_add_func ("/Dex/TestSuite/Future/any_race", test_future_any_race);
   return g_test_run ();
 }

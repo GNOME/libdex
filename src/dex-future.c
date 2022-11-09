@@ -357,6 +357,27 @@ dex_future_finally (DexFuture         *future,
                         callback_data_destroy);
 }
 
+static GPtrArray *
+dex_future_collect_futures (DexFuture *first_future,
+                            va_list   *args)
+{
+  DexFuture *future = first_future;
+  GPtrArray *ar;
+
+  g_assert (DEX_IS_FUTURE (first_future));
+  g_assert (args != NULL);
+
+  ar = g_ptr_array_new ();
+
+  while (future != NULL)
+    {
+      g_ptr_array_add (ar, future);
+      future = va_arg (*args, DexFuture *);
+    }
+
+  return ar;
+}
+
 /**
  * dex_future_all:
  * @first_future: (transfer full): a #DexFuture
@@ -375,28 +396,16 @@ DexFuture *
 dex_future_all (DexFuture *first_future,
                 ...)
 {
-  DexFutureSet *future_set;
-  DexFuture *future = first_future;
   GPtrArray *ar;
   va_list args;
 
-  g_return_val_if_fail (DEX_IS_FUTURE (first_future), NULL);
-
-  ar = g_ptr_array_new ();
-
   va_start (args, first_future);
-  while (future != NULL)
-    {
-      g_ptr_array_add (ar, future);
-      future = va_arg (args, DexFuture *);
-    }
+  ar = dex_future_collect_futures (first_future, &args);
   va_end (args);
 
-  future_set = dex_future_set_new ((DexFuture **)ar->pdata, ar->len, ar->len, FALSE, FALSE);
-
-  g_ptr_array_unref (ar);
-
-  return DEX_FUTURE (future_set);
+  return DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
+                                         ar->len,
+                                         DEX_FUTURE_SET_FLAGS_NONE));
 }
 
 /**
@@ -404,12 +413,10 @@ dex_future_all (DexFuture *first_future,
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
- * Creates a new #DexFuture that will resolve or reject when any futures
- * either resolve or reject.
+ * Creates a new #DexFuture that will resolve when any dependent future
+ * resolves, providing the same result as the resolved future.
  *
- * This method will return a #DexFutureSet which provides API to get
- * the exact values of the dependent futures. The value of the future
- * will be propagated from the resolved or rejected future.
+ * If no futures resolve, then the future will reject.
  *
  * Returns: (transfer full) (type DexFutureSet): a #DexFuture
  */
@@ -417,26 +424,78 @@ DexFuture *
 dex_future_any (DexFuture *first_future,
                 ...)
 {
-  DexFutureSet *future_set;
-  DexFuture *future = first_future;
   GPtrArray *ar;
   va_list args;
 
-  g_return_val_if_fail (DEX_IS_FUTURE (first_future), NULL);
-
-  ar = g_ptr_array_new ();
-
   va_start (args, first_future);
-  while (future != NULL)
-    {
-      g_ptr_array_add (ar, future);
-      future = va_arg (args, DexFuture *);
-    }
+  ar = dex_future_collect_futures (first_future, &args);
   va_end (args);
 
-  future_set = dex_future_set_new ((DexFuture **)ar->pdata, ar->len, 1, TRUE, TRUE);
+  return DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
+                                         ar->len,
+                                         (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE)));
+}
 
-  g_ptr_array_unref (ar);
+/**
+ * dex_future_all_race:
+ * @first_future: (transfer full): a #DexFuture
+ * @...: a %NULL terminated list of futures
+ *
+ * Creates a new #DexFuture that will resolve when all futures resolve
+ * or reject as soon as the first future rejects.
+ *
+ * This method will return a #DexFutureSet which provides API to get
+ * the exact values of the dependent futures. The value of the future
+ * will be propagated from the resolved or rejected future.
+ *
+ * Since the futures race to complete, some futures retrieved with the
+ * dex_future_set_get_future() API will still be %DEX_FUTURE_STATUS_PENDING.
+ *
+ * Returns: (transfer full) (type DexFutureSet): a #DexFuture
+ */
+DexFuture *
+dex_future_all_race (DexFuture *first_future,
+                     ...)
+{
+  GPtrArray *ar;
+  va_list args;
 
-  return DEX_FUTURE (future_set);
+  va_start (args, first_future);
+  ar = dex_future_collect_futures (first_future, &args);
+  va_end (args);
+
+  return DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
+                                         ar->len,
+                                         (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
+}
+
+/**
+ * dex_future_any_race:
+ * @first_future: (transfer full): a #DexFuture
+ * @...: a %NULL terminated list of futures
+ *
+ * Creates a new #DexFuture that will resolve when any future either
+ * resolves or rejects. This is similar to dex_future_any() except
+ * that if any future rejects, this will also reject.
+ *
+ * Returns: (transfer full) (type DexFutureSet): a #DexFuture
+ */
+DexFuture *
+dex_future_any_race (DexFuture *first_future,
+                     ...)
+{
+  GPtrArray *ar;
+  va_list args;
+
+  va_start (args, first_future);
+  ar = dex_future_collect_futures (first_future, &args);
+  va_end (args);
+
+  return DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
+                                         ar->len,
+                                         (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE |
+                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
 }

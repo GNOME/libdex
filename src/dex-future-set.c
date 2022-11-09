@@ -29,28 +29,11 @@
 typedef struct _DexFutureSet
 {
   DexFuture parent_instance;
-
-  /* Future's we're waiting on */
   DexFuture **futures;
   guint n_futures;
-
-  /* Number of futures required to succeed */
-  guint n_success;
-
-  /* Number of futures resolved or rejected */
   guint n_resolved;
   guint n_rejected;
-
-  /* If we can race, meaning complete as soon as we meet the
-   * minimum bar for n_success rather than wait for all to
-   * complete.
-   */
-  guint can_race : 1;
-
-  /* If the first resolve/reject should be propagated as this
-   * futures resolve/reject (such as dex_future_any()).
-   */
-  guint propagate_first : 1;
+  DexFutureSetFlags flags;
 } DexFutureSet;
 
 typedef struct _DexFutureSetClass
@@ -68,6 +51,7 @@ dex_future_set_propagate (DexFuture *future,
 {
   DexFutureSet *future_set = DEX_FUTURE_SET (future);
   const GValue *resolved = NULL;
+  DexFutureStatus status;
   GError *rejected = NULL;
   guint n_active = 0;
 
@@ -77,7 +61,14 @@ dex_future_set_propagate (DexFuture *future,
 
   dex_object_lock (future_set);
 
-  switch (dex_future_get_status (completed))
+  /* Short-circuit if we've already returned a value */
+  if (future->status != DEX_FUTURE_STATUS_PENDING)
+    {
+      dex_object_unlock (future_set);
+      return TRUE;
+    }
+
+  switch ((status = dex_future_get_status (completed)))
     {
     case DEX_FUTURE_STATUS_RESOLVED:
       future_set->n_resolved++;
@@ -92,30 +83,44 @@ dex_future_set_propagate (DexFuture *future,
       g_assert_not_reached ();
     }
 
-  /* Only process results if our result is still pending */
-  if (future->status == DEX_FUTURE_STATUS_PENDING)
-    {
-      n_active = future_set->n_futures - (future_set->n_resolved + future_set->n_rejected);
+  n_active = future_set->n_futures - future_set->n_rejected - future_set->n_resolved;
+  resolved = dex_future_get_value (completed, &rejected);
 
-      if (future_set->propagate_first)
-        resolved = dex_future_get_value (completed, &rejected);
-      else if (future_set->n_futures - future_set->n_rejected < future_set->n_success)
-        rejected = g_error_new_literal (G_IO_ERROR,
-                                        G_IO_ERROR_FAILED,
-                                        "Too many failures, cannot complete");
-      else if (future_set->n_resolved >= future_set->n_success)
-        resolved = &success_value;
-    }
+  g_assert (future_set->n_rejected <= future_set->n_futures);
+  g_assert (future_set->n_resolved <= future_set->n_futures);
+  g_assert (future_set->n_resolved + future_set->n_rejected <= future_set->n_futures);
+  g_assert (rejected != NULL || resolved != NULL);
 
   dex_object_unlock (future_set);
 
-  if (n_active == 0 || future_set->can_race)
+  if (n_active == 0)
     {
-      if (resolved != NULL || rejected != NULL)
-        dex_future_complete (future, resolved, g_steal_pointer (&rejected));
+      if (resolved != NULL)
+        {
+          if (future_set->flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE)
+            dex_future_complete (future, resolved, NULL);
+          else
+            dex_future_complete (future, &success_value, NULL);
+        }
+      else
+        {
+          if (future_set->flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)
+            dex_future_complete (future, NULL, g_steal_pointer (&rejected));
+          else
+            dex_future_complete (future,
+                                 NULL,
+                                 g_error_new_literal (G_IO_ERROR,
+                                                      G_IO_ERROR_FAILED,
+                                                      "Too many futures failed"));
+        }
     }
-
-  g_clear_error (&rejected);
+  else if (future_set->flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST)
+    {
+      if (resolved && (future_set->flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE) != 0)
+        dex_future_complete (future, resolved, NULL);
+      else if (rejected && (future_set->flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT) != 0)
+        dex_future_complete (future, NULL, g_steal_pointer (&rejected));
+    }
 
   return TRUE;
 }
@@ -131,8 +136,9 @@ dex_future_set_finalize (DexObject *object)
 
   future_set->futures = NULL;
   future_set->n_futures = 0;
-  future_set->n_success = 0;
-  future_set->can_race = 0;
+  future_set->flags = 0;
+  future_set->n_resolved = 0;
+  future_set->n_rejected = 0;
 
   DEX_OBJECT_CLASS (dex_future_set_parent_class)->finalize (object);
 }
@@ -157,25 +163,22 @@ dex_future_set_init (DexFutureSet *future_set)
 }
 
 DexFutureSet *
-dex_future_set_new (DexFuture **futures,
-                    guint       n_futures,
-                    guint       n_success,
-                    gboolean    can_race,
-                    gboolean    propagate_first)
+dex_future_set_new (DexFuture         **futures,
+                    guint               n_futures,
+                    DexFutureSetFlags   flags)
 {
   DexFutureSet *future_set;
 
   g_return_val_if_fail (futures != NULL, NULL);
   g_return_val_if_fail (n_futures > 0, NULL);
-  g_return_val_if_fail (n_success > 0, NULL);
-  g_return_val_if_fail (n_success <= n_futures, NULL);
+  g_return_val_if_fail ((flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST) == 0 ||
+                        (flags & (DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE|DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)) != 0,
+                        NULL);
 
   future_set = (DexFutureSet *)g_type_create_instance (DEX_TYPE_FUTURE_SET);
-  future_set->n_futures = n_futures;
-  future_set->n_success = n_success;
-  future_set->can_race = !!can_race;
-  future_set->propagate_first = !!propagate_first;
   future_set->futures = g_memdup2 (futures, sizeof (DexFuture *) * n_futures);
+  future_set->n_futures = n_futures;
+  future_set->flags = flags;
 
   for (guint i = 0; i < n_futures; i++)
     {
