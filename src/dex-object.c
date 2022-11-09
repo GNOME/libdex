@@ -53,6 +53,7 @@ dex_unref (gpointer data)
   guint watermark;
 
   g_return_if_fail (object != NULL);
+  g_return_if_fail (DEX_IS_OBJECT (object));
 
   /* Fetch a watermark before we decrement so that we can be
    * sure that if we reached zero, that anything that extended
@@ -117,8 +118,9 @@ dex_unref (gpointer data)
 
   dex_object_unlock (object);
 
-  //if (!immortal)
-  object_class->finalize (object);
+  /* If we did not create an immortal ref, then we are safe to finalize */
+  if (g_atomic_int_get (&object->ref_count) == 0)
+    object_class->finalize (object);
 }
 
 static void
@@ -239,15 +241,11 @@ dex_weak_ref_get_locked (DexWeakRef *weak_ref)
        * against us can detect that we extended liveness. If we have raced
        * G_MAXUINT32 times, then something nefarious is going on and we can
        * just make the object immortal.
+       *
+       * Otherwise, just add a single reference to own the object.
        */
       watermark = g_atomic_int_add (&object->weak_refs_watermark, 1);
-      if (watermark == G_MAXUINT32)
-        g_atomic_int_inc (&object->ref_count);
-
-      /* Now extend liveness (which could then unref to zero on this or
-       * another thread before a racing dex_unref() continues to execute.
-       */
-      g_atomic_int_inc (&object->ref_count);
+      g_atomic_int_add (&object->ref_count, 1 + (watermark == G_MAXUINT32));
 
       return weak_ref->mem_block;
     }

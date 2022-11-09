@@ -388,7 +388,6 @@ test_weak_ref_immortal (void)
   borrowed->weak_refs_watermark = 1;
   borrowed->ref_count = 1;
   dex_unref (state.to);
-  dex_unref (state.to);
   g_assert_cmpint (finalize_count, ==, 1);
 }
 
@@ -440,9 +439,12 @@ test_weak_ref_thread_guantlet (void)
       threads[i] = g_thread_new (thread_name, test_weak_ref_thread_guantlet_worker, wr);
     }
 
-  g_usleep (G_USEC_PER_SEC / 3);
-  dex_unref (to);
+  g_assert_cmpint (g_atomic_int_get (&finalize_count), ==, 0);
 
+  g_usleep (G_USEC_PER_SEC / 3);
+  g_assert_cmpint (g_atomic_int_get (&finalize_count), ==, 0);
+
+  dex_unref (to);
   g_atomic_int_set (&test_weak_ref_thread_guantlet_waiting, TRUE);
 
   for (guint i = 0; i < G_N_ELEMENTS (threads); i++)
