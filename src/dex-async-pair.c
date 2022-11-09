@@ -159,7 +159,7 @@ dex_async_pair_new (gpointer                instance,
    */
 
   async_func = info->async;
-  async_func (instance, NULL, dex_async_pair_ready_callback, async_pair);
+  async_func (instance, NULL, dex_async_pair_ready_callback, dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
 }
