@@ -60,8 +60,7 @@ libdex_c_args = [
   '-DDEX_COMPILATION',
 ]
 
-libdex_static = static_library('dex-' + api_version,
-  libdex_sources,
+libdex_static = static_library('dex-@0@'.format(api_version), libdex_sources,
   dependencies: libdex_deps,
         c_args: libdex_c_args,
 )
@@ -72,7 +71,7 @@ libdex_static_dep = declare_dependency(
          dependencies: libdex_deps,
 )
 
-libdex = shared_library('dex-' + api_version,
+libdex = shared_library('dex-@0@'.format(api_version),
   dependencies: [libdex_deps, libdex_static_dep],
         c_args: libdex_c_args,
        install: true,
@@ -94,12 +93,15 @@ pkg.generate(
 
 gnome = import('gnome')
 libdex_gir = gnome.generate_gir(libdex,
+              sources: [libdex_sources, libdex_headers],
             nsversion: api_version,
             namespace: 'Dex',
         symbol_prefix: 'dex',
     identifier_prefix: 'Dex',
              includes: ['GObject-2.0'],
               install: true,
+	       header: 'libdex.h',
+           extra_args: ['-DDEX_COMPILATION'],
 )
 
 libdex_dep = declare_dependency(
