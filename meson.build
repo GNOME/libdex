@@ -11,7 +11,7 @@ cc = meson.get_compiler('c')
 package_name = meson.project_name()
 package_string = '@0@-@1@'.format(package_name, api_version)
 
-glib_req_version = '2.74'
+glib_req_version = '2.73'
 glib_req = '>= @0@'.format(glib_req_version)
 
 glib_dep = dependency('gio-2.0', version: glib_req)
@@ -104,6 +104,9 @@ endif
 
 glib_major_version = glib_req_version.split('.')[0].to_int()
 glib_minor_version = glib_req_version.split('.')[1].to_int()
+if glib_minor_version % 2 == 1
+  glib_minor_version = glib_minor_version + 1
+endif
 deprecated_c_args = [
   '-DG_DISABLE_DEPRECATED',
   '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_@0@_@1@'.format(glib_major_version, glib_minor_version),
