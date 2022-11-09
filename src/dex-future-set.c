@@ -163,10 +163,23 @@ dex_future_set_init (DexFutureSet *future_set)
 {
 }
 
+/**
+ * dex_future_set_new: (skip)
+ * @futures: (transfer none) (array length=n_futures): an array of futures to chain
+ * @n_futures: number of futures
+ * @flags: the flags for how the future set should resolve/reject
+ *
+ * Creates a new future set (also a future) which will resovle or reject
+ * based on the completion from sub #DexFuture.
+ *
+ * There must be at least 1 future provided in @futures.
+ *
+ * Returns: the new #DexFutureSet
+ */
 DexFutureSet *
-dex_future_set_new (DexFuture         **futures,
-                    guint               n_futures,
-                    DexFutureSetFlags   flags)
+dex_future_set_new (DexFuture * const *futures,
+                    guint              n_futures,
+                    DexFutureSetFlags  flags)
 {
   DexFutureSet *future_set;
 
@@ -176,17 +189,36 @@ dex_future_set_new (DexFuture         **futures,
                         (flags & (DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE|DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)) != 0,
                         NULL);
 
+  /* Ref all the futures before we get into a situation that can start
+   * having callbacks applied.
+   */
+  for (guint i = 0; i < n_futures; i++)
+    dex_ref (futures[i]);
+
+  /* Setup our new DexFuture to contain the results */
   future_set = (DexFutureSet *)g_type_create_instance (DEX_TYPE_FUTURE_SET);
   future_set->futures = g_memdup2 (futures, sizeof (DexFuture *) * n_futures);
   future_set->n_futures = n_futures;
   future_set->flags = flags;
 
+  /* Now start chaining futures, even if we progress from pending while
+   * we iterate this list (as we're safe against multiple resolves).
+   */
   for (guint i = 0; i < n_futures; i++)
     dex_future_chain (future_set->futures[i], DEX_FUTURE (future_set));
 
   return future_set;
 }
 
+/**
+ * dex_future_set_get_size:
+ * @future_set: a #DexFutureSet
+ *
+ * Gets the number of futures associated with the #DexFutureSet. You may
+ * use dex_future_set_get_future() to obtain the individual #DexFuture.
+ *
+ * Returns: the number of #DexFuture in @future_set.
+ */
 guint
 dex_future_set_get_size (DexFutureSet *future_set)
 {

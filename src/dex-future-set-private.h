@@ -40,8 +40,8 @@ typedef enum _DexFutureSetFlags
   DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT = 1 << 2,
 } DexFutureSetFlags;
 
-DexFutureSet *dex_future_set_new (DexFuture         **futures,
-                                  guint               n_futures,
-                                  DexFutureSetFlags   flags);
+DexFutureSet *dex_future_set_new (DexFuture * const *futures,
+                                  guint              n_futures,
+                                  DexFutureSetFlags  flags);
 
 G_END_DECLS

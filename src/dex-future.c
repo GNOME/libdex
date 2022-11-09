@@ -458,19 +458,20 @@ DexFuture *
 dex_future_all (DexFuture *first_future,
                 ...)
 {
-  DexFuture *ret;
+  DexFutureSet *ret;
   GPtrArray *ar;
   va_list args;
 
   va_start (args, first_future);
   ar = dex_future_collect_futures (first_future, &args);
   va_end (args);
-  ret = DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
-                                        ar->len,
-                                        DEX_FUTURE_SET_FLAGS_NONE));
+
+  ret = dex_future_set_new ((DexFuture * const *)ar->pdata,
+                            ar->len,
+                            DEX_FUTURE_SET_FLAGS_NONE);
   g_ptr_array_unref (ar);
 
-  return ret;
+  return DEX_FUTURE (ret);
 }
 
 /**
@@ -489,7 +490,7 @@ DexFuture *
 dex_future_any (DexFuture *first_future,
                 ...)
 {
-  DexFuture *ret;
+  DexFutureSet *ret;
   GPtrArray *ar;
   va_list args;
 
@@ -497,13 +498,13 @@ dex_future_any (DexFuture *first_future,
   ar = dex_future_collect_futures (first_future, &args);
   va_end (args);
 
-  ret = DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
-                                        ar->len,
-                                        (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
-                                         DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE)));
+  ret = dex_future_set_new ((DexFuture * const *)ar->pdata,
+                            ar->len,
+                            (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                             DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE));
   g_ptr_array_unref (ar);
 
-  return ret;
+  return DEX_FUTURE (ret);
 }
 
 /**
@@ -527,7 +528,7 @@ DexFuture *
 dex_future_all_race (DexFuture *first_future,
                      ...)
 {
-  DexFuture *ret;
+  DexFutureSet *ret;
   GPtrArray *ar;
   va_list args;
 
@@ -535,13 +536,13 @@ dex_future_all_race (DexFuture *first_future,
   ar = dex_future_collect_futures (first_future, &args);
   va_end (args);
 
-  ret = DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
-                                        ar->len,
-                                        (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
-                                         DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
+  ret = dex_future_set_new ((DexFuture * const *)ar->pdata,
+                            ar->len,
+                            (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                             DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT));
   g_ptr_array_unref (ar);
 
-  return ret;
+  return DEX_FUTURE (ret);
 }
 
 /**
@@ -559,33 +560,34 @@ DexFuture *
 dex_future_any_race (DexFuture *first_future,
                      ...)
 {
-  DexFuture *ret;
+  DexFutureSet *ret;
   GPtrArray *ar;
   va_list args;
 
   va_start (args, first_future);
   ar = dex_future_collect_futures (first_future, &args);
   va_end (args);
-  ret = DEX_FUTURE (dex_future_set_new ((DexFuture **)ar->pdata,
-                                        ar->len,
-                                        (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
-                                         DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE |
-                                         DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
+
+  ret = dex_future_set_new ((DexFuture * const *)ar->pdata,
+                            ar->len,
+                            (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                             DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE |
+                             DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT));
   g_ptr_array_unref (ar);
 
-  return ret;
+  return DEX_FUTURE (ret);
 }
 
 /**
  * dex_future_any_racev:
- * @futures: (array length=n_futures): an array of futures
+ * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_any_racev (DexFuture **futures,
-                      guint       n_futures)
+dex_future_any_racev (DexFuture * const *futures,
+                      guint              n_futures)
 {
   return DEX_FUTURE (dex_future_set_new (futures, n_futures,
                                          (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
@@ -595,14 +597,14 @@ dex_future_any_racev (DexFuture **futures,
 
 /**
  * dex_future_anyv:
- * @futures: (array length=n_futures): an array of futures
+ * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_anyv (DexFuture **futures,
-                 guint       n_futures)
+dex_future_anyv (DexFuture * const *futures,
+                 guint              n_futures)
 {
   return DEX_FUTURE (dex_future_set_new (futures, n_futures,
                                          (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
@@ -611,14 +613,14 @@ dex_future_anyv (DexFuture **futures,
 
 /**
  * dex_future_all_racev:
- * @futures: (array length=n_futures): an array of futures
+ * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_all_racev (DexFuture **futures,
-                      guint       n_futures)
+dex_future_all_racev (DexFuture * const *futures,
+                      guint              n_futures)
 {
   return DEX_FUTURE (dex_future_set_new (futures, n_futures,
                                          (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
@@ -627,14 +629,14 @@ dex_future_all_racev (DexFuture **futures,
 
 /**
  * dex_future_allv:
- * @futures: (array length=n_futures): an array of futures
+ * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_allv (DexFuture **futures,
-                 guint       n_futures)
+dex_future_allv (DexFuture * const *futures,
+                 guint              n_futures)
 {
   return DEX_FUTURE (dex_future_set_new (futures, n_futures, DEX_FUTURE_SET_FLAGS_NONE));
 }
