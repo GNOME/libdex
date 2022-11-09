@@ -499,3 +499,66 @@ dex_future_any_race (DexFuture *first_future,
                                           DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE |
                                           DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
 }
+
+/**
+ * dex_future_any_racev:
+ * @futures: (array length=n_futures): an array of futures
+ * @n_futures: the number of futures
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
+DexFuture *
+dex_future_any_racev (DexFuture **futures,
+                      guint       n_futures)
+{
+  return DEX_FUTURE (dex_future_set_new (futures, n_futures,
+                                         (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE |
+                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
+}
+
+/**
+ * dex_future_anyv:
+ * @futures: (array length=n_futures): an array of futures
+ * @n_futures: the number of futures
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
+DexFuture *
+dex_future_anyv (DexFuture **futures,
+                 guint       n_futures)
+{
+  return DEX_FUTURE (dex_future_set_new (futures, n_futures,
+                                         (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE)));
+}
+
+/**
+ * dex_future_all_racev:
+ * @futures: (array length=n_futures): an array of futures
+ * @n_futures: the number of futures
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
+DexFuture *
+dex_future_all_racev (DexFuture **futures,
+                      guint       n_futures)
+{
+  return DEX_FUTURE (dex_future_set_new (futures, n_futures,
+                                         (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
+                                          DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
+}
+
+/**
+ * dex_future_allv:
+ * @futures: (array length=n_futures): an array of futures
+ * @n_futures: the number of futures
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
+DexFuture *
+dex_future_allv (DexFuture **futures,
+                 guint       n_futures)
+{
+  return DEX_FUTURE (dex_future_set_new (futures, n_futures, DEX_FUTURE_SET_FLAGS_NONE));
+}

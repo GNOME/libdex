@@ -66,14 +66,26 @@ DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_all             (DexFuture          *first_future,
                                              ...) G_GNUC_NULL_TERMINATED;
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_allv            (DexFuture         **futures,
+                                             guint               n_futures);
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_all_race        (DexFuture          *first_future,
                                              ...) G_GNUC_NULL_TERMINATED;
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_all_racev       (DexFuture         **futures,
+                                             guint               n_futures);
 DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_any             (DexFuture          *first_future,
                                              ...) G_GNUC_NULL_TERMINATED;
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_anyv            (DexFuture         **futures,
+                                             guint               n_futures);
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_any_race        (DexFuture          *first_future,
                                              ...) G_GNUC_NULL_TERMINATED;
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_any_racev       (DexFuture         **futures,
+                                             guint               n_futures);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFuture, dex_unref)
 
