@@ -290,6 +290,7 @@ test_async_pair_boolean (void)
   future = dex_future_finally (future, test_boolean_complete, main_loop, NULL);
   g_main_loop_run (main_loop);
   dex_unref (future);
+  g_clear_object (&object);
   g_main_loop_unref (main_loop);
 }
 
@@ -345,6 +346,7 @@ test_async_pair_object (void)
   future = dex_future_finally (future, test_object_complete, main_loop, NULL);
   g_main_loop_run (main_loop);
   dex_unref (future);
+  g_clear_object (&object);
   g_main_loop_unref (main_loop);
 }
 
