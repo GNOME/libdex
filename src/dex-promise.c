@@ -111,7 +111,7 @@ dex_promise_new_for_string (const char *string)
 
 /**
  * dex_promise_new_for_error:
- * @error: a #GError
+ * @error: (transfer full): a #GError
  *
  * Creates a new #DexPromise that is rejeced.
  *
