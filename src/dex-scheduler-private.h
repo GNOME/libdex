@@ -1,5 +1,5 @@
 /*
- * dex-callable.c
+ * dex-scheduler-private.h
  *
  * Copyright 2022 Christian Hergert <chergert@gnome.org>
  *
@@ -19,18 +19,21 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-#include "config.h"
+#pragma once
 
-#include "dex-callable-private.h"
+#include "dex-object-private.h"
+#include "dex-scheduler.h"
 
-DEX_DEFINE_ABSTRACT_TYPE (DexCallable, dex_callable, DEX_TYPE_OBJECT)
+G_BEGIN_DECLS
 
-static void
-dex_callable_class_init (DexCallableClass *callable_class)
+typedef struct _DexScheduler
 {
-}
+  DexObject parent_instance;
+} DexScheduler;
 
-static void
-dex_callable_init (DexCallable *callable)
+typedef struct _DexSchedulerClass
 {
-}
+  DexObjectClass parent_class;
+} DexSchedulerClass;
+
+G_END_DECLS

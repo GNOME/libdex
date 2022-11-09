@@ -20,7 +20,7 @@
 
 #include <libdex.h>
 
-#include "dex-private.h"
+#include "dex-object-private.h"
 
 static guint finalize_count;
 

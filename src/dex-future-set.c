@@ -23,8 +23,7 @@
 
 #include <gio/gio.h>
 
-#include "dex-future-set.h"
-#include "dex-private.h"
+#include "dex-future-set-private.h"
 
 typedef struct _DexFutureSet
 {

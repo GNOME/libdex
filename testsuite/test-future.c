@@ -22,7 +22,7 @@
 
 #include <gio/gio.h>
 
-#include "dex-private.h"
+#include "dex-future-private.h"
 
 #define ASSERT_STATUS(f,status) g_assert_cmpint(status, ==, dex_future_get_status(DEX_FUTURE(f)))
 

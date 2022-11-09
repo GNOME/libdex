@@ -1,5 +1,5 @@
 /*
- * dex-callable.c
+ * dex-future-set-private.h
  *
  * Copyright 2022 Christian Hergert <chergert@gnome.org>
  *
@@ -19,18 +19,29 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-#include "config.h"
+#pragma once
 
-#include "dex-callable-private.h"
+#include "dex-future-set.h"
+#include "dex-future-private.h"
 
-DEX_DEFINE_ABSTRACT_TYPE (DexCallable, dex_callable, DEX_TYPE_OBJECT)
+G_BEGIN_DECLS
 
-static void
-dex_callable_class_init (DexCallableClass *callable_class)
+typedef enum _DexFutureSetFlags
 {
-}
+  DEX_FUTURE_SET_FLAGS_NONE = 0,
 
-static void
-dex_callable_init (DexCallable *callable)
-{
-}
+  /* Propagate first resolve/reject (use extra flags to specify) */
+  DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST = 1 << 0,
+
+  /* with PROPAGATE_FIRST, propagates on first resolve */
+  DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE = 1 << 1,
+
+  /* with PROPAGATE_FIRST, propagates on first reject */
+  DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT = 1 << 2,
+} DexFutureSetFlags;
+
+DexFutureSet *dex_future_set_new (DexFuture         **futures,
+                                  guint               n_futures,
+                                  DexFutureSetFlags   flags);
+
+G_END_DECLS

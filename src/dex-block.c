@@ -20,7 +20,7 @@
 
 #include "config.h"
 
-#include "dex-private.h"
+#include "dex-block-private.h"
 
 typedef struct _DexBlock
 {

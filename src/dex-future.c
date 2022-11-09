@@ -23,9 +23,10 @@
 
 #include <gio/gio.h>
 
-#include "dex-future.h"
+#include "dex-block-private.h"
+#include "dex-future-private.h"
+#include "dex-future-set-private.h"
 #include "dex-promise.h"
-#include "dex-private.h"
 
 static void dex_future_propagate (DexFuture *future,
                                   DexFuture *completed);

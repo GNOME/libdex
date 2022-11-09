@@ -24,7 +24,7 @@
 #include <gio/gio.h>
 
 #include "dex-cancellable.h"
-#include "dex-private.h"
+#include "dex-future-private.h"
 
 typedef struct _DexCancellable
 {

@@ -21,8 +21,18 @@
 
 #include "config.h"
 
+#include "dex-future-private.h"
 #include "dex-promise.h"
-#include "dex-private.h"
+
+typedef struct _DexPromise
+{
+  DexFuture parent_instance;
+} DexPromise;
+
+typedef struct _DexPromiseClass
+{
+  DexFutureClass parent_class;
+} DexPromiseClass;
 
 DEX_DEFINE_FINAL_TYPE (DexPromise, dex_promise, DEX_TYPE_FUTURE)
 

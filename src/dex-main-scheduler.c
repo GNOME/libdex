@@ -22,7 +22,7 @@
 #include "config.h"
 
 #include "dex-main-scheduler.h"
-#include "dex-private.h"
+#include "dex-scheduler-private.h"
 
 typedef struct _DexMainScheduler
 {

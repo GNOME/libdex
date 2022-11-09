@@ -23,7 +23,7 @@
 
 #include "libdex.h"
 
-#include "dex-private.h"
+#include "dex-block-private.h"
 
 #include "gconstructor.h"
 

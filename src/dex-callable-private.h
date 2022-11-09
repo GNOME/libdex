@@ -1,5 +1,5 @@
 /*
- * dex-callable.c
+ * dex-callable-private.h
  *
  * Copyright 2022 Christian Hergert <chergert@gnome.org>
  *
@@ -19,18 +19,24 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-#include "config.h"
+#pragma once
 
-#include "dex-callable-private.h"
+#include "dex-callable.h"
+#include "dex-object-private.h"
 
-DEX_DEFINE_ABSTRACT_TYPE (DexCallable, dex_callable, DEX_TYPE_OBJECT)
+G_BEGIN_DECLS
 
-static void
-dex_callable_class_init (DexCallableClass *callable_class)
+#define DEX_CALLABLE_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST(klass, DEX_TYPE_CALLABLE, DexCallableClass))
+#define DEX_CALLABLE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS(obj, DEX_TYPE_CALLABLE, DexCallableClass))
+
+typedef struct _DexCallable
 {
-}
+  DexObject parent_instance;
+} DexCallable;
 
-static void
-dex_callable_init (DexCallable *callable)
+typedef struct _DexCallableClass
 {
-}
+  DexObjectClass parent_class;
+} DexCallableClass;
+
+G_END_DECLS

@@ -21,9 +21,21 @@
 
 #include "config.h"
 
-#include "dex-callable.h"
+#include "dex-callable-private.h"
 #include "dex-function.h"
-#include "dex-private.h"
+
+#define DEX_FUNCTION_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST(klass, DEX_TYPE_FUNCTION, DexFunctionClass))
+#define DEX_FUNCTION_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS(obj, DEX_TYPE_FUNCTION, DexFunctionClass))
+
+typedef struct _DexFunction
+{
+  DexCallable parent_class;
+} DexFunction;
+
+typedef struct _DexFunctionClass
+{
+  DexCallableClass parent_class;
+} DexFunctionClass;
 
 DEX_DEFINE_ABSTRACT_TYPE (DexFunction, dex_function, DEX_TYPE_CALLABLE)
 

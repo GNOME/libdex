@@ -23,8 +23,8 @@
 
 #include <gio/gio.h>
 
+#include "dex-future-private.h"
 #include "dex-timeout.h"
-#include "dex-private.h"
 
 typedef struct _DexTimeout
 {

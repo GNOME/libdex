@@ -21,8 +21,7 @@
 
 #include "config.h"
 
-#include "dex-private.h"
-#include "dex-scheduler.h"
+#include "dex-scheduler-private.h"
 
 DEX_DEFINE_ABSTRACT_TYPE (DexScheduler, dex_scheduler, DEX_TYPE_OBJECT)
 
