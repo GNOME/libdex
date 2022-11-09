@@ -121,6 +121,8 @@ dex_future_set_propagate (DexFuture *future,
         dex_future_complete (future, NULL, g_steal_pointer (&rejected));
     }
 
+  g_clear_error (&rejected);
+
   return TRUE;
 }
 
