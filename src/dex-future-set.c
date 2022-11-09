@@ -182,12 +182,6 @@ dex_future_set_new (DexFuture         **futures,
   future_set->flags = flags;
 
   for (guint i = 0; i < n_futures; i++)
-    {
-      g_assert (DEX_IS_FUTURE (futures[i]));
-      dex_ref (future_set->futures[i]);
-    }
-
-  for (guint i = 0; i < n_futures; i++)
     dex_future_chain (future_set->futures[i], DEX_FUTURE (future_set));
 
   return future_set;
