@@ -77,6 +77,8 @@ libdex = shared_library('dex-@0@'.format(api_version),
        install: true,
 )
 
+libdex_dep_sources = []
+
 install_headers(libdex_headers, subdir: 'libdex')
 
 pkg = import('pkgconfig')
@@ -87,26 +89,29 @@ pkg.generate(
      filebase: 'libdex-' + api_version,
       version: meson.project_version(),
       subdirs: 'libdex',
-     requires: ['gobject-2.0'],
+     requires: ['gio-2.0'],
   install_dir: join_paths(get_option('libdir'), 'pkgconfig')
 )
 
-gnome = import('gnome')
-libdex_gir = gnome.generate_gir(libdex,
-              sources: [libdex_sources, libdex_headers],
-            nsversion: api_version,
-            namespace: 'Dex',
-        symbol_prefix: 'dex',
-    identifier_prefix: 'Dex',
-             includes: ['GObject-2.0'],
-              install: true,
-	       header: 'libdex.h',
-           extra_args: ['-DDEX_COMPILATION'],
-)
+if get_option('introspection').enabled()
+  gnome = import('gnome')
+  libdex_gir = gnome.generate_gir(libdex,
+                sources: [libdex_sources, libdex_headers],
+              nsversion: api_version,
+              namespace: 'Dex',
+          symbol_prefix: 'dex',
+      identifier_prefix: 'Dex',
+               includes: ['Gio-2.0'],
+                install: true,
+                 header: 'libdex.h',
+             extra_args: ['-DDEX_COMPILATION'],
+  )
+  libdex_dep_sources += [libdex_gir]
+endif
 
 libdex_dep = declare_dependency(
             link_with: libdex,
   include_directories: include_directories('.'),
          dependencies: libdex_deps,
-              sources: [libdex_gir],
+              sources: [libdex_dep_sources],
 )

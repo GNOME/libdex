@@ -1,0 +1,6 @@
+option('docs',
+       type: 'boolean', value: false,
+       description: 'Build reference manual (requires gi-doc and gobject-introspection)')
+option('introspection',
+       type: 'feature', value: 'auto',
+       description: 'Generate gir data (requires gobject-introspection)')
