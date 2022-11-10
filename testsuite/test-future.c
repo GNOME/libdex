@@ -354,6 +354,58 @@ ASYNC_TEST_PTR (gpointer, POINTER, pointer, pointer, "a-pointer", cmpptr, (gpoin
 
 ASYNC_TEST_PTR (GObject, OBJECT, pointer, object, instance, cmpptr, g_object_ref(instance), g_object_unref)
 
+#define ASYNC_TEST_ERROR(T, NAME, propagate) \
+typedef struct G_PASTE (_Test, T) G_PASTE (Test, T); \
+static void \
+G_PASTE (test_async_, T) (G_PASTE (Test, T)   *instance, \
+                          GCancellable        *cancellable, \
+                          GAsyncReadyCallback  callback, \
+                          gpointer             user_data) \
+{ \
+  GTask *task = g_task_new (instance, cancellable, callback, user_data); \
+  g_assert_true (G_IS_OBJECT (instance)); \
+  g_assert_true (!cancellable || G_IS_CANCELLABLE (cancellable)); \
+  g_assert_true (callback != NULL); \
+  g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED, "Failed"); \
+  g_object_unref (task); \
+} \
+static T * \
+G_PASTE (test_finish_, T)(G_PASTE (Test, T) *instance, GAsyncResult *result, GError **error) \
+{ \
+  g_assert_true (G_IS_TASK (result)); \
+  g_assert_true (G_IS_OBJECT (instance)); \
+  return G_PASTE (g_task_propagate_, propagate) (G_TASK (result), error); \
+} \
+static DexFuture * \
+G_PASTE (test_complete_, T) (DexFuture *future, gpointer user_data) \
+{ \
+  GMainLoop *main_loop = user_data; \
+  GError *error = NULL; \
+  const GValue *value = dex_future_get_value (future, &error); \
+  g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_REJECTED); \
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED); \
+  g_assert_null (value); \
+  g_main_loop_quit (main_loop); \
+  return NULL; \
+} \
+static void \
+G_PASTE (test_async_pair_, T) (void) \
+{ \
+  GMainLoop *main_loop = g_main_loop_new (NULL, FALSE); \
+  GObject *instance = G_OBJECT (g_menu_new ()); \
+  DexFuture *future = dex_async_pair_new (instance, \
+                                          &G_PASTE (DEX_ASYNC_PAIR_INFO_, NAME) (G_PASTE (test_async_, T), \
+                                                                                 G_PASTE (test_finish_, T))); \
+  future = dex_future_finally (future, G_PASTE (test_complete_, T), main_loop, NULL); \
+  g_main_loop_run (main_loop); \
+  dex_unref (future); \
+  g_clear_object (&instance); \
+  g_main_loop_unref (main_loop); \
+}
+
+typedef GObject ErrorTest;
+ASYNC_TEST_ERROR (ErrorTest, OBJECT, pointer)
+
 static void
 test_future_all (void)
 {
@@ -597,6 +649,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/AsyncPair/string", test_async_pair_char);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/object", test_async_pair_GObject);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/pointer", test_async_pair_gpointer);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/GError", test_async_pair_ErrorTest);
   g_test_add_func ("/Dex/TestSuite/Future/all", test_future_all);
   g_test_add_func ("/Dex/TestSuite/Future/all_race", test_future_all_race);
   g_test_add_func ("/Dex/TestSuite/Future/any", test_future_any);
