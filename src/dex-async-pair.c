@@ -31,6 +31,7 @@ typedef struct _DexAsyncPair
 {
   DexFuture parent_instance;
   gpointer instance;
+  GCancellable *cancellable;
   DexAsyncPairInfo info;
 } DexAsyncPair;
 
@@ -42,11 +43,20 @@ typedef struct _DexAsyncPairClass
 DEX_DEFINE_FINAL_TYPE (DexAsyncPair, dex_async_pair, DEX_TYPE_FUTURE)
 
 static void
+dex_async_pair_discard (DexFuture *future)
+{
+  DexAsyncPair *async_pair = DEX_ASYNC_PAIR (future);
+
+  g_cancellable_cancel (async_pair->cancellable);
+}
+
+static void
 dex_async_pair_finalize (DexObject *object)
 {
   DexAsyncPair *async_pair = DEX_ASYNC_PAIR (object);
 
   g_clear_object (&async_pair->instance);
+  g_clear_object (&async_pair->cancellable);
 
   DEX_OBJECT_CLASS (dex_async_pair_parent_class)->finalize (object);
 }
@@ -55,13 +65,17 @@ static void
 dex_async_pair_class_init (DexAsyncPairClass *async_pair_class)
 {
   DexObjectClass *object_class = DEX_OBJECT_CLASS (async_pair_class);
+  DexFutureClass *future_class = DEX_FUTURE_CLASS (async_pair_class);
 
   object_class->finalize = dex_async_pair_finalize;
+
+  future_class->discard = dex_async_pair_discard;
 }
 
 static void
 dex_async_pair_init (DexAsyncPair *async_pair)
 {
+  async_pair->cancellable = g_cancellable_new ();
 }
 
 static void
@@ -77,6 +91,14 @@ dex_async_pair_ready_callback (GObject      *object,
   g_assert (G_IS_OBJECT (object));
   g_assert (G_IS_ASYNC_RESULT (result));
   g_assert (DEX_IS_ASYNC_PAIR (async_pair));
+
+  if (g_cancellable_is_cancelled (async_pair->cancellable))
+    {
+      error = g_error_new_literal (G_IO_ERROR,
+                                   G_IO_ERROR_CANCELLED,
+                                   "Operation cancelled");
+      goto complete;
+    }
 
 #define FINISH_AS(ap, TYPE) \
   (((TYPE (*) (gpointer, GAsyncResult*, GError**))ap->info.finish) (ap->instance, result, &error))
@@ -160,6 +182,7 @@ dex_async_pair_ready_callback (GObject      *object,
 
 #undef FINISH_AS
 
+complete:
   if (error != NULL)
     dex_future_complete (DEX_FUTURE (async_pair), NULL, g_steal_pointer (&error));
   else
@@ -179,18 +202,16 @@ dex_async_pair_new (gpointer                instance,
   g_return_val_if_fail (instance != NULL, NULL);
   g_return_val_if_fail (info != NULL, NULL);
 
+  async_func = info->async;
+
   async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
   async_pair->instance = g_object_ref (instance);
   async_pair->info = *info;
 
-  /* TODO: How can we propagate cancellable state back to the
-   * the async_func? We can probably teach the muxer future to
-   * notify other futures they are no longer needed, and that
-   * could propagate to a cancellable?
-   */
-
-  async_func = info->async;
-  async_func (instance, NULL, dex_async_pair_ready_callback, dex_ref (async_pair));
+  async_func (instance,
+              async_pair->cancellable,
+              dex_async_pair_ready_callback,
+              dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
 }
