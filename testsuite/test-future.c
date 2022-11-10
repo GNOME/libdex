@@ -304,7 +304,7 @@ G_PASTE (test_async_, T) (G_PASTE (Test, T)   *instance, \
   g_assert_true (G_IS_OBJECT (instance)); \
   g_assert_true (!cancellable || G_IS_CANCELLABLE (cancellable)); \
   g_assert_true (callback != NULL); \
-  G_PASTE (g_task_return_, propagate)(task, copyfunc (res), (GDestroyNotify)freefunc); \
+  G_PASTE (g_task_return_, propagate)(task, copyfunc, (GDestroyNotify)freefunc); \
   g_object_unref (task); \
 } \
 static T * \
@@ -317,14 +317,16 @@ G_PASTE (test_finish_, T)(G_PASTE (Test, T) *instance, GAsyncResult *result, GEr
 static DexFuture * \
 G_PASTE (test_complete_, T) (DexFuture *future, gpointer user_data) \
 { \
-  GMainLoop *main_loop = user_data; \
+  gpointer *state = user_data; \
+  GMainLoop *main_loop = state[0]; \
+  G_GNUC_UNUSED gpointer instance = state[1]; \
   GError *error = NULL; \
   const GValue *value = dex_future_get_value (future, &error); \
   const T *ret = G_PASTE (g_value_get_, gvalue) (value); \
   g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_RESOLVED); \
   g_assert_no_error (error); \
   g_assert_true (G_PASTE (G_VALUE_HOLDS_, NAME)(value)); \
-  G_PASTE (g_assert_, cmp) (ret, ==, res); \
+  g_assert_true (cmp(ret,res)); \
   g_main_loop_quit (main_loop); \
   return NULL; \
 } \
@@ -332,74 +334,25 @@ static void \
 G_PASTE (test_async_pair_, T) (void) \
 { \
   GMainLoop *main_loop = g_main_loop_new (NULL, FALSE); \
-  GObject *object = G_OBJECT (g_menu_new ()); \
-  DexFuture *future = dex_async_pair_new (object, \
+  GObject *instance = G_OBJECT (g_menu_new ()); \
+  gpointer state[2] = { main_loop, instance }; \
+  DexFuture *future = dex_async_pair_new (instance, \
                                           &G_PASTE (DEX_ASYNC_PAIR_INFO_, NAME) (G_PASTE (test_async_, T), \
                                                                                  G_PASTE (test_finish_, T))); \
-  future = dex_future_finally (future, G_PASTE (test_complete_, T), main_loop, NULL); \
+  future = dex_future_finally (future, G_PASTE (test_complete_, T), state, NULL); \
   g_main_loop_run (main_loop); \
   dex_unref (future); \
-  g_clear_object (&object); \
+  g_clear_object (&instance); \
   g_main_loop_unref (main_loop); \
 }
 
-ASYNC_TEST_PTR (char, STRING, pointer, string, "string-test", cmpstr, g_strdup, g_free)
+ASYNC_TEST_PTR (char, STRING, pointer, string, "string-test", g_str_equal, g_strdup("string-test"), g_free)
 
-typedef struct _AsyncObject AsyncObject;
+static void ptr_free (gpointer p) { }
+static gboolean cmpptr (gconstpointer a, gconstpointer b) { return a == b; }
+ASYNC_TEST_PTR (gpointer, POINTER, pointer, pointer, "a-pointer", cmpptr, (gpointer)"a-pointer", ptr_free)
 
-static void
-test_object_async (AsyncObject         *instance,
-                   GCancellable        *cancellable,
-                   GAsyncReadyCallback  callback,
-                   gpointer             user_data)
-{
-  GTask *task = g_task_new (instance, cancellable, callback, user_data);
-  g_assert_true (G_IS_OBJECT (instance));
-  g_assert_true (!cancellable || G_IS_CANCELLABLE (cancellable));
-  g_assert_true (callback != NULL);
-  g_task_return_pointer (task, g_object_ref (instance), g_object_unref);
-  g_object_unref (task);
-}
-
-static GObject *
-test_object_finish (AsyncObject   *instance,
-                    GAsyncResult  *result,
-                    GError       **error)
-{
-  g_assert_true (G_IS_TASK (result));
-  g_assert_true (G_IS_OBJECT (instance));
-  return g_task_propagate_pointer (G_TASK (result), error);
-}
-
-static DexFuture *
-test_object_complete (DexFuture *future,
-                      gpointer   user_data)
-{
-  GMainLoop *main_loop = user_data;
-  GError *error = NULL;
-  const GValue *value = dex_future_get_value (future, &error);
-  g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_RESOLVED);
-  g_assert_no_error (error);
-  g_assert_true (G_VALUE_HOLDS_OBJECT (value));
-  g_assert_nonnull (g_value_get_object (value));
-  g_main_loop_quit (main_loop);
-  return NULL;
-}
-
-static void
-test_async_pair_object (void)
-{
-  GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
-  GObject *object = G_OBJECT (g_menu_new ());
-  DexFuture *future = dex_async_pair_new (object,
-                                          &DEX_ASYNC_PAIR_INFO_OBJECT (test_object_async,
-                                                                       test_object_finish));
-  future = dex_future_finally (future, test_object_complete, main_loop, NULL);
-  g_main_loop_run (main_loop);
-  dex_unref (future);
-  g_clear_object (&object);
-  g_main_loop_unref (main_loop);
-}
+ASYNC_TEST_PTR (GObject, OBJECT, pointer, object, instance, cmpptr, g_object_ref(instance), g_object_unref)
 
 static void
 test_future_all (void)
@@ -642,7 +595,8 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/AsyncPair/int", test_async_pair_int);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/uint", test_async_pair_uint);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/string", test_async_pair_char);
-  g_test_add_func ("/Dex/TestSuite/AsyncPair/object", test_async_pair_object);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/object", test_async_pair_GObject);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/pointer", test_async_pair_gpointer);
   g_test_add_func ("/Dex/TestSuite/Future/all", test_future_all);
   g_test_add_func ("/Dex/TestSuite/Future/all_race", test_future_all_race);
   g_test_add_func ("/Dex/TestSuite/Future/any", test_future_any);
