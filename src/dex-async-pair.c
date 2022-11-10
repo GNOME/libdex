@@ -71,6 +71,7 @@ dex_async_pair_ready_callback (GObject      *object,
   DexAsyncPair *async_pair = user_data;
   GValue value = G_VALUE_INIT;
   GError *error = NULL;
+  GType gtype;
 
   g_assert (G_IS_OBJECT (object));
   g_assert (G_IS_ASYNC_RESULT (result));
@@ -79,21 +80,13 @@ dex_async_pair_ready_callback (GObject      *object,
 #define FINISH_AS(ap, TYPE) \
   (((TYPE (*) (gpointer, GAsyncResult*, GError**))ap->info.finish) (ap->instance, result, &error))
 
-  switch (async_pair->info.return_type)
+  gtype = async_pair->info.return_type;
+
+  switch (gtype)
     {
     case G_TYPE_BOOLEAN:
       g_value_init (&value, G_TYPE_BOOLEAN);
       g_value_set_boolean (&value, FINISH_AS (async_pair, gboolean));
-      break;
-
-    case G_TYPE_ENUM:
-      g_value_init (&value, G_TYPE_ENUM);
-      g_value_set_enum (&value, FINISH_AS (async_pair, guint));
-      break;
-
-    case G_TYPE_FLAGS:
-      g_value_init (&value, G_TYPE_FLAGS);
-      g_value_set_flags (&value, FINISH_AS (async_pair, guint));
       break;
 
     case G_TYPE_INT:
@@ -141,11 +134,26 @@ dex_async_pair_ready_callback (GObject      *object,
       g_value_take_object (&value, FINISH_AS (async_pair, gpointer));
       break;
 
+    case G_TYPE_ENUM:
+    case G_TYPE_FLAGS:
     default:
-      error = g_error_new (G_IO_ERROR,
-                           G_IO_ERROR_NOT_SUPPORTED,
-                           "Type '%s' is not currently supported by DexAsyncPair!",
-                           g_type_name (async_pair->info.return_type));
+      if (gtype == G_TYPE_ENUM || g_type_is_a (gtype, G_TYPE_ENUM))
+        {
+          g_value_init (&value, gtype);
+          g_value_set_enum (&value, FINISH_AS (async_pair, guint));
+        }
+      else if (gtype == G_TYPE_FLAGS || g_type_is_a (gtype, G_TYPE_FLAGS))
+        {
+          g_value_init (&value, gtype);
+          g_value_set_flags (&value, FINISH_AS (async_pair, guint));
+        }
+      else
+        {
+          error = g_error_new (G_IO_ERROR,
+                               G_IO_ERROR_NOT_SUPPORTED,
+                               "Type '%s' is not currently supported by DexAsyncPair!",
+                               g_type_name (async_pair->info.return_type));
+        }
       break;
     }
 
