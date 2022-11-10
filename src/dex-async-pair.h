@@ -57,6 +57,9 @@ typedef struct _DexAsyncPairInfo
 #define DEX_ASYNC_PAIR_INFO_STRING(Async, Finish)      \
   DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_STRING)
 
+#define DEX_ASYNC_PAIR_INFO_POINTER(Async, Finish)     \
+  DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_POINTER)
+
 #define DEX_ASYNC_PAIR_INFO_OBJECT(Async, Finish)      \
   DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_OBJECT)
 
