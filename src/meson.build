@@ -81,7 +81,6 @@ libdex_dep_sources = []
 
 install_headers(libdex_headers, subdir: 'libdex')
 
-pkg = import('pkgconfig')
 pkg.generate(
   description: 'A shared library for deferred execution',
     libraries: libdex,
@@ -94,13 +93,14 @@ pkg.generate(
 )
 
 if get_option('introspection').enabled()
-  gnome = import('gnome')
   libdex_gir = gnome.generate_gir(libdex,
                 sources: [libdex_sources, libdex_headers],
               nsversion: api_version,
               namespace: 'Dex',
           symbol_prefix: 'dex',
       identifier_prefix: 'Dex',
+        install_dir_gir: girdir,
+    install_dir_typelib: typelibdir,
                includes: ['Gio-2.0'],
                 install: true,
                  header: 'libdex.h',

@@ -7,6 +7,14 @@ project('libdex', 'c',
 api_version = '1.0'
 
 cc = meson.get_compiler('c')
+gnome = import('gnome')
+pkg = import('pkgconfig')
+
+prefix = get_option('prefix')
+datadir = join_paths(prefix, get_option('datadir'))
+libdir = join_paths(prefix, get_option('libdir'))
+girdir = join_paths(datadir, 'gir-1.0')
+typelibdir = join_paths(libdir, 'girepository-1.0')
 
 package_name = meson.project_name()
 package_string = '@0@-@1@'.format(package_name, api_version)
