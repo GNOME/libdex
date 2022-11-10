@@ -371,7 +371,7 @@ G_PASTE (test_async_, T) (G_PASTE (Test, T)   *instance, \
   g_assert_true (G_IS_OBJECT (instance)); \
   g_assert_true (!cancellable || G_IS_CANCELLABLE (cancellable)); \
   g_assert_true (callback != NULL); \
-  g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED, "Failed"); \
+  g_task_return_new_error (task, DEX_ERROR, DEX_ERROR_DEPENDENCY_FAILED, "Failed"); \
   g_object_unref (task); \
 } \
 static T * \
@@ -388,7 +388,7 @@ G_PASTE (test_complete_, T) (DexFuture *future, gpointer user_data) \
   GError *error = NULL; \
   const GValue *value = dex_future_get_value (future, &error); \
   g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_REJECTED); \
-  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED); \
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_DEPENDENCY_FAILED); \
   g_assert_null (value); \
   g_main_loop_quit (main_loop); \
   return NULL; \
@@ -486,7 +486,7 @@ test_future_set_all_preresolved_error (void)
   value = dex_future_get_value (future, &error);
 
   g_assert_null (value);
-  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_DEPENDENCY_FAILED);
 
   g_clear_error (&error);
   dex_unref (future);
@@ -557,7 +557,7 @@ test_future_all (void)
   ASSERT_STATUS (future, DEX_FUTURE_STATUS_REJECTED);
   value = dex_future_get_value (future, &error);
   g_assert_null (value);
-  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_DEPENDENCY_FAILED);
   g_clear_error (&error);
 
   g_assert_true (DEX_IS_FUTURE_SET (future));
@@ -669,7 +669,7 @@ test_future_any (void)
   ASSERT_STATUS (future, DEX_FUTURE_STATUS_REJECTED);
   value = dex_future_get_value (future, &error);
   g_assert_null (value);
-  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_DEPENDENCY_FAILED);
   g_clear_error (&error);
 
   g_assert_true (DEX_IS_FUTURE_SET (future));

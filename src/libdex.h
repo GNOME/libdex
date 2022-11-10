@@ -30,6 +30,7 @@ G_BEGIN_DECLS
 # include "dex-callable.h"
 # include "dex-cancellable.h"
 # include "dex-enums.h"
+# include "dex-error.h"
 # include "dex-function.h"
 # include "dex-future.h"
 # include "dex-future-set.h"

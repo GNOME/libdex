@@ -23,6 +23,7 @@
 
 #include <gio/gio.h>
 
+#include "dex-error.h"
 #include "dex-future-set-private.h"
 
 typedef struct _DexFutureSet
@@ -107,8 +108,8 @@ dex_future_set_propagate (DexFuture *future,
           else
             dex_future_complete (future,
                                  NULL,
-                                 g_error_new_literal (G_IO_ERROR,
-                                                      G_IO_ERROR_FAILED,
+                                 g_error_new_literal (DEX_ERROR,
+                                                      DEX_ERROR_DEPENDENCY_FAILED,
                                                       "Too many futures failed"));
         }
     }

@@ -24,6 +24,7 @@
 #include <gio/gio.h>
 
 #include "dex-async-pair.h"
+#include "dex-error.h"
 #include "dex-future-private.h"
 
 typedef struct _DexAsyncPair
@@ -149,8 +150,8 @@ dex_async_pair_ready_callback (GObject      *object,
         }
       else
         {
-          error = g_error_new (G_IO_ERROR,
-                               G_IO_ERROR_NOT_SUPPORTED,
+          error = g_error_new (DEX_ERROR,
+                               DEX_ERROR_TYPE_NOT_SUPPORTED,
                                "Type '%s' is not currently supported by DexAsyncPair!",
                                g_type_name (async_pair->info.return_type));
         }

@@ -30,6 +30,8 @@
 static void
 dex_init_once (void)
 {
+  (void)dex_error_quark ();
+
   /* Base object */
   g_type_ensure (DEX_TYPE_OBJECT);
 

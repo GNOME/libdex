@@ -1,7 +1,6 @@
 # TODO
 
  * Lots of course
- * Error types within dex to avoid GIOError
  * Provide notification that a future has resolved/rejected and
    therefore dependent futures can self-cancel.
  * Use above API to auto-cancel requests using DexAsyncPair where

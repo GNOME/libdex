@@ -23,6 +23,7 @@
 
 #include <gio/gio.h>
 
+#include "dex-error.h"
 #include "dex-future-private.h"
 #include "dex-timeout.h"
 
@@ -85,8 +86,8 @@ dex_timeout_source_func (gpointer data)
     {
       dex_future_complete (DEX_FUTURE (timeout),
                            NULL,
-                           g_error_new_literal (G_IO_ERROR,
-                                                G_IO_ERROR_TIMED_OUT,
+                           g_error_new_literal (DEX_ERROR,
+                                                DEX_ERROR_TIMED_OUT,
                                                 "Operation timed out"));
 
       dex_object_lock (timeout);

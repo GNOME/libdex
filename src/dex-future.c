@@ -24,6 +24,7 @@
 #include <gio/gio.h>
 
 #include "dex-block-private.h"
+#include "dex-error.h"
 #include "dex-future-private.h"
 #include "dex-future-set-private.h"
 #include "dex-promise.h"
@@ -155,10 +156,10 @@ dex_future_get_value (DexFuture  *future,
   switch (future->status)
     {
     case DEX_FUTURE_STATUS_PENDING:
-      g_set_error (error,
-                   G_IO_ERROR,
-                   G_IO_ERROR_PENDING,
-                   "Future is pending");
+      g_set_error_literal (error,
+                           DEX_ERROR,
+                           DEX_ERROR_PENDING,
+                           "Future is still pending");
       ret = NULL;
       break;
 
