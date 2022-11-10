@@ -67,7 +67,7 @@ dex_future_set_propagate (DexFuture *future,
       return TRUE;
     }
 
-  switch ((status = dex_future_get_status (completed)))
+  switch ((int)(status = dex_future_get_status (completed)))
     {
     case DEX_FUTURE_STATUS_RESOLVED:
       future_set->n_resolved++;
@@ -77,7 +77,6 @@ dex_future_set_propagate (DexFuture *future,
       future_set->n_rejected++;
       break;
 
-    case DEX_FUTURE_STATUS_PENDING:
     default:
       g_assert_not_reached ();
     }
