@@ -294,6 +294,7 @@ ASYNC_TEST (gint64, G_TYPE_INT64, INT64, int, int64, -123123123L, cmpint)
 ASYNC_TEST (guint64, G_TYPE_UINT64, UINT64, int, uint64, 123123123L, cmpint)
 ASYNC_TEST (glong, G_TYPE_LONG, LONG, int, long, -123123, cmpint)
 ASYNC_TEST (gulong, G_TYPE_ULONG, ULONG, int, ulong, 123123, cmpint)
+ASYNC_TEST (GSubprocessFlags, G_TYPE_SUBPROCESS_FLAGS, FLAGS, int, flags, (G_SUBPROCESS_FLAGS_STDIN_PIPE|G_SUBPROCESS_FLAGS_STDOUT_PIPE), cmpint)
 
 #define ASYNC_TEST_PTR(T, NAME, propagate, gvalue, res, cmp, copyfunc, freefunc) \
 typedef struct G_PASTE (_Test, T) G_PASTE (Test, T); \
@@ -656,6 +657,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/AsyncPair/string", test_async_pair_char);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/object", test_async_pair_GObject);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/pointer", test_async_pair_gpointer);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/flags", test_async_pair_GSubprocessFlags);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/GError", test_async_pair_ErrorTest);
   g_test_add_func ("/Dex/TestSuite/Future/all", test_future_all);
   g_test_add_func ("/Dex/TestSuite/Future/all_race", test_future_all_race);
