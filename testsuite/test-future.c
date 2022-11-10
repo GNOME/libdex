@@ -412,6 +412,66 @@ typedef GObject ErrorTest;
 ASYNC_TEST_ERROR (ErrorTest, OBJECT, pointer)
 
 static void
+test_future_set_any_race_preresolved (void)
+{
+  DexPromise *promise1 = dex_promise_new_for_int (123);
+  DexPromise *promise2 = dex_promise_new_for_int (321);
+  DexFuture *future = dex_future_any_race (DEX_FUTURE (promise1), promise2, NULL);
+  GError *error = NULL;
+  const GValue *value = dex_future_get_value (future, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS_INT (value));
+  g_assert_cmpint (g_value_get_int (value), ==, 123);
+  dex_unref (future);
+}
+
+static void
+test_future_set_all_race_preresolved (void)
+{
+  DexPromise *promise1 = dex_promise_new_for_int (123);
+  DexPromise *promise2 = dex_promise_new_for_int (321);
+  DexFuture *future = dex_future_all_race (DEX_FUTURE (promise1), promise2, NULL);
+  GError *error = NULL;
+  const GValue *value = dex_future_get_value (future, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS_BOOLEAN (value));
+  g_assert_cmpint (g_value_get_boolean (value), ==, TRUE);
+  dex_unref (future);
+}
+
+static void
+test_future_set_any_preresolved (void)
+{
+  DexPromise *promise1 = dex_promise_new_for_int (123);
+  DexPromise *promise2 = dex_promise_new_for_int (321);
+  DexFuture *future = dex_future_any (DEX_FUTURE (promise1), promise2, NULL);
+  GError *error = NULL;
+  const GValue *value = dex_future_get_value (future, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS_INT (value));
+  g_assert_cmpint (g_value_get_int (value), ==, 123);
+  dex_unref (future);
+}
+
+static void
+test_future_set_all_preresolved (void)
+{
+  DexPromise *promise1 = dex_promise_new_for_int (123);
+  DexPromise *promise2 = dex_promise_new_for_int (321);
+  DexFuture *future = dex_future_all (DEX_FUTURE (promise1), promise2, NULL);
+  GError *error = NULL;
+  const GValue *value = dex_future_get_value (future, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS_BOOLEAN (value));
+  g_assert_cmpint (g_value_get_boolean (value), ==, TRUE);
+  dex_unref (future);
+}
+
+static void
 test_future_all (void)
 {
   DexCancellable *cancel1 = dex_cancellable_new ();
@@ -661,6 +721,10 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/AsyncPair/flags", test_async_pair_GSubprocessFlags);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/enums", test_async_pair_DexFutureStatus);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/GError", test_async_pair_ErrorTest);
+  g_test_add_func ("/Dex/TestSuite/Future/any_race_preresolved", test_future_set_any_race_preresolved);
+  g_test_add_func ("/Dex/TestSuite/Future/all_race_preresolved", test_future_set_all_race_preresolved);
+  g_test_add_func ("/Dex/TestSuite/Future/any_preresolved", test_future_set_any_preresolved);
+  g_test_add_func ("/Dex/TestSuite/Future/all_preresolved", test_future_set_all_preresolved);
   g_test_add_func ("/Dex/TestSuite/Future/all", test_future_all);
   g_test_add_func ("/Dex/TestSuite/Future/all_race", test_future_all_race);
   g_test_add_func ("/Dex/TestSuite/Future/any", test_future_any);
