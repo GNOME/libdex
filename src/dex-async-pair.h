@@ -50,9 +50,18 @@ typedef struct _DexAsyncPairInfo
 
 #define DEX_ASYNC_PAIR_INFO_INT(Async, Finish)         \
   DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_INT)
-
 #define DEX_ASYNC_PAIR_INFO_UINT(Async, Finish)        \
   DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_UINT)
+
+#define DEX_ASYNC_PAIR_INFO_INT64(Async, Finish)       \
+  DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_INT64)
+#define DEX_ASYNC_PAIR_INFO_UINT64(Async, Finish)      \
+  DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_UINT64)
+
+#define DEX_ASYNC_PAIR_INFO_LONG(Async, Finish)        \
+  DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_LONG)
+#define DEX_ASYNC_PAIR_INFO_ULONG(Async, Finish)       \
+  DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_ULONG)
 
 #define DEX_ASYNC_PAIR_INFO_STRING(Async, Finish)      \
   DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_STRING)

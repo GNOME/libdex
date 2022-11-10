@@ -106,6 +106,26 @@ dex_async_pair_ready_callback (GObject      *object,
       g_value_set_uint (&value, FINISH_AS (async_pair, guint));
       break;
 
+    case G_TYPE_INT64:
+      g_value_init (&value, G_TYPE_INT64);
+      g_value_set_int64 (&value, FINISH_AS (async_pair, gint64));
+      break;
+
+    case G_TYPE_UINT64:
+      g_value_init (&value, G_TYPE_UINT64);
+      g_value_set_uint64 (&value, FINISH_AS (async_pair, guint64));
+      break;
+
+    case G_TYPE_LONG:
+      g_value_init (&value, G_TYPE_LONG);
+      g_value_set_long (&value, FINISH_AS (async_pair, glong));
+      break;
+
+    case G_TYPE_ULONG:
+      g_value_init (&value, G_TYPE_ULONG);
+      g_value_set_ulong (&value, FINISH_AS (async_pair, gulong));
+      break;
+
     case G_TYPE_STRING:
       g_value_init (&value, G_TYPE_STRING);
       g_value_take_string (&value, FINISH_AS (async_pair, char *));

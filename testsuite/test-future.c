@@ -238,7 +238,7 @@ test_promise_resolve (void)
   dex_unref (promise);
 }
 
-#define ASYNC_TEST(T, NAME, propagate, gvalue, res, cmp) \
+#define ASYNC_TEST(T, TYPE, NAME, propagate, gvalue, res, cmp) \
 typedef struct G_PASTE (_Test, T) G_PASTE (Test, T); \
 static void \
 G_PASTE (test_async_, T) (G_PASTE (Test, T)   *instance, \
@@ -279,8 +279,7 @@ G_PASTE (test_async_pair_, T) (void) \
   GMainLoop *main_loop = g_main_loop_new (NULL, FALSE); \
   GObject *object = G_OBJECT (g_menu_new ()); \
   DexFuture *future = dex_async_pair_new (object, \
-                                          &G_PASTE (DEX_ASYNC_PAIR_INFO_, NAME) (G_PASTE (test_async_, T), \
-                                                                                 G_PASTE (test_finish_, T))); \
+                                          &DEX_ASYNC_PAIR_INFO (G_PASTE (test_async_, T), G_PASTE (test_finish_, T), TYPE)); \
   future = dex_future_finally (future, G_PASTE (test_complete_, T), main_loop, NULL); \
   g_main_loop_run (main_loop); \
   dex_unref (future); \
@@ -288,9 +287,13 @@ G_PASTE (test_async_pair_, T) (void) \
   g_main_loop_unref (main_loop); \
 }
 
-ASYNC_TEST (gboolean, BOOLEAN, boolean, boolean, TRUE, cmpint)
-ASYNC_TEST (int, INT, int, int, TRUE, cmpint)
-ASYNC_TEST (uint, UINT, int, uint, TRUE, cmpint)
+ASYNC_TEST (gboolean, G_TYPE_BOOLEAN, BOOLEAN, boolean, boolean, TRUE, cmpint)
+ASYNC_TEST (int, G_TYPE_INT, INT, int, int, 123, cmpint)
+ASYNC_TEST (uint, G_TYPE_UINT, UINT, int, uint, 321, cmpint)
+ASYNC_TEST (gint64, G_TYPE_INT64, INT64, int, int64, -123123123L, cmpint)
+ASYNC_TEST (guint64, G_TYPE_UINT64, UINT64, int, uint64, 123123123L, cmpint)
+ASYNC_TEST (glong, G_TYPE_LONG, LONG, int, long, -123123, cmpint)
+ASYNC_TEST (gulong, G_TYPE_ULONG, ULONG, int, ulong, 123123, cmpint)
 
 #define ASYNC_TEST_PTR(T, NAME, propagate, gvalue, res, cmp, copyfunc, freefunc) \
 typedef struct G_PASTE (_Test, T) G_PASTE (Test, T); \
@@ -646,6 +649,10 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/AsyncPair/boolean", test_async_pair_gboolean);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/int", test_async_pair_int);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/uint", test_async_pair_uint);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/long", test_async_pair_glong);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/ulong", test_async_pair_gulong);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/int64", test_async_pair_gint64);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/uint64", test_async_pair_guint64);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/string", test_async_pair_char);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/object", test_async_pair_GObject);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/pointer", test_async_pair_gpointer);
