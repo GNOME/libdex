@@ -52,6 +52,7 @@ dex_future_set_propagate (DexFuture *future,
   DexFutureSet *future_set = DEX_FUTURE_SET (future);
   const GValue *resolved = NULL;
   DexFutureStatus status;
+  gboolean do_discard = FALSE;
   GError *rejected = NULL;
   guint n_active = 0;
 
@@ -94,6 +95,8 @@ dex_future_set_propagate (DexFuture *future,
 
   if (n_active == 0)
     {
+      do_discard = TRUE;
+
       if (resolved != NULL)
         {
           if (future_set->flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE)
@@ -115,13 +118,26 @@ dex_future_set_propagate (DexFuture *future,
     }
   else if (future_set->flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST)
     {
+      do_discard = TRUE;
+
       if (resolved && (future_set->flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE) != 0)
         dex_future_complete (future, resolved, NULL);
       else if (rejected && (future_set->flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT) != 0)
         dex_future_complete (future, NULL, g_steal_pointer (&rejected));
+      else
+        do_discard = FALSE;
     }
 
   g_clear_error (&rejected);
+
+  if (do_discard)
+    {
+      if (dex_future_get_status (future) != DEX_FUTURE_STATUS_PENDING)
+        {
+          for (guint i = 0; i < future_set->n_futures; i++)
+            dex_future_discard (future_set->futures[i], future);
+        }
+    }
 
   return TRUE;
 }
