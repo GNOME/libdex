@@ -14,6 +14,7 @@ prefix = get_option('prefix')
 datadir = join_paths(prefix, get_option('datadir'))
 libdir = join_paths(prefix, get_option('libdir'))
 girdir = join_paths(datadir, 'gir-1.0')
+vapidir = join_paths(datadir, 'vala', 'vapi')
 typelibdir = join_paths(libdir, 'girepository-1.0')
 
 package_name = meson.project_name()
