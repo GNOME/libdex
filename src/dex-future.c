@@ -291,11 +291,20 @@ dex_future_discard (DexFuture *future,
   g_return_if_fail (DEX_IS_FUTURE (future));
   g_return_if_fail (DEX_IS_FUTURE (chained));
 
+  dex_object_lock (future);
+
   /* Mark the chained future as no longer necessary to dispatch to.
    * If so, we can possibly request that @future discard any ongoing
    * operations so that we propagate cancellation.
+   *
+   * However, if the status has already completed, just short-circuit.
    */
-  dex_object_lock (future);
+  if (future->status != DEX_FUTURE_STATUS_PENDING)
+    {
+      dex_object_unlock (future);
+      return;
+    }
+
   for (const GList *iter = future->chained; iter; iter = iter->next)
     {
       DexChainedFuture *cf = iter->data;
@@ -318,6 +327,7 @@ dex_future_discard (DexFuture *future,
           dex_unref (obj);
         }
     }
+
   dex_object_unlock (future);
 
   /* If we discarded the chained future and there are no more futures
