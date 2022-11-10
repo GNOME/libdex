@@ -23,22 +23,8 @@
 
 #include <gio/gio.h>
 
-#include "dex-async-pair.h"
+#include "dex-async-pair-private.h"
 #include "dex-error.h"
-#include "dex-future-private.h"
-
-typedef struct _DexAsyncPair
-{
-  DexFuture parent_instance;
-  gpointer instance;
-  GCancellable *cancellable;
-  DexAsyncPairInfo info;
-} DexAsyncPair;
-
-typedef struct _DexAsyncPairClass
-{
-  DexFutureClass parent_class;
-} DexAsyncPairClass;
 
 DEX_DEFINE_FINAL_TYPE (DexAsyncPair, dex_async_pair, DEX_TYPE_FUTURE)
 
