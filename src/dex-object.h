@@ -32,6 +32,8 @@ G_BEGIN_DECLS
 #define DEX_IS_OBJECT(obj)        (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_OBJECT))
 #define DEX_OBJECT_TYPE(obj)      (G_TYPE_FROM_INSTANCE(obj))
 #define DEX_OBJECT_TYPE_NAME(obj) (g_type_name(DEX_OBJECT_TYPE(obj)))
+
+typedef struct _DexObject DexObject;
 #define dex_clear(p)              g_clear_pointer(p, dex_unref)
 
 DEX_AVAILABLE_IN_ALL
