@@ -472,6 +472,57 @@ test_future_set_all_preresolved (void)
 }
 
 static void
+test_future_set_all_preresolved_error (void)
+{
+  DexPromise *promise1 = dex_promise_new_for_int (123);
+  DexCancellable *cancel1 = dex_cancellable_new ();
+  DexFuture *future;
+  GError *error = NULL;
+  const GValue *value;
+
+  dex_cancellable_cancel (cancel1);
+
+  future = dex_future_all (DEX_FUTURE (promise1), cancel1, NULL);
+  value = dex_future_get_value (future, &error);
+
+  g_assert_null (value);
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+
+  g_clear_error (&error);
+  dex_unref (future);
+}
+
+static void
+test_future_set_any_preresolved_error (void)
+{
+  DexPromise *promise1 = dex_promise_new ();
+  DexCancellable *cancel1 = dex_cancellable_new ();
+  DexFuture *future;
+  GError *error = NULL;
+  const GValue *value;
+
+  dex_cancellable_cancel (cancel1);
+
+  future = dex_future_any (DEX_FUTURE (promise1), cancel1, NULL);
+  ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (promise1, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_PENDING);
+
+  dex_promise_resolve_int (promise1, 123);
+  ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (promise1, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_RESOLVED);
+
+  value = dex_future_get_value (future, &error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS_INT (value));
+  g_assert_cmpint (g_value_get_int (value), ==, 123);
+
+  g_clear_error (&error);
+  dex_unref (future);
+}
+
+static void
 test_future_all (void)
 {
   DexCancellable *cancel1 = dex_cancellable_new ();
@@ -725,6 +776,8 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Future/all_race_preresolved", test_future_set_all_race_preresolved);
   g_test_add_func ("/Dex/TestSuite/Future/any_preresolved", test_future_set_any_preresolved);
   g_test_add_func ("/Dex/TestSuite/Future/all_preresolved", test_future_set_all_preresolved);
+  g_test_add_func ("/Dex/TestSuite/Future/all_preresolved_error", test_future_set_all_preresolved_error);
+  g_test_add_func ("/Dex/TestSuite/Future/any_preresolved_error", test_future_set_any_preresolved_error);
   g_test_add_func ("/Dex/TestSuite/Future/all", test_future_all);
   g_test_add_func ("/Dex/TestSuite/Future/all_race", test_future_all_race);
   g_test_add_func ("/Dex/TestSuite/Future/any", test_future_any);
