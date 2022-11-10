@@ -97,12 +97,12 @@ dex_async_pair_ready_callback (GObject      *object,
       break;
 
     case G_TYPE_INT:
-      g_value_init (&value, G_TYPE_POINTER);
+      g_value_init (&value, G_TYPE_INT);
       g_value_set_int (&value, FINISH_AS (async_pair, int));
       break;
 
     case G_TYPE_UINT:
-      g_value_init (&value, G_TYPE_POINTER);
+      g_value_init (&value, G_TYPE_UINT);
       g_value_set_uint (&value, FINISH_AS (async_pair, guint));
       break;
 

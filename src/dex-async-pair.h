@@ -44,8 +44,15 @@ typedef struct _DexAsyncPairInfo
     .finish = Finish,                                  \
     .return_type = ReturnType,                         \
   }
+
 #define DEX_ASYNC_PAIR_INFO_BOOLEAN(Async, Finish)     \
   DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_BOOLEAN)
+
+#define DEX_ASYNC_PAIR_INFO_INT(Async, Finish)         \
+  DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_INT)
+
+#define DEX_ASYNC_PAIR_INFO_UINT(Async, Finish)        \
+  DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_UINT)
 
 #define DEX_ASYNC_PAIR_INFO_STRING(Async, Finish)      \
   DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_STRING)
