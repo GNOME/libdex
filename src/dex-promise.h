@@ -52,6 +52,39 @@ DEX_AVAILABLE_IN_ALL
 void        dex_promise_resolve         (DexPromise   *promise,
                                          const GValue *value);
 DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_int     (DexPromise   *promise,
+                                         int           value);
+DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_uint    (DexPromise   *promise,
+                                         guint         value);
+DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_int64   (DexPromise   *promise,
+                                         gint64        value);
+DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_uint64  (DexPromise   *promise,
+                                         guint64       value);
+DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_long    (DexPromise   *promise,
+                                         glong         value);
+DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_ulong   (DexPromise   *promise,
+                                         glong         value);
+DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_float   (DexPromise   *promise,
+                                         float         value);
+DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_double  (DexPromise   *promise,
+                                         double        value);
+DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_boolean (DexPromise   *promise,
+                                         gboolean      value);
+DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_string  (DexPromise   *promise,
+                                         char         *value);
+DEX_AVAILABLE_IN_ALL
+void        dex_promise_resolve_object  (DexPromise   *promise,
+                                         gpointer      object);
+DEX_AVAILABLE_IN_ALL
 void        dex_promise_reject          (DexPromise   *promise,
                                          GError       *error);
 

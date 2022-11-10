@@ -197,3 +197,105 @@ dex_promise_reject (DexPromise *promise,
 
   dex_future_complete (DEX_FUTURE (promise), NULL, error);
 }
+
+void
+dex_promise_resolve_int (DexPromise *promise,
+                         int         value)
+{
+  GValue gvalue = {G_TYPE_INT, {{.v_int = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+}
+
+void
+dex_promise_resolve_uint (DexPromise *promise,
+                          guint       value)
+{
+  GValue gvalue = {G_TYPE_UINT, {{.v_uint = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+}
+
+void
+dex_promise_resolve_int64 (DexPromise *promise,
+                           gint64      value)
+{
+  GValue gvalue = {G_TYPE_INT64, {{.v_int64 = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+}
+
+void
+dex_promise_resolve_uint64 (DexPromise *promise,
+                            guint64     value)
+{
+  GValue gvalue = {G_TYPE_UINT64, {{.v_int64 = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+}
+
+void
+dex_promise_resolve_long (DexPromise *promise,
+                          glong       value)
+{
+  GValue gvalue = {G_TYPE_LONG, {{.v_long = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+}
+
+void
+dex_promise_resolve_ulong (DexPromise *promise,
+                           glong       value)
+{
+  GValue gvalue = {G_TYPE_ULONG, {{.v_ulong = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+}
+
+void
+dex_promise_resolve_float (DexPromise *promise,
+                           float       value)
+{
+  GValue gvalue = {G_TYPE_FLOAT, {{.v_float = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+}
+
+void
+dex_promise_resolve_double (DexPromise *promise,
+                            double      value)
+{
+  GValue gvalue = {G_TYPE_DOUBLE, {{.v_double = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+}
+
+void
+dex_promise_resolve_boolean (DexPromise *promise,
+                             gboolean    value)
+{
+  GValue gvalue = {G_TYPE_BOOLEAN, {{.v_int = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+}
+
+/**
+ * dex_promise_resolve_string:
+ * @self: a #DexPromise
+ * @value: (transfer full): a string to use to resolve the promise
+ *
+ */
+void
+dex_promise_resolve_string (DexPromise *promise,
+                            char       *value)
+{
+  GValue gvalue = {G_TYPE_STRING, {{.v_pointer = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+  g_free (value);
+}
+
+/**
+ * dex_promise_resolve_object:
+ * @self: a #DexPromise
+ * @value: (transfer full): a #GObject
+ *
+ */
+void
+dex_promise_resolve_object (DexPromise *promise,
+                            gpointer    value)
+{
+  GValue gvalue = {G_OBJECT_TYPE (value), {{.v_pointer = value}, {.v_int = 0}}};
+  dex_promise_resolve (promise, &gvalue);
+  g_object_unref (value);
+}
