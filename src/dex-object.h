@@ -34,7 +34,6 @@ G_BEGIN_DECLS
 #define DEX_OBJECT_TYPE_NAME(obj) (g_type_name(DEX_OBJECT_TYPE(obj)))
 
 typedef struct _DexObject DexObject;
-#define dex_clear(p)              g_clear_pointer(p, dex_unref)
 
 DEX_AVAILABLE_IN_ALL
 GType    dex_object_get_type (void) G_GNUC_CONST;
@@ -42,5 +41,15 @@ DEX_AVAILABLE_IN_ALL
 gpointer dex_ref             (gpointer  object);
 DEX_AVAILABLE_IN_ALL
 void     dex_unref           (gpointer  object);
+
+static inline void
+dex_clear (gpointer data)
+{
+  DexObject **objptr = data;
+  DexObject *obj = *objptr;
+  *objptr = NULL;
+  if (obj != NULL)
+    dex_unref (obj);
+}
 
 G_END_DECLS
