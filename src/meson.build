@@ -110,7 +110,7 @@ if get_option('introspection').enabled()
 endif
 
 if get_option('vapi')
-  if not get_option('introspection').allowed()
+  if not get_option('introspection').enabled()
     error('-Dvapi=true requires -Dintrospection=enabled')
   endif
 
