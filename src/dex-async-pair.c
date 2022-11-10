@@ -63,9 +63,6 @@ dex_async_pair_init (DexAsyncPair *async_pair)
 {
 }
 
-#define FINISH_AS(ap, TYPE) \
-  (((TYPE (*) (gpointer, GAsyncResult*, GError**))ap->info.finish) (ap->instance, result, &error))
-
 static void
 dex_async_pair_ready_callback (GObject      *object,
                                GAsyncResult *result,
@@ -78,6 +75,9 @@ dex_async_pair_ready_callback (GObject      *object,
   g_assert (G_IS_OBJECT (object));
   g_assert (G_IS_ASYNC_RESULT (result));
   g_assert (DEX_IS_ASYNC_PAIR (async_pair));
+
+#define FINISH_AS(ap, TYPE) \
+  (((TYPE (*) (gpointer, GAsyncResult*, GError**))ap->info.finish) (ap->instance, result, &error))
 
   switch (async_pair->info.return_type)
     {
@@ -128,6 +128,8 @@ dex_async_pair_ready_callback (GObject      *object,
                            g_type_name (async_pair->info.return_type));
       break;
     }
+
+#undef FINISH_AS
 
   if (error != NULL)
     dex_future_complete (DEX_FUTURE (async_pair), NULL, g_steal_pointer (&error));
