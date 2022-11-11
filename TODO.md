@@ -15,5 +15,4 @@
  * More/better support for non-standard API using DexAsyncPair
  * Some integration with various I/O API in GLib like GIOChannel
    or other FD based tooling for futures, possibly GPollFD?
- * Futures to handle signals using GUnixSignalSource
 
