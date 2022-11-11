@@ -36,4 +36,6 @@ typedef struct _DexSchedulerClass
   DexObjectClass parent_class;
 } DexSchedulerClass;
 
+void dex_scheduler_set_thread_default (DexScheduler *scheduler);
+
 G_END_DECLS

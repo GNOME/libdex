@@ -23,6 +23,8 @@
 
 #include "dex-scheduler-private.h"
 
+static GPrivate dex_scheduler_thread_default;
+
 DEX_DEFINE_ABSTRACT_TYPE (DexScheduler, dex_scheduler, DEX_TYPE_OBJECT)
 
 static void
@@ -33,4 +35,23 @@ dex_scheduler_class_init (DexSchedulerClass *scheduler_class)
 static void
 dex_scheduler_init (DexScheduler *scheduler)
 {
+}
+
+/**
+ * dex_scheduler_get_thread_default:
+ *
+ * Gets the default scheduler for the thread.
+ *
+ * Returns: (transfer none) (nullable): a #DexScheduler or %NULL
+ */
+DexScheduler *
+dex_scheduler_get_thread_default (void)
+{
+  return g_private_get (&dex_scheduler_thread_default);
+}
+
+void
+dex_scheduler_set_thread_default (DexScheduler *scheduler)
+{
+  g_private_set (&dex_scheduler_thread_default, scheduler);
 }

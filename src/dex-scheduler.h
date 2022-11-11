@@ -36,15 +36,15 @@ typedef struct _DexScheduler DexScheduler;
 typedef void (*DexSchedulerFunc) (gpointer func_data);
 
 DEX_AVAILABLE_IN_ALL
-GType         dex_scheduler_get_type    (void) G_GNUC_CONST;
+GType         dex_scheduler_get_type           (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexScheduler *dex_scheduler_get_current (void);
+DexScheduler *dex_scheduler_get_thread_default (void);
 DEX_AVAILABLE_IN_ALL
-DexScheduler *dex_scheduler_get_default (void);
+DexScheduler *dex_scheduler_get_default        (void);
 DEX_AVAILABLE_IN_ALL
-void          dex_scheduler_push        (DexScheduler     *scheduler,
-                                         DexSchedulerFunc  func,
-                                         gpointer          func_data);
+void          dex_scheduler_push               (DexScheduler     *scheduler,
+                                                DexSchedulerFunc  func,
+                                                gpointer          func_data);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexScheduler, dex_unref)
 
