@@ -35,6 +35,7 @@ G_BEGIN_DECLS
 # include "dex-future.h"
 # include "dex-future-set.h"
 # include "dex-init.h"
+# include "dex-input-stream.h"
 # include "dex-main-scheduler.h"
 # include "dex-object.h"
 # include "dex-promise.h"

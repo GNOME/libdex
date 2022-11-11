@@ -17,6 +17,7 @@ testsuite_c_args = [
 testsuite_sources = [
   ['test-object'],
   ['test-future'],
+  ['test-stream'],
 ]
 
 foreach test: testsuite_sources
