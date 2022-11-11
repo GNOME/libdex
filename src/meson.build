@@ -116,13 +116,8 @@ if get_option('introspection').enabled()
                  header: 'libdex.h',
              extra_args: ['-DDEX_COMPILATION'],
   )
-  libdex_dep_sources += [libdex_gir]
-endif
 
-if get_option('vapi')
-  if not get_option('introspection').enabled()
-    error('-Dvapi=true requires -Dintrospection=enabled')
-  endif
+  libdex_dep_sources += [libdex_gir]
 
   dex_vapi = gnome.generate_vapi('libdex',
           sources: libdex_gir.get(0),
