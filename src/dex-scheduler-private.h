@@ -37,5 +37,6 @@ typedef struct _DexSchedulerClass
 } DexSchedulerClass;
 
 void dex_scheduler_set_thread_default (DexScheduler *scheduler);
+void dex_scheduler_set_default        (DexScheduler *scheduler);
 
 G_END_DECLS

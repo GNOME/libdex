@@ -24,6 +24,7 @@
 #include "dex-scheduler-private.h"
 
 static GPrivate dex_scheduler_thread_default;
+static DexScheduler *default_scheduler;
 
 DEX_DEFINE_ABSTRACT_TYPE (DexScheduler, dex_scheduler, DEX_TYPE_OBJECT)
 
@@ -35,6 +36,31 @@ dex_scheduler_class_init (DexSchedulerClass *scheduler_class)
 static void
 dex_scheduler_init (DexScheduler *scheduler)
 {
+}
+
+/**
+ * dex_scheduler_get_default:
+ *
+ * Gets the default scheduler for the process.
+ *
+ * The default scheduler executes tasks within the default #GMainContext.
+ * Typically that is the main thread of the application.
+ *
+ * Returns: (transfer none) (not nullable): a #DexScheduler
+ */
+DexScheduler *
+dex_scheduler_get_default (void)
+{
+  return default_scheduler;
+}
+
+void
+dex_scheduler_set_default (DexScheduler *scheduler)
+{
+  g_return_if_fail (default_scheduler == NULL);
+  g_return_if_fail (scheduler != NULL);
+
+  default_scheduler = scheduler;
 }
 
 /**
@@ -54,4 +80,22 @@ void
 dex_scheduler_set_thread_default (DexScheduler *scheduler)
 {
   g_private_set (&dex_scheduler_thread_default, scheduler);
+}
+
+/**
+ * dex_scheduler_ref_thread_default:
+ *
+ * Gets the thread default scheduler with the reference count incremented.
+ *
+ * Returns: (transfer full) (nullable): a #DexScheduler or %NULL
+ */
+DexScheduler *
+dex_scheduler_ref_thread_default (void)
+{
+  DexScheduler *scheduler = dex_scheduler_get_thread_default ();
+
+  if (scheduler != NULL)
+    return dex_ref (scheduler);
+
+  return NULL;
 }
