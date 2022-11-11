@@ -122,6 +122,27 @@ dex_timeout_new_deadline (gint64 deadline)
   g_source_set_callback (timeout->source,
                          dex_timeout_source_func,
                          wr, clear_weak_ref);
+
+  /* TODO: allow attaching to the current scheduler
+   *
+   * Currently, this will end up on the main context (so the main scheduler for
+   * the application) which could cause a ping-pong between the main scheduler and
+   * other thread pool schedulers for work items.
+   *
+   * Of course, this is only really an issue for situations where you are doing
+   * user timeouts, but if it where to be used for something more timing sensitive
+   * like deadlines, you'd end up in a lot of cross-thread operations.
+   *
+   * Instead, if we require that all schedulers support a GMainContext for main
+   * loop integration, we could connect to the current schedulers main loop (which
+   * should attach to the current threads main loop if the scheduler is a thread
+   * pool situation).
+   *
+   * But to do this, we need to be able to have more control than GThreadPool will
+   * give us, and therefore need to do our own threadpool. We probably want to do
+   * that anyway though because GThreadPool does not scale with thread count very
+   * well to begin with.
+   */
   g_source_attach (timeout->source, NULL);
 
   return timeout;
