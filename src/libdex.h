@@ -41,6 +41,9 @@ G_BEGIN_DECLS
 # include "dex-scheduler.h"
 # include "dex-tasklet.h"
 # include "dex-timeout.h"
+#ifdef G_OS_UNIX
+# include "dex-unix-signal.h"
+#endif
 # include "dex-version.h"
 # include "dex-version-macros.h"
 #undef DEX_INSIDE

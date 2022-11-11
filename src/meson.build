@@ -15,6 +15,7 @@ libdex_sources = [
   'dex-scheduler.c',
   'dex-tasklet.c',
   'dex-timeout.c',
+  'dex-unix-signal.c',
 ]
 
 libdex_headers = [
@@ -35,6 +36,11 @@ libdex_headers = [
   'dex-timeout.h',
   'libdex.h',
 ]
+
+if host_machine.system() != 'windows'
+  libdex_sources += ['dex-unix-signal.c']
+  libdex_headers += ['dex-unix-signal.h']
+endif
 
 version_split = meson.project_version().split('.')
 version_conf = configuration_data()

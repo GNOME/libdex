@@ -809,6 +809,30 @@ test_future_discard (void)
   dex_clear (&any);
 }
 
+#ifdef G_OS_UNIX
+static void
+test_unix_signal_sigusr2 (void)
+{
+  DexFuture *future = dex_unix_signal_new (SIGUSR2);
+  const GValue *value;
+  GError *error = NULL;
+
+  kill (getpid (), SIGUSR2);
+
+  while (dex_future_get_status (future) == DEX_FUTURE_STATUS_PENDING)
+    g_main_context_iteration (g_main_context_default (), TRUE);
+
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_RESOLVED);
+  value = dex_future_get_value (future, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS_INT (value));
+  g_assert_cmpint (SIGUSR2, ==, g_value_get_int (value));
+
+  dex_unref (future);
+}
+#endif
+
 int
 main (int   argc,
       char *argv[])
@@ -846,5 +870,8 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Future/any", test_future_any);
   g_test_add_func ("/Dex/TestSuite/Future/any_race", test_future_any_race);
   g_test_add_func ("/Dex/TestSuite/Future/discard", test_future_discard);
+#ifdef G_OS_UNIX
+  g_test_add_func ("/Dex/TestSuite/UnixSignal/sigusr2", test_unix_signal_sigusr2);
+#endif
   return g_test_run ();
 }
