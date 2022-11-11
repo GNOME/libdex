@@ -27,7 +27,7 @@ G_BEGIN_DECLS
 
 #define DEX_TYPE_MAIN_SCHEDULER    (dex_main_scheduler_get_type())
 #define DEX_MAIN_SCHEDULER(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_MAIN_SCHEDULER, DexMainScheduler))
-#define DEX_IS_MAIN_SCHEDULER(obj) (G_TPYE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_MAIN_SCHEDULER))
+#define DEX_IS_MAIN_SCHEDULER(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_MAIN_SCHEDULER))
 
 typedef struct _DexMainScheduler DexMainScheduler;
 

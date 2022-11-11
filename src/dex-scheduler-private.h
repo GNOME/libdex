@@ -26,6 +26,9 @@
 
 G_BEGIN_DECLS
 
+#define DEX_SCHEDULER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS(obj, DEX_TYPE_SCHEDULER, DexSchedulerClass))
+#define DEX_SCHEDULER_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST(klass, DEX_TYPE_SCHEDULER, DexSchedulerClass))
+
 typedef struct _DexScheduler
 {
   DexObject parent_instance;
@@ -34,6 +37,10 @@ typedef struct _DexScheduler
 typedef struct _DexSchedulerClass
 {
   DexObjectClass parent_class;
+
+  void (*push) (DexScheduler     *scheduler,
+                DexSchedulerFunc  func,
+                gpointer          func_data);
 } DexSchedulerClass;
 
 void dex_scheduler_set_thread_default (DexScheduler *scheduler);

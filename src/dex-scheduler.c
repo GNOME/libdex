@@ -99,3 +99,22 @@ dex_scheduler_ref_thread_default (void)
 
   return NULL;
 }
+
+/**
+ * dex_scheduler_push:
+ * @scheduler: a #DexScheduler
+ * @func: (call async): the function callback
+ * @func_data: the closure data for @func
+ *
+ * Queues @func to run on @scheduler.
+ */
+void
+dex_scheduler_push (DexScheduler     *scheduler,
+                    DexSchedulerFunc  func,
+                    gpointer          func_data)
+{
+  g_return_if_fail (DEX_IS_SCHEDULER (scheduler));
+  g_return_if_fail (func != NULL);
+
+  DEX_SCHEDULER_GET_CLASS (scheduler)->push (scheduler, func, func_data);
+}
