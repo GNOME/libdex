@@ -29,7 +29,9 @@
 
 G_BEGIN_DECLS
 
-#define DEX_TYPE_SCHEDULER (dex_scheduler_get_type())
+#define DEX_TYPE_SCHEDULER    (dex_scheduler_get_type())
+#define DEX_SCHEDULER(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_SCHEDULER, DexScheduler))
+#define DEX_IS_SCHEDULER(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_SCHEDULER))
 
 typedef struct _DexScheduler DexScheduler;
 
