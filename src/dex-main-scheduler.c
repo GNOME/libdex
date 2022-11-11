@@ -28,12 +28,20 @@ typedef struct _DexMainScheduler
 {
   DexScheduler  parent_scheduler;
   GMainContext *main_context;
+  GSource      *source;
+  GQueue        queue;
 } DexMainScheduler;
 
 typedef struct _DexMainSchedulerClass
 {
   DexSchedulerClass parent_class;
 } DexMainSchedulerClass;
+
+typedef struct _DexMainSource
+{
+  GSource  source;
+  GQueue  *queue;
+} DexMainSource;
 
 DEX_DEFINE_FINAL_TYPE (DexMainScheduler, dex_main_scheduler, DEX_TYPE_SCHEDULER)
 
@@ -60,18 +68,38 @@ dex_main_scheduler_init (DexMainScheduler *main_scheduler)
 {
 }
 
+static gboolean
+dex_main_scheduler_dispatch (GSource     *source,
+                             GSourceFunc  callback,
+                             gpointer     user_data)
+{
+  return TRUE;
+}
+
+static GSourceFuncs main_source_funcs = {
+  .dispatch = dex_main_scheduler_dispatch,
+};
+
 DexMainScheduler *
 dex_main_scheduler_new (GMainContext *main_context)
 {
   DexMainScheduler *main_scheduler;
+  GSource *source;
 
   if (main_context == NULL)
     main_context = g_main_context_default ();
 
+  source = g_source_new (&main_source_funcs, sizeof (DexMainSource));
+  g_source_set_name (source, "[dex-main-scheduler]");
+  g_source_set_priority (source, G_PRIORITY_HIGH);
+
   main_scheduler = (DexMainScheduler *)g_type_create_instance (DEX_TYPE_MAIN_SCHEDULER);
   main_scheduler->main_context = g_main_context_ref (main_context);
+  main_scheduler->source = source;
 
-  /* TODO: Add GSource for dispatching once we have API figured out for DexScheduler */
+  ((DexMainSource *)source)->queue = &main_scheduler->queue;
+
+  g_source_attach (source, main_context);
 
   return main_scheduler;
 }
