@@ -24,12 +24,15 @@
 #include "libdex.h"
 
 #include "dex-block-private.h"
+#include "dex-scheduler-private.h"
 
 #include "gconstructor.h"
 
 static void
 dex_init_once (void)
 {
+  DexMainScheduler *main_scheduler;
+
   (void)dex_error_quark ();
 
   /* Base object */
@@ -37,6 +40,7 @@ dex_init_once (void)
 
   /* Scheduler type */
   g_type_ensure (DEX_TYPE_SCHEDULER);
+  g_type_ensure (DEX_TYPE_MAIN_SCHEDULER);
 
   /* Callables */
   g_type_ensure (DEX_TYPE_CALLABLE);
@@ -51,6 +55,10 @@ dex_init_once (void)
   g_type_ensure (DEX_TYPE_PROMISE);
   g_type_ensure (DEX_TYPE_TASKLET);
   g_type_ensure (DEX_TYPE_TIMEOUT);
+
+  /* Setup default scheduler for application */
+  main_scheduler = dex_main_scheduler_new (NULL);
+  dex_scheduler_set_default (DEX_SCHEDULER (main_scheduler));
 }
 
 void
