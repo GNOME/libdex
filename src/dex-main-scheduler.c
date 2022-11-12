@@ -165,7 +165,16 @@ dex_main_scheduler_dispatch (GSource     *source,
   return TRUE;
 }
 
+static gboolean
+dex_main_scheduler_check (GSource *source)
+{
+  DexMainSource *main_source = (DexMainSource *)source;
+
+  return g_atomic_pointer_get (&main_source->scheduler->queue.head) != NULL;
+}
+
 static GSourceFuncs main_source_funcs = {
+  .check = dex_main_scheduler_check,
   .dispatch = dex_main_scheduler_dispatch,
 };
 
