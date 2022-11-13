@@ -231,7 +231,7 @@ dex_future_set_new (DexFuture * const *futures,
  * @future_set: a #DexFutureSet
  *
  * Gets the number of futures associated with the #DexFutureSet. You may
- * use dex_future_set_get_future() to obtain the individual #DexFuture.
+ * use dex_future_set_get_future_at() to obtain the individual #DexFuture.
  *
  * Returns: the number of #DexFuture in @future_set.
  */
@@ -244,7 +244,7 @@ dex_future_set_get_size (DexFutureSet *future_set)
 }
 
 /**
- * dex_future_set_get_future:
+ * dex_future_set_get_future_at:
  * @future_set: a #DexFutureSet
  *
  * Gets a #DexFuture that was used to produce the result of @future_set.
@@ -255,11 +255,34 @@ dex_future_set_get_size (DexFutureSet *future_set)
  * Returns: (transfer none): a #DexFuture
  */
 DexFuture *
-dex_future_set_get_future (DexFutureSet *future_set,
-                           guint         position)
+dex_future_set_get_future_at (DexFutureSet *future_set,
+                              guint         position)
 {
   g_return_val_if_fail (DEX_IS_FUTURE_SET (future_set), NULL);
   g_return_val_if_fail (position < future_set->n_futures, NULL);
 
   return future_set->futures[position];
+}
+
+/**
+ * dex_future_set_get_value_at:
+ * @future_set: a #DexFutureSet
+ * @position: the #DexFuture position within the set
+ * @error: location for a #GError, or %NULL
+ *
+ * Gets the result from a #DexFuture that is part of the
+ * #DexFutureSet.
+ *
+ * Returns: (transfer none): a #GValue if successful; otherwise %NULL
+ *   and @error is set.
+ */
+const GValue *
+dex_future_set_get_value_at (DexFutureSet  *future_set,
+                             guint          position,
+                             GError       **error)
+{
+  g_return_val_if_fail (DEX_IS_FUTURE_SET (future_set), NULL);
+  g_return_val_if_fail (position < future_set->n_futures, NULL);
+
+  return dex_future_get_value (future_set->futures[position], error);
 }

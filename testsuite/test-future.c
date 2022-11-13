@@ -566,7 +566,7 @@ test_future_all (void)
 
   for (guint i = 0; i < dex_future_set_get_size (DEX_FUTURE_SET (future)); i++)
     {
-      DexFuture *dep = dex_future_set_get_future (DEX_FUTURE_SET (future), i);
+      DexFuture *dep = dex_future_set_get_future_at (DEX_FUTURE_SET (future), i);
       value = dex_future_get_value (dep, &error);
       g_assert_null (value);
       g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
@@ -622,7 +622,7 @@ test_future_all_race (void)
   g_assert_cmpint (dex_future_set_get_size (DEX_FUTURE_SET (future)), ==, 3);
   for (guint i = 0; i < dex_future_set_get_size (DEX_FUTURE_SET (future)); i++)
     {
-      DexFuture *dep = dex_future_set_get_future (DEX_FUTURE_SET (future), i);
+      DexFuture *dep = dex_future_set_get_future_at (DEX_FUTURE_SET (future), i);
       value = dex_future_get_value (dep, &error);
       g_assert_null (value);
       g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
@@ -678,7 +678,7 @@ test_future_any (void)
   g_assert_cmpint (dex_future_set_get_size (DEX_FUTURE_SET (future)), ==, 3);
   for (guint i = 0; i < dex_future_set_get_size (DEX_FUTURE_SET (future)); i++)
     {
-      DexFuture *dep = dex_future_set_get_future (DEX_FUTURE_SET (future), i);
+      DexFuture *dep = dex_future_set_get_future_at (DEX_FUTURE_SET (future), i);
       value = dex_future_get_value (dep, &error);
       g_assert_null (value);
       g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
@@ -734,7 +734,7 @@ test_future_any_race (void)
   g_assert_cmpint (dex_future_set_get_size (DEX_FUTURE_SET (future)), ==, 3);
   for (guint i = 0; i < dex_future_set_get_size (DEX_FUTURE_SET (future)); i++)
     {
-      DexFuture *dep = dex_future_set_get_future (DEX_FUTURE_SET (future), i);
+      DexFuture *dep = dex_future_set_get_future_at (DEX_FUTURE_SET (future), i);
       value = dex_future_get_value (dep, &error);
       g_assert_null (value);
       g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
