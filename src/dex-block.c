@@ -41,6 +41,11 @@ typedef struct _DexBlockClass
 
 DEX_DEFINE_FINAL_TYPE (DexBlock, dex_block, DEX_TYPE_FUTURE)
 
+G_DEFINE_ENUM_TYPE (DexBlockKind, dex_block_kind,
+                    G_DEFINE_ENUM_VALUE (DEX_BLOCK_KIND_THEN, "then"),
+                    G_DEFINE_ENUM_VALUE (DEX_BLOCK_KIND_CATCH, "catch"),
+                    G_DEFINE_ENUM_VALUE (DEX_BLOCK_KIND_FINALLY, "finally"))
+
 static gboolean
 dex_block_handles (DexBlock  *block,
                    DexFuture *future)
@@ -195,12 +200,12 @@ dex_block_class_init (DexBlockClass *block_class)
 static void
 dex_block_init (DexBlock *block)
 {
-  block->scheduler = dex_scheduler_ref_thread_default ();
 }
 
 /**
  * dex_block_new:
  * @future: (transfer full): a #DexFuture to process
+ * @scheduler: (nullable): a #DexScheduler or %NULL
  * @kind: the kind of block
  * @callback: (scope async): the callback for the block
  * @callback_data: the data for the callback
@@ -215,6 +220,7 @@ dex_block_init (DexBlock *block)
  */
 DexFuture *
 dex_block_new (DexFuture         *future,
+               DexScheduler      *scheduler,
                DexBlockKind       kind,
                DexFutureCallback  callback,
                gpointer           callback_data,
@@ -225,6 +231,7 @@ dex_block_new (DexFuture         *future,
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
   block = (DexBlock *)g_type_create_instance (dex_block_type);
+  block->scheduler = scheduler ? dex_ref (scheduler) : dex_scheduler_ref_thread_default ();
   block->awaiting = future;
   block->kind = kind;
   block->callback = callback;
@@ -234,4 +241,40 @@ dex_block_new (DexFuture         *future,
   dex_future_chain (future, DEX_FUTURE (block));
 
   return DEX_FUTURE (block);
+}
+
+/**
+ * dex_block_get_kind:
+ * @block: a #DexBlock
+ *
+ * Gets the kind of block.
+ *
+ * The kind of block relates to what situations the block would be
+ * executed such as for handling a future resolution, rejection, or
+ * both.
+ *
+ * Returns: a #DexBlockKind
+ */
+DexBlockKind
+dex_block_get_kind (DexBlock *block)
+{
+  g_return_val_if_fail (DEX_IS_BLOCK (block), 0);
+
+  return block->kind;
+}
+
+/**
+ * dex_block_get_scheduler:
+ * @block: a #DexBlock
+ *
+ * Gets the scheduler to use when executing a block.
+ *
+ * Returns: (transfer none): a #DexScheduler
+ */
+DexScheduler *
+dex_block_get_scheduler (DexBlock *block)
+{
+  g_return_val_if_fail (DEX_IS_BLOCK (block), NULL);
+
+  return block->scheduler;
 }

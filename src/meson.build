@@ -21,6 +21,7 @@ libdex_sources = [
 
 libdex_headers = [
   'dex-async-pair.h',
+  'dex-block.h',
   'dex-callable.h',
   'dex-cancellable.h',
   'dex-enums.h',

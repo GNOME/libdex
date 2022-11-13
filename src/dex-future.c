@@ -368,6 +368,7 @@ dex_future_then (DexFuture         *future,
   g_return_val_if_fail (callback != NULL, NULL);
 
   return dex_block_new (future,
+                        NULL,
                         DEX_BLOCK_KIND_THEN,
                         callback,
                         callback_data,
@@ -397,6 +398,7 @@ dex_future_catch (DexFuture         *future,
   g_return_val_if_fail (callback != NULL, NULL);
 
   return dex_block_new (future,
+                        NULL,
                         DEX_BLOCK_KIND_CATCH,
                         callback,
                         callback_data,
@@ -424,6 +426,7 @@ dex_future_finally (DexFuture         *future,
   g_return_val_if_fail (callback != NULL, NULL);
 
   return dex_block_new (future,
+                        NULL,
                         DEX_BLOCK_KIND_FINALLY,
                         callback,
                         callback_data,

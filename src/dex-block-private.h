@@ -22,25 +22,15 @@
 #pragma once
 
 #include "dex-future-private.h"
+#include "dex-block.h"
 
 G_BEGIN_DECLS
 
-#define DEX_TYPE_BLOCK    (dex_block_get_type())
-#define DEX_BLOCK(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_BLOCK, DexBlock))
-#define DEX_IS_BLOCK(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_BLOCK))
-
-typedef enum _DexBlockKind
-{
-  DEX_BLOCK_KIND_THEN    = 1 << 0,
-  DEX_BLOCK_KIND_CATCH   = 1 << 1,
-  DEX_BLOCK_KIND_FINALLY = DEX_BLOCK_KIND_THEN | DEX_BLOCK_KIND_CATCH,
-} DexBlockKind;
-
-GType      dex_block_get_type (void) G_GNUC_CONST;
-DexFuture *dex_block_new      (DexFuture         *future,
-                               DexBlockKind       kind,
-                               DexFutureCallback  callback,
-                               gpointer           callback_data,
-                               GDestroyNotify     callback_data_destroy);
+DexFuture *dex_block_new (DexFuture         *future,
+                          DexScheduler      *scheduler,
+                          DexBlockKind       kind,
+                          DexFutureCallback  callback,
+                          gpointer           callback_data,
+                          GDestroyNotify     callback_data_destroy);
 
 G_END_DECLS
