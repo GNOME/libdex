@@ -62,6 +62,54 @@ dex_block_handles (DexBlock  *block,
     }
 }
 
+typedef struct _PropagateState
+{
+  DexBlock *block;
+  DexFuture *completed;
+} PropagateState;
+
+static gboolean
+dex_block_propagate_within_scheduler_internal (PropagateState *state)
+{
+  DexFuture *delayed = state->block->callback (state->completed, state->block->callback_data);
+
+  /* If we got a future then we need to chain to it so that we get
+   * a second propagation callback with the resolved or rejected
+   * value for resolution.
+   */
+  if (delayed != NULL)
+    {
+      dex_object_lock (state->block);
+      state->block->awaiting = delayed;
+      dex_object_unlock (state->block);
+
+      dex_future_chain (delayed, DEX_FUTURE (state->block));
+
+      return TRUE;
+    }
+
+  return FALSE;
+}
+
+static void
+dex_block_propagate_within_scheduler (gpointer data)
+{
+  PropagateState *state = data;
+
+  g_assert (state != NULL);
+  g_assert (DEX_IS_BLOCK (state->block));
+  g_assert (DEX_IS_FUTURE (state->completed));
+
+  if (!dex_block_propagate_within_scheduler_internal (state))
+    dex_future_complete (DEX_FUTURE (state->block),
+                         state->completed->rejected ? NULL : &state->completed->resolved,
+                         state->completed->rejected ? g_error_copy (state->completed->rejected) : NULL);
+
+  dex_clear (&state->block);
+  dex_clear (&state->completed);
+  g_free (state);
+}
+
 static gboolean
 dex_block_propagate (DexFuture *future,
                      DexFuture *completed)
@@ -93,22 +141,22 @@ dex_block_propagate (DexFuture *future,
    */
   if (do_callback && dex_block_handles (block, completed))
     {
-      DexFuture *delayed = block->callback (completed, block->callback_data);
+      PropagateState state = {block, completed};
 
-      /* If we got a future then we need to chain to it so that we get
-       * a second propagation callback with the resolved or rejected
-       * value for resolution.
+      /* If we are on the same scheduler that created this block, then
+       * we can execute it now.
        */
-      if (delayed != NULL)
-        {
-          dex_object_lock (future);
-          block->awaiting = delayed;
-          dex_object_unlock (future);
+      if (block->scheduler == dex_scheduler_get_thread_default ())
+        return dex_block_propagate_within_scheduler_internal (&state);
 
-          dex_future_chain (delayed, future);
+      /* Otherwise we must defer it to the scheduler */
+      dex_ref (block);
+      dex_ref (completed);
+      dex_scheduler_push (block->scheduler,
+                          dex_block_propagate_within_scheduler,
+                          g_memdup2 (&state, sizeof state));
 
-          return TRUE;
-        }
+      return TRUE;
     }
 
   return FALSE;
