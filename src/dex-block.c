@@ -25,6 +25,7 @@
 typedef struct _DexBlock
 {
   DexFuture          parent_instance;
+  DexScheduler      *scheduler;
   DexFuture         *awaiting;
   DexFutureCallback  callback;
   gpointer           callback_data;
@@ -127,6 +128,7 @@ dex_block_finalize (DexObject *object)
     }
 
   dex_clear (&block->awaiting);
+  dex_clear (&block->scheduler);
 
   DEX_OBJECT_CLASS (dex_block_parent_class)->finalize (object);
 }
@@ -145,6 +147,7 @@ dex_block_class_init (DexBlockClass *block_class)
 static void
 dex_block_init (DexBlock *block)
 {
+  block->scheduler = dex_scheduler_ref_thread_default ();
 }
 
 /**
