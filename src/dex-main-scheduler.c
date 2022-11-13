@@ -70,17 +70,6 @@ dex_main_queue_push (DexMainQueue    *queue,
     queue->head = queue->tail;
 }
 
-static inline DexMainWorkItem *
-dex_main_queue_pop (DexMainQueue *queue)
-{
-  DexMainWorkItem *work_item = queue->head;
-  queue->head = work_item->next;
-  work_item->next = NULL;
-  if (queue->tail == work_item)
-    queue->tail = NULL;
-  return work_item;
-}
-
 static void
 dex_main_scheduler_push (DexScheduler     *scheduler,
                          DexSchedulerFunc  func,
