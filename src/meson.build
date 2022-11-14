@@ -16,6 +16,7 @@ libdex_sources = [
   'dex-scheduler.c',
   'dex-tasklet.c',
   'dex-thread-pool-scheduler.c',
+  'dex-thread-pool-worker.c',
   'dex-timeout.c',
   'dex-unix-signal.c',
 ]

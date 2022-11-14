@@ -24,6 +24,7 @@
 #include "libdex.h"
 
 #include "dex-scheduler-private.h"
+#include "dex-thread-pool-worker-private.h"
 
 #include "gconstructor.h"
 
@@ -41,6 +42,7 @@ dex_init_once (void)
   g_type_ensure (DEX_TYPE_SCHEDULER);
   g_type_ensure (DEX_TYPE_MAIN_SCHEDULER);
   g_type_ensure (DEX_TYPE_THREAD_POOL_SCHEDULER);
+  g_type_ensure (DEX_TYPE_THREAD_POOL_WORKER);
 
   /* Callables */
   g_type_ensure (DEX_TYPE_CALLABLE);
