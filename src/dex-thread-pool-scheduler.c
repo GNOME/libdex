@@ -23,6 +23,7 @@
 
 #include "dex-scheduler-private.h"
 #include "dex-thread-pool-scheduler.h"
+#include "dex-thread-pool-worker-private.h"
 
 struct _DexThreadPoolScheduler
 {
@@ -37,6 +38,16 @@ typedef struct _DexThreadPoolSchedulerClass
 DEX_DEFINE_FINAL_TYPE (DexThreadPoolScheduler, dex_thread_pool_scheduler, DEX_TYPE_SCHEDULER)
 
 static void
+dex_thread_pool_scheduler_push (DexScheduler     *scheduler,
+                                DexSchedulerFunc  func,
+                                gpointer          func_data)
+{
+  DexThreadPoolScheduler *thread_pool_scheduler = DEX_THREAD_POOL_SCHEDULER (scheduler);
+
+
+}
+
+static void
 dex_thread_pool_scheduler_finalize (DexObject *object)
 {
   DEX_OBJECT_CLASS (dex_thread_pool_scheduler_parent_class)->finalize (object);
@@ -46,8 +57,11 @@ static void
 dex_thread_pool_scheduler_class_init (DexThreadPoolSchedulerClass *thread_pool_scheduler_class)
 {
   DexObjectClass *object_class = DEX_OBJECT_CLASS (thread_pool_scheduler_class);
+  DexSchedulerClass *scheduler_class = DEX_SCHEDULER_CLASS (thread_pool_scheduler_class);
 
   object_class->finalize = dex_thread_pool_scheduler_finalize;
+
+  scheduler_class->push = dex_thread_pool_scheduler_push;
 }
 
 static void
