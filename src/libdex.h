@@ -42,6 +42,7 @@ G_BEGIN_DECLS
 # include "dex-promise.h"
 # include "dex-scheduler.h"
 # include "dex-tasklet.h"
+# include "dex-thread-pool-scheduler.h"
 # include "dex-timeout.h"
 #ifdef G_OS_UNIX
 # include "dex-unix-signal.h"

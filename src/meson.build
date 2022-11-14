@@ -15,6 +15,7 @@ libdex_sources = [
   'dex-promise.c',
   'dex-scheduler.c',
   'dex-tasklet.c',
+  'dex-thread-pool-scheduler.c',
   'dex-timeout.c',
   'dex-unix-signal.c',
 ]
@@ -36,6 +37,7 @@ libdex_headers = [
   'dex-promise.h',
   'dex-scheduler.h',
   'dex-tasklet.h',
+  'dex-thread-pool-scheduler.h',
   'dex-timeout.h',
   'libdex.h',
 ]
