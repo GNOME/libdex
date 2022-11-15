@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include "dex-thread-pool-worker-private.h"
+#include "dex-work-stealing-queue-private.h"
 
 typedef enum _DexThreadPoolWorkerStatus
 {
