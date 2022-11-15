@@ -17,6 +17,7 @@ testsuite_c_args = [
 testsuite_sources = [
   ['test-object'],
   ['test-future'],
+  ['test-jiffy'],
   ['test-scheduler'],
   ['test-stream'],
 ]
