@@ -34,10 +34,11 @@ typedef enum _DexThreadPoolWorkerStatus
 
 struct _DexThreadPoolWorker
 {
-  DexObject     parent_instance;
-  GThread      *thread;
-  GMainContext *main_context;
-  guint         status : 2;
+  DexObject             parent_instance;
+  GThread              *thread;
+  GMainContext         *main_context;
+  DexWorkStealingQueue  queue;
+  guint                 status : 2;
 };
 
 typedef struct _DexThreadPoolWorkerClass
@@ -59,21 +60,27 @@ dex_thread_pool_worker_finalize (DexObject *object)
 {
   DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (object);
 
-  /* To finalize the worker, we need to push a work item to the thread
+  /* TODO: WE CAN'T do this with work stealing queue since it can only
+   * be written to by the worker thread itself.
+   *
+   * To finalize the worker, we need to push a work item to the thread
    * that will cause it to stop processing and then wait for the thread
    * to exit after processing the rest of the queue. We change the finalizing
    * bit on the worker thread so the common case (it's FALSE) doesn't require
    * any sort of synchronization/atomic operations.
    */
+#if 0
   dex_thread_pool_worker_push (thread_pool_worker,
                                dex_thread_pool_worker_finalize_scheduler_func,
                                thread_pool_worker);
+#endif
   g_thread_join (thread_pool_worker->thread);
 
   g_assert (thread_pool_worker->status == DEX_THREAD_POOL_WORKER_FINISHED);
 
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
   g_clear_pointer (&thread_pool_worker->main_context, g_main_context_unref);
+  dex_work_stealing_queue_clear (&thread_pool_worker->queue);
 
   DEX_OBJECT_CLASS (dex_thread_pool_worker_parent_class)->finalize (object);
 }
@@ -89,6 +96,13 @@ dex_thread_pool_worker_class_init (DexThreadPoolWorkerClass *thread_pool_worker_
 static void
 dex_thread_pool_worker_init (DexThreadPoolWorker *thread_pool_worker)
 {
+#if GLIB_SIZEOF_VOID_P == 8
+  dex_work_stealing_queue_init (&thread_pool_worker->queue, 255);
+#elif GLIB_SIZEOF_VOID_P == 4
+  dex_work_stealing_queue_init (&thread_pool_worker->queue, 1020);
+#else
+# error "Unsupported value for GLIB_SIZEOF_VOID_P"
+#endif
 }
 
 static gpointer
@@ -120,7 +134,12 @@ dex_thread_pool_worker_source_check (GSource *source)
   DexThreadPoolWorkerSource *thread_pool_worker_source = (DexThreadPoolWorkerSource *)source;
   DexThreadPoolWorker *thread_pool_worker = thread_pool_worker_source->thread_pool_worker;
 
-  return FALSE;
+  /* TODO: This will cause us to spin currently, because we need a way to block
+   * on the global queue from a pollfd so that we can both wait for timers
+   * and wait for incoming work items if we've exhausted ours/neighbors.
+   */
+
+  return TRUE;
 }
 
 static gboolean
@@ -130,6 +149,19 @@ dex_thread_pool_worker_source_dispatch (GSource     *source,
 {
   DexThreadPoolWorkerSource *thread_pool_worker_source = (DexThreadPoolWorkerSource *)source;
   DexThreadPoolWorker *thread_pool_worker = thread_pool_worker_source->thread_pool_worker;
+
+  for (guint i = 0; i < DEX_THREAD_POOL_WORKER_BATCH_SIZE; i++)
+    {
+      DexWorkItem work_item;
+
+      if (!dex_work_stealing_queue_pop (&thread_pool_worker->queue, &work_item))
+        break;
+
+      work_item.func (work_item.func_data);
+    }
+
+  /* TODO: Iterate across neighbors and attempt to steal work items */
+  /* TODO: Fallback to global queue if no items where processed */
 
   return G_SOURCE_CONTINUE;
 }
@@ -186,17 +218,12 @@ dex_thread_pool_worker_push (DexThreadPoolWorker *thread_pool_worker,
                              gpointer             func_data)
 {
   g_assert (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
-  g_assert (func != NULL);
+  g_assert (g_thread_self () == thread_pool_worker->thread);
 
-
-
-  /* Ensure that the thread will process the incoming event.
-   *
-   * TODO: We can probably add a second check that will only
-   * compare a counter value and if it changed, do the more
-   * expensive wakeup call. That way we just rely on GMainContext
-   * calling .check() again after an active queue is flushed.
+  /* We _MUST_ be running on @thread_pool_worker->thread to use this API
+   * which means we don't need to worry about waking up our GMainContext,
+   * it will wake up automatically to process additional work items.
    */
-  if (g_thread_self () != thread_pool_worker->thread)
-    g_main_context_wakeup (thread_pool_worker->main_context);
+  dex_work_stealing_queue_push (&thread_pool_worker->queue,
+                                (DexWorkItem) {func, func_data});
 }
