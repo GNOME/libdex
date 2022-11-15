@@ -22,24 +22,21 @@
 #pragma once
 
 #include "dex-object-private.h"
+#include "dex-scheduler.h"
 
 G_BEGIN_DECLS
 
-#define DEX_TYPE_THREAD_POOL_WORKER    (dex_thread_pool_worker_get_type())
-#define DEX_THREAD_POOL_WORKER(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_THREAD_POOL_WORKER, DexThreadPoolWorker))
-#define DEX_IS_THREAD_POOL_WORKER(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_THREAD_POOL_WORKER))
+#define DEX_TYPE_THREAD_POOL_WORKER     (dex_thread_pool_worker_get_type())
+#define DEX_THREAD_POOL_WORKER(obj)     (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_THREAD_POOL_WORKER, DexThreadPoolWorker))
+#define DEX_IS_THREAD_POOL_WORKER(obj)  (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_THREAD_POOL_WORKER))
+#define DEX_THREAD_POOL_WORKER_PRIORITY G_PRIORITY_DEFAULT
 
-typedef struct _DexThreadPoolWorker
-{
-  DexObject parent_instance;
-} DexThreadPoolWorker;
-
-typedef struct _DexThreadPoolWorkerClass
-{
-  DexObjectClass parent_class;
-} DexThreadPoolWorkerClass;
+typedef struct _DexThreadPoolWorker DexThreadPoolWorker;
 
 GType                dex_thread_pool_worker_get_type (void) G_GNUC_CONST;
 DexThreadPoolWorker *dex_thread_pool_worker_new      (void);
+void                 dex_thread_pool_worker_push     (DexThreadPoolWorker *worker,
+                                                      DexSchedulerFunc     func,
+                                                      gpointer             func_data);
 
 G_END_DECLS
