@@ -146,12 +146,7 @@ dex_thread_pool_worker_source_check (GSource *source)
   DexThreadPoolWorkerSource *thread_pool_worker_source = (DexThreadPoolWorkerSource *)source;
   DexThreadPoolWorker *thread_pool_worker = thread_pool_worker_source->thread_pool_worker;
 
-  /* TODO: This will cause us to spin currently, because we need a way to block
-   * on the global queue from a pollfd so that we can both wait for timers
-   * and wait for incoming work items if we've exhausted ours/neighbors.
-   */
-
-  return TRUE;
+  return !dex_work_stealing_queue_empty (&thread_pool_worker->queue);
 }
 
 static gboolean
