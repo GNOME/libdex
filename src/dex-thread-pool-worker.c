@@ -169,7 +169,7 @@ dex_thread_pool_worker_source_dispatch (GSource     *source,
       if (!dex_work_stealing_queue_pop (&thread_pool_worker->queue, &work_item))
         break;
 
-      work_item.func (work_item.func_data);
+      dex_work_item_invoke (&work_item);
     }
 
   /* TODO: Iterate across neighbors and attempt to steal work items */

@@ -53,7 +53,7 @@
 
 #include <stdatomic.h>
 
-#include "dex-scheduler.h"
+#include "dex-scheduler-private.h"
 
 /**
  * SECTION:dex-work-stealing-queue
@@ -73,12 +73,6 @@ G_BEGIN_DECLS
 #ifndef DEX_CACHELINE_SIZE
 # define DEX_CACHELINE_SIZE 64
 #endif
-
-typedef struct _DexWorkItem
-{
-  DexSchedulerFunc func;
-  gpointer         func_data;
-} DexWorkItem;
 
 typedef struct _DexWorkStealingArray
 {
