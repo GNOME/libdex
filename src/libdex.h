@@ -1,4 +1,5 @@
-/* libdex.h
+/*
+ * libdex.h
  *
  * Copyright 2022 Christian Hergert
  *

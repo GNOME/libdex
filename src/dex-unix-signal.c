@@ -1,4 +1,5 @@
-/* dex-unix-signal.c
+/*
+ * dex-unix-signal.c
  *
  * Copyright 2022 Christian Hergert <chergert@redhat.com>
  *

@@ -1,4 +1,5 @@
-/* dex-init.h
+/*
+ * dex-init.h
  *
  * Copyright 2022 Christian Hergert
  *

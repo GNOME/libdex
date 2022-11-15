@@ -1,4 +1,5 @@
-/* dex-input-stream.c
+/*
+ * dex-input-stream.c
  *
  * Copyright 2022 Christian Hergert <chergert@redhat.com>
  *
