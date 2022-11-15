@@ -34,11 +34,11 @@ typedef enum _DexThreadPoolWorkerStatus
 
 struct _DexThreadPoolWorker
 {
-  DexObject             parent_instance;
-  GThread              *thread;
-  GMainContext         *main_context;
-  DexWorkStealingQueue  queue;
-  guint                 status : 2;
+  DexObject                  parent_instance;
+  GThread                   *thread;
+  GMainContext              *main_context;
+  DexWorkStealingQueue       queue;
+  DexThreadPoolWorkerStatus  status;
 };
 
 typedef struct _DexThreadPoolWorkerClass
@@ -48,35 +48,49 @@ typedef struct _DexThreadPoolWorkerClass
 
 DEX_DEFINE_FINAL_TYPE (DexThreadPoolWorker, dex_thread_pool_worker, DEX_TYPE_OBJECT)
 
-static void
-dex_thread_pool_worker_finalize_scheduler_func (gpointer data)
+static gboolean
+dex_thread_pool_worker_finalize_cb (gpointer data)
 {
   DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (data);
+  DexWorkItem work_item;
+
+  /* First set the status to ensure that our check/dispatch will bail */
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_STOPPING;
+
+  /* Now flush out the rest of the work items if there are any */
+  while (dex_work_stealing_queue_pop (&thread_pool_worker->queue, &work_item))
+    work_item.func (work_item.func_data);
+
+  return G_SOURCE_REMOVE;
 }
 
 static void
 dex_thread_pool_worker_finalize (DexObject *object)
 {
   DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (object);
+  GSource *idle_source;
 
-  /* TODO: WE CAN'T do this with work stealing queue since it can only
-   * be written to by the worker thread itself.
-   *
-   * To finalize the worker, we need to push a work item to the thread
+  g_assert (thread_pool_worker->thread != g_thread_self ());
+
+  /* To finalize the worker, we need to push a work item to the thread
    * that will cause it to stop processing and then wait for the thread
    * to exit after processing the rest of the queue. We change the finalizing
    * bit on the worker thread so the common case (it's FALSE) doesn't require
-   * any sort of synchronization/atomic operations.
+   * any sort of synchronization/atomic operations every loop.
    */
-#if 0
-  dex_thread_pool_worker_push (thread_pool_worker,
-                               dex_thread_pool_worker_finalize_scheduler_func,
-                               thread_pool_worker);
-#endif
+  idle_source = g_idle_source_new ();
+  g_source_set_static_name (idle_source, "[dex-thread-pool-worker-finalize]");
+  g_source_set_priority (idle_source, G_MININT);
+  g_source_set_callback (idle_source,
+                         dex_thread_pool_worker_finalize_cb,
+                         thread_pool_worker, NULL);
+  g_source_attach (idle_source, thread_pool_worker->main_context);
+  g_source_unref (idle_source);
+
+  /* Now wait for the thread to process items and exit the thread */
   g_thread_join (thread_pool_worker->thread);
 
-  g_assert (thread_pool_worker->status == DEX_THREAD_POOL_WORKER_FINISHED);
+  g_assert (g_atomic_int_get (&thread_pool_worker->status) == DEX_THREAD_POOL_WORKER_FINISHED);
 
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
   g_clear_pointer (&thread_pool_worker->main_context, g_main_context_unref);
@@ -110,14 +124,12 @@ dex_thread_pool_worker_thread_func (gpointer data)
 {
   DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (data);
 
-  thread_pool_worker->status = DEX_THREAD_POOL_WORKER_RUNNING;
-
   g_main_context_push_thread_default (thread_pool_worker->main_context);
+  thread_pool_worker->status = DEX_THREAD_POOL_WORKER_RUNNING;
   while (thread_pool_worker->status != DEX_THREAD_POOL_WORKER_STOPPING)
     g_main_context_iteration (thread_pool_worker->main_context, TRUE);
-  g_main_context_pop_thread_default (thread_pool_worker->main_context);
-
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_FINISHED;
+  g_main_context_pop_thread_default (thread_pool_worker->main_context);
 
   return NULL;
 }
