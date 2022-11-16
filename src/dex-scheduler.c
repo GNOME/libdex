@@ -118,3 +118,24 @@ dex_scheduler_push (DexScheduler     *scheduler,
 
   DEX_SCHEDULER_GET_CLASS (scheduler)->push (scheduler, (DexWorkItem) {func, func_data});
 }
+
+/**
+ * dex_scheduler_attach:
+ * @scheduler: a #DexScheduler
+ * @source: a #GSource
+ *
+ * Attaches @source to the schedulers #GMainContext.
+ *
+ * This function will request that a #GSource is attached to a #GMainContext
+ * that is processed by the scheduler. It is up to schedulers to determine
+ * how this is processed such as the owning thread.
+ *
+ * Use g_source_destroy() to remove the source and g_source_unref() to
+ * release your final reference to it.
+ */
+void
+dex_scheduler_attach (DexScheduler *scheduler,
+                      GSource      *source)
+{
+  DEX_SCHEDULER_GET_CLASS (scheduler)->attach (scheduler, source);
+}

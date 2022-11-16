@@ -252,3 +252,13 @@ dex_thread_pool_worker_push (DexThreadPoolWorker *thread_pool_worker,
    */
   dex_work_stealing_queue_push (&thread_pool_worker->queue, work_item);
 }
+
+void
+dex_thread_pool_worker_attach (DexThreadPoolWorker *thread_pool_worker,
+                               GSource             *source)
+{
+  g_assert (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
+  g_assert (source != NULL);
+
+  g_source_attach (source, thread_pool_worker->main_context);
+}

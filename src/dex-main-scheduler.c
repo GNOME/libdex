@@ -94,6 +94,18 @@ dex_main_scheduler_push (DexScheduler *scheduler,
 }
 
 static void
+dex_main_scheduler_attach (DexScheduler *scheduler,
+                           GSource      *source)
+{
+  DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (scheduler);
+
+  g_assert (DEX_IS_MAIN_SCHEDULER (main_scheduler));
+  g_assert (source != NULL);
+
+  g_source_attach (source, main_scheduler->main_context);
+}
+
+static void
 dex_main_scheduler_finalize (DexObject *object)
 {
   DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (object);
@@ -111,6 +123,7 @@ dex_main_scheduler_class_init (DexMainSchedulerClass *main_scheduler_class)
 
   object_class->finalize = dex_main_scheduler_finalize;
 
+  scheduler_class->attach = dex_main_scheduler_attach;
   scheduler_class->push = dex_main_scheduler_push;
 }
 

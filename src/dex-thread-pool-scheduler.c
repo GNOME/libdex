@@ -53,6 +53,19 @@ dex_thread_pool_scheduler_push (DexScheduler *scheduler,
 }
 
 static void
+dex_thread_pool_scheduler_attach (DexScheduler *scheduler,
+                                  GSource      *source)
+{
+  DexThreadPoolScheduler *thread_pool_scheduler = DEX_THREAD_POOL_SCHEDULER (scheduler);
+  DexThreadPoolWorker *worker = DEX_THREAD_POOL_WORKER_CURRENT;
+
+  if (worker != NULL)
+    dex_thread_pool_worker_attach (worker, source);
+  else
+    g_critical ("TODO: add source to shared main context");
+}
+
+static void
 dex_thread_pool_scheduler_finalize (DexObject *object)
 {
   DEX_OBJECT_CLASS (dex_thread_pool_scheduler_parent_class)->finalize (object);
@@ -66,6 +79,7 @@ dex_thread_pool_scheduler_class_init (DexThreadPoolSchedulerClass *thread_pool_s
 
   object_class->finalize = dex_thread_pool_scheduler_finalize;
 
+  scheduler_class->attach = dex_thread_pool_scheduler_attach;
   scheduler_class->push = dex_thread_pool_scheduler_push;
 }
 
