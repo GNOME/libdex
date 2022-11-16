@@ -76,8 +76,8 @@ G_BEGIN_DECLS
 
 typedef struct _DexWorkStealingArray
 {
-  gint64      C;
-  gint64      M;
+  gint64               C;
+  gint64               M;
   _Atomic(DexWorkItem) S[0];
 } DexWorkStealingArray;
 
@@ -94,7 +94,9 @@ dex_work_stealing_array_new (gint64 c)
 {
   DexWorkStealingArray *work_stealing_array;
 
-  work_stealing_array = g_malloc0 (sizeof (DexWorkStealingArray) + (c * sizeof (DexWorkItem)));
+  work_stealing_array = g_aligned_alloc0 (1,
+                                          sizeof (DexWorkStealingArray) + (c * sizeof (DexWorkItem)),
+                                          G_ALIGNOF (DexWorkStealingArray));
   work_stealing_array->C = c;
   work_stealing_array->M = c-1;
 
@@ -139,7 +141,7 @@ dex_work_stealing_array_resize (DexWorkStealingArray *work_stealing_array,
 static inline void
 dex_work_stealing_array_free (DexWorkStealingArray *work_stealing_array)
 {
-  g_free (work_stealing_array);
+  g_aligned_free (work_stealing_array);
 }
 
 static inline void
