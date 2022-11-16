@@ -36,8 +36,10 @@ typedef enum _DexThreadPoolWorkerStatus
 struct _DexThreadPoolWorker
 {
   DexObject                  parent_instance;
+
   GThread                   *thread;
   GMainContext              *main_context;
+  DexThreadPoolScheduler    *scheduler;
   DexWorkStealingQueue       queue;
   DexThreadPoolWorkerStatus  status;
 };
@@ -95,6 +97,7 @@ dex_thread_pool_worker_finalize (DexObject *object)
 
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
   g_clear_pointer (&thread_pool_worker->main_context, g_main_context_unref);
+  thread_pool_worker->scheduler = NULL;
   dex_work_stealing_queue_clear (&thread_pool_worker->queue);
 
   DEX_OBJECT_CLASS (dex_thread_pool_worker_parent_class)->finalize (object);
@@ -124,8 +127,10 @@ static gpointer
 dex_thread_pool_worker_thread_func (gpointer data)
 {
   DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (data);
+  DexThreadStorage *storage = dex_thread_storage_get ();
 
-  dex_thread_storage_get ()->worker = thread_pool_worker;
+  storage->scheduler = DEX_SCHEDULER (thread_pool_worker->scheduler);
+  storage->worker = thread_pool_worker;
 
   g_main_context_push_thread_default (thread_pool_worker->main_context);
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_RUNNING;
@@ -134,7 +139,8 @@ dex_thread_pool_worker_thread_func (gpointer data)
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_FINISHED;
   g_main_context_pop_thread_default (thread_pool_worker->main_context);
 
-  dex_thread_storage_get ()->worker = NULL;
+  storage->worker = NULL;
+  storage->scheduler = NULL;
 
   return NULL;
 }
@@ -198,13 +204,14 @@ dex_thread_pool_worker_source_new (DexThreadPoolWorker *thread_pool_worker)
 }
 
 DexThreadPoolWorker *
-dex_thread_pool_worker_new (void)
+dex_thread_pool_worker_new (DexThreadPoolScheduler *scheduler)
 {
   DexThreadPoolWorker *thread_pool_worker;
   GSource *source;
 
   thread_pool_worker = (DexThreadPoolWorker *)g_type_create_instance (DEX_TYPE_THREAD_POOL_WORKER);
   thread_pool_worker->main_context = g_main_context_new ();
+  thread_pool_worker->scheduler = scheduler;
 
   /* Create a GSource which will dispatch work items as they come in.
    * We do this via a GMainContext rather than just some code directly

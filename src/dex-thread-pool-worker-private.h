@@ -23,6 +23,7 @@
 
 #include "dex-object-private.h"
 #include "dex-scheduler-private.h"
+#include "dex-thread-pool-scheduler.h"
 
 G_BEGIN_DECLS
 
@@ -35,8 +36,8 @@ G_BEGIN_DECLS
 typedef struct _DexThreadPoolWorker DexThreadPoolWorker;
 
 GType                dex_thread_pool_worker_get_type (void) G_GNUC_CONST;
-DexThreadPoolWorker *dex_thread_pool_worker_new      (void);
-void                 dex_thread_pool_worker_push     (DexThreadPoolWorker *worker,
-                                                      DexWorkItem          work_item);
+DexThreadPoolWorker *dex_thread_pool_worker_new      (DexThreadPoolScheduler *scheduler);
+void                 dex_thread_pool_worker_push     (DexThreadPoolWorker    *worker,
+                                                      DexWorkItem             work_item);
 
 G_END_DECLS
