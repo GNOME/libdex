@@ -24,6 +24,7 @@
 #include "dex-scheduler-private.h"
 #include "dex-thread-pool-scheduler.h"
 #include "dex-thread-pool-worker-private.h"
+#include "dex-thread-storage-private.h"
 
 struct _DexThreadPoolScheduler
 {
@@ -42,7 +43,12 @@ dex_thread_pool_scheduler_push (DexScheduler *scheduler,
                                 DexWorkItem   work_item)
 {
   DexThreadPoolScheduler *thread_pool_scheduler = DEX_THREAD_POOL_SCHEDULER (scheduler);
+  DexThreadPoolWorker *worker = DEX_THREAD_POOL_WORKER_CURRENT;
 
+  if (worker != NULL)
+    dex_thread_pool_worker_push (worker, work_item);
+  else
+    g_critical ("TODO: add to global queue");
 
 }
 
