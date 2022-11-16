@@ -78,15 +78,15 @@ typedef struct _DexWorkStealingArray
 {
   gint64      C;
   gint64      M;
-  DexWorkItem S[0];
+  _Atomic(DexWorkItem) S[0];
 } DexWorkStealingArray;
 
 typedef struct _DexWorkStealingQueue
 {
-  _Alignas(DEX_CACHELINE_SIZE) gint64                top;
-  _Alignas(DEX_CACHELINE_SIZE) gint64                bottom;
-  _Alignas(DEX_CACHELINE_SIZE) DexWorkStealingArray *array;
-                               GPtrArray            *garbage;
+  _Alignas(DEX_CACHELINE_SIZE) _Atomic(gint64)                top;
+  _Alignas(DEX_CACHELINE_SIZE) _Atomic(gint64)                bottom;
+  _Alignas(DEX_CACHELINE_SIZE) _Atomic(DexWorkStealingArray*) array;
+                                       GPtrArray             *garbage;
 } DexWorkStealingQueue;
 
 static inline DexWorkStealingArray *
@@ -151,15 +151,13 @@ dex_work_stealing_queue_init (DexWorkStealingQueue *work_stealing_queue,
   atomic_store_explicit (&work_stealing_queue->array,
                          dex_work_stealing_array_new (capacity),
                          memory_order_relaxed);
-  atomic_store_explicit (&work_stealing_queue->garbage,
-                         g_ptr_array_new_full (32, (GDestroyNotify)dex_work_stealing_array_free),
-                         memory_order_relaxed);
+  work_stealing_queue->garbage = g_ptr_array_new_full (32, (GDestroyNotify)dex_work_stealing_array_free);
 }
 
 static inline void
 dex_work_stealing_queue_clear (DexWorkStealingQueue *work_stealing_queue)
 {
-  GPtrArray *garbage = atomic_load (&work_stealing_queue->garbage);
+  GPtrArray *garbage = work_stealing_queue->garbage;
   DexWorkStealingArray *array = atomic_load (&work_stealing_queue->array);
 
   work_stealing_queue->top = 0;

@@ -18,6 +18,10 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include "config.h"
+
+#include <stdatomic.h>
+
 #include <libdex.h>
 
 #include "dex-object-private.h"
@@ -245,7 +249,7 @@ test_weak_ref_extend_liveness_worker (gpointer data)
    * liveness while it's attempting to finalize.
    */
   g_atomic_int_inc (&DEX_OBJECT (state->to)->weak_refs_watermark);
-  g_atomic_int_inc (&DEX_OBJECT (state->to)->ref_count);
+  atomic_fetch_add_explicit (&DEX_OBJECT (state->to)->ref_count, 1, memory_order_relaxed);
 
   /* Now release our mutex so we can race against the
    * main thread to do the final unref.
