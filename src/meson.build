@@ -20,6 +20,7 @@ libdex_sources = [
   'dex-thread-storage.c',
   'dex-timeout.c',
   'dex-unix-signal.c',
+  'dex-work-queue.c',
 ]
 
 libdex_headers = [
