@@ -22,8 +22,8 @@
 #include "config.h"
 
 #include "dex-scheduler-private.h"
+#include "dex-thread-storage-private.h"
 
-static GPrivate dex_scheduler_thread_default;
 static DexScheduler *default_scheduler;
 
 DEX_DEFINE_ABSTRACT_TYPE (DexScheduler, dex_scheduler, DEX_TYPE_OBJECT)
@@ -73,13 +73,13 @@ dex_scheduler_set_default (DexScheduler *scheduler)
 DexScheduler *
 dex_scheduler_get_thread_default (void)
 {
-  return g_private_get (&dex_scheduler_thread_default);
+  return dex_thread_storage_get ()->scheduler;
 }
 
 void
 dex_scheduler_set_thread_default (DexScheduler *scheduler)
 {
-  g_private_set (&dex_scheduler_thread_default, scheduler);
+  dex_thread_storage_get ()->scheduler = scheduler;
 }
 
 /**

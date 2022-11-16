@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include "dex-thread-pool-worker-private.h"
+#include "dex-thread-storage-private.h"
 #include "dex-work-stealing-queue-private.h"
 
 typedef enum _DexThreadPoolWorkerStatus
@@ -124,12 +125,16 @@ dex_thread_pool_worker_thread_func (gpointer data)
 {
   DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (data);
 
+  dex_thread_storage_get ()->worker = thread_pool_worker;
+
   g_main_context_push_thread_default (thread_pool_worker->main_context);
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_RUNNING;
   while (thread_pool_worker->status != DEX_THREAD_POOL_WORKER_STOPPING)
     g_main_context_iteration (thread_pool_worker->main_context, TRUE);
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_FINISHED;
   g_main_context_pop_thread_default (thread_pool_worker->main_context);
+
+  dex_thread_storage_get ()->worker = NULL;
 
   return NULL;
 }
