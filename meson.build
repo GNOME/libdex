@@ -78,6 +78,7 @@ test_c_args = [
   '-Wstrict-prototypes',
   '-Wswitch-default',
   '-Wswitch-enum',
+  '-Wtrampolines',
   '-Wundef',
   '-Wuninitialized',
   '-Wunused',
