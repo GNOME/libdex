@@ -21,6 +21,8 @@
 
 #include "config.h"
 
+#include <stdatomic.h>
+
 #include <gobject/gvaluecollector.h>
 
 #include "dex-object-private.h"
@@ -38,8 +40,7 @@ gpointer
 dex_ref (gpointer object)
 {
   DexObject *self = object;
-  g_return_val_if_fail (self->ref_count > 0, NULL);
-  g_atomic_int_inc (&self->ref_count);
+  atomic_fetch_add_explicit (&self->ref_count, 1, memory_order_relaxed);
   return object;
 }
 
@@ -64,8 +65,10 @@ dex_unref (gpointer data)
   /* If we decrement and it's not zero, then there is nothing
    * for this thread to do. Fast path.
    */
-  if G_LIKELY (!g_atomic_int_dec_and_test (&object->ref_count))
+  if G_LIKELY (atomic_fetch_sub_explicit (&object->ref_count, 1, memory_order_release) != 1)
     return;
+
+  atomic_thread_fence (memory_order_acquire);
 
   object_class = DEX_OBJECT_GET_CLASS (object);
 
@@ -131,7 +134,7 @@ dex_object_class_init (DexObjectClass *klass)
 static void
 dex_object_init (DexObject *self)
 {
-  g_atomic_ref_count_init (&self->ref_count);
+  self->ref_count = 1;
   g_mutex_init (&self->mutex);
   self->weak_refs_watermark = 1;
 }
@@ -244,7 +247,9 @@ dex_weak_ref_get_locked (DexWeakRef *weak_ref)
        * Otherwise, just add a single reference to own the object.
        */
       watermark = g_atomic_int_add (&object->weak_refs_watermark, 1);
-      g_atomic_int_add (&object->ref_count, 1 + (watermark == G_MAXUINT32));
+      atomic_fetch_add_explicit (&object->ref_count,
+                                 1 + (watermark == G_MAXUINT32),
+                                 memory_order_relaxed);
 
       return weak_ref->mem_block;
     }

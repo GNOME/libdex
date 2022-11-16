@@ -83,7 +83,7 @@ typedef struct _DexObject
   GMutex           mutex;
   DexWeakRef      *weak_refs;
   guint            weak_refs_watermark;
-  gatomicrefcount  ref_count;
+  _Atomic int      ref_count;
 } DexObject;
 
 static inline void
