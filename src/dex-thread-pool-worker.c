@@ -21,6 +21,8 @@
 
 #include "config.h"
 
+#include <stdatomic.h>
+
 #include "dex-thread-pool-worker-private.h"
 #include "dex-thread-storage-private.h"
 #include "dex-work-stealing-queue-private.h"
@@ -40,8 +42,9 @@ struct _DexThreadPoolWorker
   GThread                   *thread;
   GMainContext              *main_context;
   DexThreadPoolScheduler    *scheduler;
+  DexThreadPoolWorkerStatus  status : 2;
+
   DexWorkStealingQueue       queue;
-  DexThreadPoolWorkerStatus  status;
 };
 
 typedef struct _DexThreadPoolWorkerClass
@@ -93,7 +96,12 @@ dex_thread_pool_worker_finalize (DexObject *object)
   /* Now wait for the thread to process items and exit the thread */
   g_thread_join (thread_pool_worker->thread);
 
-  g_assert (g_atomic_int_get (&thread_pool_worker->status) == DEX_THREAD_POOL_WORKER_FINISHED);
+#ifdef G_ENABLE_DEBUG
+  atomic_thread_fence (memory_order_seq_cst);
+
+  g_assert (thread_pool_worker->status == DEX_THREAD_POOL_WORKER_FINISHED);
+  g_assert (dex_work_stealing_queue_empty (&thread_pool_worker->queue));
+#endif
 
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
   g_clear_pointer (&thread_pool_worker->main_context, g_main_context_unref);
