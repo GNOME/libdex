@@ -38,9 +38,8 @@ typedef struct _DexThreadPoolSchedulerClass
 DEX_DEFINE_FINAL_TYPE (DexThreadPoolScheduler, dex_thread_pool_scheduler, DEX_TYPE_SCHEDULER)
 
 static void
-dex_thread_pool_scheduler_push (DexScheduler     *scheduler,
-                                DexSchedulerFunc  func,
-                                gpointer          func_data)
+dex_thread_pool_scheduler_push (DexScheduler *scheduler,
+                                DexWorkItem   work_item)
 {
   DexThreadPoolScheduler *thread_pool_scheduler = DEX_THREAD_POOL_SCHEDULER (scheduler);
 

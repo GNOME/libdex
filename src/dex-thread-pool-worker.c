@@ -226,8 +226,7 @@ dex_thread_pool_worker_new (void)
 
 void
 dex_thread_pool_worker_push (DexThreadPoolWorker *thread_pool_worker,
-                             DexSchedulerFunc     func,
-                             gpointer             func_data)
+                             DexWorkItem          work_item)
 {
   g_assert (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
   g_assert (g_thread_self () == thread_pool_worker->thread);
@@ -236,6 +235,5 @@ dex_thread_pool_worker_push (DexThreadPoolWorker *thread_pool_worker,
    * which means we don't need to worry about waking up our GMainContext,
    * it will wake up automatically to process additional work items.
    */
-  dex_work_stealing_queue_push (&thread_pool_worker->queue,
-                                (DexWorkItem) {func, func_data});
+  dex_work_stealing_queue_push (&thread_pool_worker->queue, work_item);
 }

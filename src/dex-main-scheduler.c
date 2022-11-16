@@ -27,8 +27,7 @@
 typedef struct _DexMainWorkItem
 {
   struct _DexMainWorkItem *next;
-  DexSchedulerFunc func;
-  gpointer func_data;
+  DexWorkItem work_item;
 } DexMainWorkItem;
 
 typedef struct _DexMainQueue
@@ -71,21 +70,19 @@ dex_main_queue_push (DexMainQueue    *queue,
 }
 
 static void
-dex_main_scheduler_push (DexScheduler     *scheduler,
-                         DexSchedulerFunc  func,
-                         gpointer          func_data)
+dex_main_scheduler_push (DexScheduler *scheduler,
+                         DexWorkItem   work_item)
 {
   DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (scheduler);
   DexMainWorkItem *item;
   GMainContext *wakeup;
 
   g_assert (DEX_IS_MAIN_SCHEDULER (main_scheduler));
-  g_assert (func != NULL);
+  g_assert (work_item.func != NULL);
 
   item = g_new (DexMainWorkItem, 1);
   item->next = NULL;
-  item->func = func;
-  item->func_data = func_data;
+  item->work_item = work_item;
 
   dex_object_lock (scheduler);
   dex_main_queue_push (&main_scheduler->queue, item);
@@ -138,7 +135,7 @@ dex_main_scheduler_dispatch (GSource     *source,
   dex_object_unlock (main_scheduler);
 
   for (DexMainWorkItem *item = items; item; item = item->next)
-    item->func (item->func_data);
+    dex_work_item_invoke (&item->work_item);
 
   dex_object_lock (main_scheduler);
   main_scheduler->running = FALSE;

@@ -116,5 +116,5 @@ dex_scheduler_push (DexScheduler     *scheduler,
   g_return_if_fail (DEX_IS_SCHEDULER (scheduler));
   g_return_if_fail (func != NULL);
 
-  DEX_SCHEDULER_GET_CLASS (scheduler)->push (scheduler, func, func_data);
+  DEX_SCHEDULER_GET_CLASS (scheduler)->push (scheduler, (DexWorkItem) {func, func_data});
 }

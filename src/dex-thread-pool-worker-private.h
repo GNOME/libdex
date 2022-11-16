@@ -22,7 +22,7 @@
 #pragma once
 
 #include "dex-object-private.h"
-#include "dex-scheduler.h"
+#include "dex-scheduler-private.h"
 
 G_BEGIN_DECLS
 
@@ -37,7 +37,6 @@ typedef struct _DexThreadPoolWorker DexThreadPoolWorker;
 GType                dex_thread_pool_worker_get_type (void) G_GNUC_CONST;
 DexThreadPoolWorker *dex_thread_pool_worker_new      (void);
 void                 dex_thread_pool_worker_push     (DexThreadPoolWorker *worker,
-                                                      DexSchedulerFunc     func,
-                                                      gpointer             func_data);
+                                                      DexWorkItem          work_item);
 
 G_END_DECLS

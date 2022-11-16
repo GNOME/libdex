@@ -44,9 +44,8 @@ typedef struct _DexSchedulerClass
 {
   DexObjectClass parent_class;
 
-  void (*push) (DexScheduler     *scheduler,
-                DexSchedulerFunc  func,
-                gpointer          func_data);
+  void (*push) (DexScheduler *scheduler,
+                DexWorkItem   work_item);
 } DexSchedulerClass;
 
 void dex_scheduler_set_thread_default (DexScheduler *scheduler);
