@@ -27,6 +27,14 @@
 #include "dex-thread-storage-private.h"
 #include "dex-work-stealing-queue-private.h"
 
+#if GLIB_SIZEOF_VOID_P == 8
+# define DEFAULT_QUEUE_SIZE 255
+#elif GLIB_SIZEOF_VOID_P == 4
+# define DEFAULT_QUEUE_SIZE 1020
+#else
+# error "Unsupported value for GLIB_SIZEOF_VOID_P"
+#endif
+
 typedef enum _DexThreadPoolWorkerStatus
 {
   DEX_THREAD_POOL_WORKER_INITIAL,
@@ -42,9 +50,8 @@ struct _DexThreadPoolWorker
   GThread                   *thread;
   GMainContext              *main_context;
   DexThreadPoolScheduler    *scheduler;
+  DexWorkStealingQueue      *queue;
   DexThreadPoolWorkerStatus  status : 2;
-
-  DexWorkStealingQueue       queue;
 };
 
 typedef struct _DexThreadPoolWorkerClass
@@ -64,7 +71,7 @@ dex_thread_pool_worker_finalize_cb (gpointer data)
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_STOPPING;
 
   /* Now flush out the rest of the work items if there are any */
-  while (dex_work_stealing_queue_pop (&thread_pool_worker->queue, &work_item))
+  while (dex_work_stealing_queue_pop (thread_pool_worker->queue, &work_item))
     work_item.func (work_item.func_data);
 
   return G_SOURCE_REMOVE;
@@ -100,13 +107,12 @@ dex_thread_pool_worker_finalize (DexObject *object)
   atomic_thread_fence (memory_order_seq_cst);
 
   g_assert (thread_pool_worker->status == DEX_THREAD_POOL_WORKER_FINISHED);
-  g_assert (dex_work_stealing_queue_empty (&thread_pool_worker->queue));
+  g_assert (dex_work_stealing_queue_empty (thread_pool_worker->queue));
 #endif
 
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
   g_clear_pointer (&thread_pool_worker->main_context, g_main_context_unref);
-  thread_pool_worker->scheduler = NULL;
-  dex_work_stealing_queue_clear (&thread_pool_worker->queue);
+  g_clear_pointer (&thread_pool_worker->queue, dex_work_stealing_queue_free);
 
   DEX_OBJECT_CLASS (dex_thread_pool_worker_parent_class)->finalize (object);
 }
@@ -122,13 +128,7 @@ dex_thread_pool_worker_class_init (DexThreadPoolWorkerClass *thread_pool_worker_
 static void
 dex_thread_pool_worker_init (DexThreadPoolWorker *thread_pool_worker)
 {
-#if GLIB_SIZEOF_VOID_P == 8
-  dex_work_stealing_queue_init (&thread_pool_worker->queue, 255);
-#elif GLIB_SIZEOF_VOID_P == 4
-  dex_work_stealing_queue_init (&thread_pool_worker->queue, 1020);
-#else
-# error "Unsupported value for GLIB_SIZEOF_VOID_P"
-#endif
+  thread_pool_worker->queue = dex_work_stealing_queue_new (DEFAULT_QUEUE_SIZE);
 }
 
 static gpointer
@@ -165,7 +165,7 @@ dex_thread_pool_worker_source_check (GSource *source)
   DexThreadPoolWorkerSource *thread_pool_worker_source = (DexThreadPoolWorkerSource *)source;
   DexThreadPoolWorker *thread_pool_worker = thread_pool_worker_source->thread_pool_worker;
 
-  return !dex_work_stealing_queue_empty (&thread_pool_worker->queue);
+  return !dex_work_stealing_queue_empty (thread_pool_worker->queue);
 }
 
 static gboolean
@@ -180,7 +180,7 @@ dex_thread_pool_worker_source_dispatch (GSource     *source,
     {
       DexWorkItem work_item;
 
-      if (!dex_work_stealing_queue_pop (&thread_pool_worker->queue, &work_item))
+      if (!dex_work_stealing_queue_pop (thread_pool_worker->queue, &work_item))
         break;
 
       dex_work_item_invoke (&work_item);
@@ -250,7 +250,7 @@ dex_thread_pool_worker_push (DexThreadPoolWorker *thread_pool_worker,
    * which means we don't need to worry about waking up our GMainContext,
    * it will wake up automatically to process additional work items.
    */
-  dex_work_stealing_queue_push (&thread_pool_worker->queue, work_item);
+  dex_work_stealing_queue_push (thread_pool_worker->queue, work_item);
 }
 
 void

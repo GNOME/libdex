@@ -144,20 +144,26 @@ dex_work_stealing_array_free (DexWorkStealingArray *work_stealing_array)
   g_aligned_free (work_stealing_array);
 }
 
-static inline void
-dex_work_stealing_queue_init (DexWorkStealingQueue *work_stealing_queue,
-                              gint64                capacity)
+static inline DexWorkStealingQueue *
+dex_work_stealing_queue_new (gint64 capacity)
 {
+  DexWorkStealingQueue *work_stealing_queue;
+
+  work_stealing_queue = g_aligned_alloc0 (1,
+                                          sizeof (DexWorkStealingQueue),
+                                          G_ALIGNOF (DexWorkStealingQueue));
   atomic_store_explicit (&work_stealing_queue->top, 0, memory_order_relaxed);
   atomic_store_explicit (&work_stealing_queue->bottom, 0, memory_order_relaxed);
   atomic_store_explicit (&work_stealing_queue->array,
                          dex_work_stealing_array_new (capacity),
                          memory_order_relaxed);
   work_stealing_queue->garbage = g_ptr_array_new_full (32, (GDestroyNotify)dex_work_stealing_array_free);
+
+  return work_stealing_queue;
 }
 
 static inline void
-dex_work_stealing_queue_clear (DexWorkStealingQueue *work_stealing_queue)
+dex_work_stealing_queue_free (DexWorkStealingQueue *work_stealing_queue)
 {
   GPtrArray *garbage = work_stealing_queue->garbage;
   DexWorkStealingArray *array = atomic_load (&work_stealing_queue->array);
@@ -169,6 +175,8 @@ dex_work_stealing_queue_clear (DexWorkStealingQueue *work_stealing_queue)
 
   g_clear_pointer (&garbage, g_ptr_array_unref);
   g_clear_pointer (&array, dex_work_stealing_array_free);
+
+  g_aligned_free (work_stealing_queue);
 }
 
 static inline gboolean
