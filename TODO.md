@@ -1,5 +1,9 @@
 # TODO
 
+ * Implicit vs explicit support for deferred execution. If we have
+   some "await" support, that is when we can kick off work items. If
+   language bindings wrap Dex, this is where they can make things
+   implicit depending on the language.
  * ThreadPool schedulers, which should have a GMainContext so that
    we can use them to attach GSource for certain types of futures
    instead of attaching elsewhere.
