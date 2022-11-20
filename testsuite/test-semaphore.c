@@ -20,13 +20,22 @@
 
 #include "dex-semaphore-private.h"
 
+#define N_THREADS 32
+
+typedef struct
+{
+  DexSemaphore *semaphore;
+  GThread *thread;
+  int threadid;
+  int count;
+} WorkerState;
+
 static gboolean
 worker_thread_callback (gpointer user_data)
 {
-  static guint count;
+  WorkerState *state = user_data;
 
-  if (g_atomic_int_add (&count, 1) == 7)
-    exit (0);
+  state->count++;
 
   return G_SOURCE_CONTINUE;
 }
@@ -34,17 +43,18 @@ worker_thread_callback (gpointer user_data)
 static gpointer
 worker_thread_func (gpointer data)
 {
-  DexSemaphore *semaphore = data;
+  WorkerState *state = data;
   GMainContext *main_context = g_main_context_new ();
-  GSource *source = dex_semaphore_source_new (0, semaphore, worker_thread_callback, NULL, NULL);
+  GSource *source = dex_semaphore_source_new (0, state->semaphore, worker_thread_callback, state, NULL);
+  char *name = g_strdup_printf ("semaphore-thread-%u", state->threadid);
 
+  g_source_set_name (source, name);
   g_source_attach (source, main_context);
   g_source_unref (source);
+  g_free (name);
 
   for (;;)
     g_main_context_iteration (main_context, TRUE);
-
-  dex_semaphore_unref (semaphore);
 
   return NULL;
 }
@@ -54,19 +64,33 @@ main (int argc,
       char *argv[])
 {
   DexSemaphore *semaphore = dex_semaphore_new ();
-  GThread *threads[8];
+  WorkerState state[N_THREADS] = {{0}};
 
-  for (guint i = 0; i < G_N_ELEMENTS (threads); i++)
+  for (guint i = 0; i < G_N_ELEMENTS (state); i++)
     {
-      char *name = g_strdup_printf ("thread-%d", i);
-      threads[i] = g_thread_new (name, worker_thread_func, dex_semaphore_ref (semaphore));
+      char *name = g_strdup_printf ("test-semaphore-%u", i);
+
+      state[i].semaphore = semaphore;
+      state[i].threadid = i;
+      state[i].count = 0;
+      state[i].thread = g_thread_new (name, worker_thread_func, &state[i]);
+
       g_free (name);
     }
 
-  dex_semaphore_post_many (semaphore, 8);
+  g_usleep (G_USEC_PER_SEC/2);
 
-  for (guint i = 0; i < G_N_ELEMENTS (threads); i++)
-    g_thread_join (threads[i]);
+  for (guint i = 0; i < 10; i++)
+    {
+      dex_semaphore_post_many (semaphore, 3);
+      g_usleep (G_USEC_PER_SEC);
+      g_print ("==============\n");
+    }
+
+#if 0
+  for (guint i = 0; i < G_N_ELEMENTS (state); i++)
+    g_thread_join (state[i].thread);
+#endif
 
   return 0;
 }

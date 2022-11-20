@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
 
@@ -42,23 +43,36 @@
 struct _DexSemaphore
 {
   gatomicrefcount ref_count;
-  int fd;
+  int eventfd;
+  int epollfd;
 };
 
 DexSemaphore *
 dex_semaphore_new (void)
 {
   DexSemaphore *semaphore;
-  int fd;
+  struct epoll_event event;
+  int evfd;
+  int epfd;
 
   /* Create our eventfd in semaphore mode */
-  fd = eventfd (0, EFD_CLOEXEC | EFD_NONBLOCK | EFD_SEMAPHORE);
-  if (fd == -1)
+  evfd = eventfd (0, EFD_CLOEXEC | EFD_NONBLOCK | EFD_SEMAPHORE);
+  if (evfd == -1)
     return NULL;
+
+  /* Create epollfd for edge-triggered changes */
+  epfd = epoll_create (EPOLL_CLOEXEC);
+  if (epfd == -1)
+    return NULL;
+
+  event.events = EPOLLIN | EPOLLET | EPOLLEXCLUSIVE;
+  event.data.fd = evfd;
+  epoll_ctl (epfd, EPOLL_CTL_ADD, evfd, &event);
 
   semaphore = g_new0 (DexSemaphore, 1);
   g_atomic_ref_count_init (&semaphore->ref_count);
-  semaphore->fd = fd;
+  semaphore->eventfd = evfd;
+  semaphore->epollfd = epfd;
 
   return semaphore;
 }
@@ -66,6 +80,12 @@ dex_semaphore_new (void)
 static void
 dex_semaphore_finalize (DexSemaphore *semaphore)
 {
+  if (semaphore->eventfd != -1)
+    {
+      close (semaphore->eventfd);
+      semaphore->eventfd = -1;
+    }
+
   g_free (semaphore);
 }
 
@@ -99,7 +119,7 @@ dex_semaphore_post_many (DexSemaphore *semaphore,
    * other than sizeof(counter) indicates failure and we are not prepared
    * to handle that as it shouldn't happen. Just bail.
    */
-  if (write (semaphore->fd, &counter, sizeof counter) != sizeof counter)
+  if (write (semaphore->eventfd, &counter, sizeof counter) != sizeof counter)
     {
       int errsv = errno;
       g_error ("Failed to post semaphore counter: %s",
@@ -125,9 +145,11 @@ dex_semaphore_source_dispatch (GSource     *source,
 
   g_assert (semaphore_source != NULL);
   g_assert (semaphore_source->semaphore != NULL);
-  g_assert (semaphore_source->semaphore->fd > -1);
+  g_assert (semaphore_source->semaphore->eventfd > -1);
  
-  n_read = read (semaphore_source->semaphore->fd, &counter, sizeof counter);
+  n_read = read (semaphore_source->semaphore->eventfd, &counter, sizeof counter);
+
+  g_print ("%p: n_read %d counter %d\n", g_thread_self(), (int)n_read, (int)counter);
 
   if (n_read == sizeof counter && counter > 0)
     {
@@ -138,8 +160,17 @@ dex_semaphore_source_dispatch (GSource     *source,
   return G_SOURCE_CONTINUE;
 }
 
+static void
+dex_semaphore_source_finalize (GSource *source)
+{
+  DexSemaphoreSource *semaphore_source = (DexSemaphoreSource *)source;
+
+  g_clear_pointer (&semaphore_source->semaphore, dex_semaphore_unref);
+}
+
 static GSourceFuncs dex_semaphore_source_funcs = {
   .dispatch = dex_semaphore_source_dispatch,
+  .finalize = dex_semaphore_source_finalize,
 };
 
 GSource *
@@ -153,7 +184,7 @@ dex_semaphore_source_new (int             priority,
   GSource *source;
 
   g_return_val_if_fail (semaphore != NULL, NULL);
-  g_return_val_if_fail (semaphore->fd > -1, NULL);
+  g_return_val_if_fail (semaphore->eventfd > -1, NULL);
   g_return_val_if_fail (callback != NULL || callback_data == NULL, NULL);
   g_return_val_if_fail (callback != NULL || callback_data_destroy == NULL, NULL);
 
@@ -165,7 +196,7 @@ dex_semaphore_source_new (int             priority,
 
   semaphore_source = (DexSemaphoreSource *)source;
   semaphore_source->semaphore = dex_semaphore_ref (semaphore);
-  semaphore_source->fdtag = g_source_add_unix_fd (source, semaphore->fd, G_IO_IN);
+  semaphore_source->fdtag = g_source_add_unix_fd (source, semaphore->epollfd, G_IO_IN);
 
   return source;
 }
