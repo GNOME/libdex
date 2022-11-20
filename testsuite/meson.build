@@ -18,6 +18,7 @@ testsuite_sources = [
   ['test-object'],
   ['test-future'],
   ['test-scheduler'],
+  ['test-semaphore'],
   ['test-stream'],
 ]
 

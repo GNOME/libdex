@@ -14,6 +14,7 @@ libdex_sources = [
   'dex-object.c',
   'dex-promise.c',
   'dex-scheduler.c',
+  'dex-semaphore.c',
   'dex-tasklet.c',
   'dex-thread-pool-scheduler.c',
   'dex-thread-pool-worker.c',
