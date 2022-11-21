@@ -68,18 +68,30 @@ dex_unix_signal_init (DexUnixSignal *unix_signal)
 }
 
 static gboolean
-dex_unix_signal_source_func (gpointer user_data)
+dex_unix_signal_source_func (gpointer data)
 {
-  DexUnixSignal *unix_signal = user_data;
-  GValue value = G_VALUE_INIT;
+  DexWeakRef *wr = data;
+  DexUnixSignal *unix_signal = dex_weak_ref_get (wr);
 
-  g_assert (DEX_IS_UNIX_SIGNAL (unix_signal));
+  g_assert (!unix_signal || DEX_IS_UNIX_SIGNAL (unix_signal));
 
-  g_value_init (&value, G_TYPE_INT);
-  g_value_set_int (&value, unix_signal->signum);
-  dex_future_complete (DEX_FUTURE (unix_signal), &value, NULL);
+  if (unix_signal != NULL)
+    {
+      GValue value = G_VALUE_INIT;
+
+      g_value_init (&value, G_TYPE_INT);
+      g_value_set_int (&value, unix_signal->signum);
+      dex_future_complete (DEX_FUTURE (unix_signal), &value, NULL);
+    }
 
   return G_SOURCE_REMOVE;
+}
+
+static void
+clear_weak_ref (gpointer data)
+{
+  dex_weak_ref_clear (data);
+  g_free (data);
 }
 
 /**
@@ -101,6 +113,7 @@ dex_unix_signal_new (int signum)
 {
   DexUnixSignal *unix_signal;
   const char *name = NULL;
+  DexWeakRef *wr;
 
   g_return_val_if_fail (signum == SIGHUP || signum == SIGINT || signum == SIGTERM ||
                         signum == SIGUSR1 || signum == SIGUSR2 || signum == SIGWINCH,
@@ -122,8 +135,14 @@ dex_unix_signal_new (int signum)
   unix_signal->signum = signum;
   unix_signal->source = g_unix_signal_source_new (signum);
 
-  g_source_set_callback (unix_signal->source, dex_unix_signal_source_func, unix_signal, NULL);
-  g_source_set_name (unix_signal->source, name);
+  wr = g_new0 (DexWeakRef, 1);
+  dex_weak_ref_init (wr, unix_signal);
+
+  g_source_set_callback (unix_signal->source,
+                         dex_unix_signal_source_func,
+                         wr,
+                         clear_weak_ref);
+  g_source_set_static_name (unix_signal->source, name);
   g_source_attach (unix_signal->source, NULL);
 
   return DEX_FUTURE (unix_signal);
