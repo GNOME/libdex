@@ -117,7 +117,7 @@ dex_timeout_new_deadline (gint64 deadline)
 
   timeout->source = g_timeout_source_new (0);
   g_source_set_ready_time (timeout->source, deadline);
-  g_source_set_name (timeout->source, name);
+  g_source_set_static_name (timeout->source, name);
   g_source_set_priority (timeout->source, G_PRIORITY_DEFAULT);
   g_source_set_callback (timeout->source,
                          dex_timeout_source_func,
