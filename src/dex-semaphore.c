@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
+#include <liburing.h>
 #include <unistd.h>
 
 #include "dex-semaphore-private.h"

@@ -22,8 +22,11 @@ package_string = '@0@-@1@'.format(package_name, api_version)
 
 glib_req_version = '2.73'
 glib_req = '>= @0@'.format(glib_req_version)
-
 glib_dep = dependency('gio-2.0', version: glib_req)
+
+liburing_req_version = '2.3'
+liburing_req = '>= @0@'.format(liburing_req_version)
+liburing_dep = dependency('liburing', version: liburing_req)
 
 config_h = configuration_data()
 config_h.set_quoted('PACKAGE_VERSION', meson.project_version())

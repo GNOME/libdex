@@ -68,6 +68,7 @@ configure_file(
 
 libdex_deps = [
   cc.find_library('atomic', required: false),
+  liburing_dep,
   glib_dep,
 ]
 
