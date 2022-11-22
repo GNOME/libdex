@@ -21,13 +21,14 @@
 
 #include "config.h"
 
+#include "dex-semaphore-private.h"
 #include "dex-work-queue-private.h"
 
 struct _DexWorkQueue
 {
-  GMutex  mutex;
-  GQueue  queue;
-  GPollFD pollfd;
+  DexSemaphore *semaphore;
+  GMutex mutex;
+  GQueue queue;
 };
 
 typedef struct _DexWorkQueueItem
@@ -41,29 +42,37 @@ dex_work_queue_new (void)
 {
   DexWorkQueue *work_queue;
 
-  work_queue = g_new0 (DexWorkQueue, 1);
+  work_queue = g_atomic_rc_box_new0 (DexWorkQueue);
+  work_queue->semaphore = dex_semaphore_new ();
   g_mutex_init (&work_queue->mutex);
 
   return work_queue;
 }
 
-void
-dex_work_queue_free (DexWorkQueue *work_queue)
+DexWorkQueue *
+dex_work_queue_ref (DexWorkQueue *work_queue)
 {
+  g_atomic_rc_box_acquire (work_queue);
+  return work_queue;
+}
+
+static void
+dex_work_queue_finalize (gpointer data)
+{
+  DexWorkQueue *work_queue = data;
+
+  if (work_queue->queue.length > 0)
+    g_critical ("Work queue %p freed with %u items still in it!",
+                work_queue, work_queue->queue.length);
+
   g_mutex_clear (&work_queue->mutex);
-  g_free (work_queue);
+  g_clear_pointer (&work_queue->semaphore, dex_semaphore_unref);
 }
 
 void
-dex_work_queue_get_pollfd (DexWorkQueue *work_queue,
-                           GPollFD      *pollfd)
+dex_work_queue_unref (DexWorkQueue *work_queue)
 {
-  g_return_if_fail (work_queue != NULL);
-  g_return_if_fail (pollfd != NULL);
-
-  /* TODO: actually figure out how we want to use eventfd and/or gwakeup for this */
-
-  *pollfd = work_queue->pollfd;
+  g_atomic_rc_box_release_full (work_queue, dex_work_queue_finalize);
 }
 
 void
@@ -77,32 +86,69 @@ dex_work_queue_push (DexWorkQueue *work_queue,
   work_queue_item->work_item = work_item;
 
   g_mutex_lock (&work_queue->mutex);
-  g_queue_push_head_link (&work_queue->queue, &work_queue_item->link);
+  g_queue_push_tail_link (&work_queue->queue, &work_queue_item->link);
   g_mutex_unlock (&work_queue->mutex);
 
-  /* TODO: Signal via gwakeup/eventfd */
+  dex_semaphore_post (work_queue->semaphore);
 }
 
 gboolean
 dex_work_queue_pop (DexWorkQueue *work_queue,
                     DexWorkItem  *out_work_item)
 {
-  DexWorkQueueItem *item;
-  gboolean ret;
+  GList *link;
 
   g_return_val_if_fail (work_queue != NULL, FALSE);
   g_return_val_if_fail (out_work_item != NULL, FALSE);
 
   g_mutex_lock (&work_queue->mutex);
-  if ((item = g_queue_peek_tail (&work_queue->queue)))
-    {
-      *out_work_item = item->work_item;
-      g_queue_unlink (&work_queue->queue, &item->link);
-    }
+  link = g_queue_pop_head_link (&work_queue->queue);
   g_mutex_unlock (&work_queue->mutex);
 
-  if ((ret = item != NULL))
-    g_free (item);
+  if (link != NULL)
+    {
+      DexWorkQueueItem *item = link->data;
+      *out_work_item = item->work_item;
+      g_free (item);
+    }
 
-  return ret;
+  return link != NULL;
+}
+
+static gboolean
+dex_work_queue_pop_and_invoke_item_source_func (gpointer data)
+{
+  DexWorkQueue *work_queue = data;
+  DexWorkItem work_item;
+
+  g_assert (work_queue != NULL);
+
+  if (dex_work_queue_pop (work_queue, &work_item))
+    dex_work_item_invoke (&work_item);
+
+  return G_SOURCE_CONTINUE;
+}
+
+guint
+dex_work_queue_attach (DexWorkQueue *work_queue,
+                       DexScheduler *scheduler)
+{
+  GMainContext *main_context;
+  GSource *source;
+  guint source_id;
+
+  g_return_val_if_fail (work_queue != NULL, 0);
+  g_return_val_if_fail (work_queue->semaphore != NULL, 0);
+  g_return_val_if_fail (DEX_IS_SCHEDULER (scheduler), 0);
+
+  source = dex_semaphore_source_new (G_PRIORITY_DEFAULT,
+                                     work_queue->semaphore,
+                                     dex_work_queue_pop_and_invoke_item_source_func,
+                                     dex_work_queue_ref (work_queue),
+                                     (GDestroyNotify)dex_work_queue_unref);
+  main_context = dex_scheduler_get_main_context (scheduler);
+  source_id = g_source_attach (source, main_context);
+  g_source_unref (source);
+
+  return source_id;
 }
