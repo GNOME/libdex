@@ -27,14 +27,13 @@ G_BEGIN_DECLS
 
 typedef struct _DexWorkQueue DexWorkQueue;
 
-DexWorkQueue *dex_work_queue_new    (void);
-DexWorkQueue *dex_work_queue_ref    (DexWorkQueue *work_queue);
-void          dex_work_queue_unref  (DexWorkQueue *work_queue);
-void          dex_work_queue_push   (DexWorkQueue *work_queue,
-                                     DexWorkItem   work_item);
-gboolean      dex_work_queue_pop    (DexWorkQueue *work_queue,
-                                     DexWorkItem  *out_work_item);
-guint         dex_work_queue_attach (DexWorkQueue *work_queue,
-                                     DexScheduler *scheduler);
+DexWorkQueue *dex_work_queue_new           (void);
+DexWorkQueue *dex_work_queue_ref           (DexWorkQueue *work_queue);
+void          dex_work_queue_unref         (DexWorkQueue *work_queue);
+void          dex_work_queue_push          (DexWorkQueue *work_queue,
+                                            DexWorkItem   work_item);
+gboolean      dex_work_queue_pop           (DexWorkQueue *work_queue,
+                                            DexWorkItem  *out_work_item);
+GSource      *dex_work_queue_create_source (DexWorkQueue *work_queue);
 
 G_END_DECLS

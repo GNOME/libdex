@@ -129,26 +129,15 @@ dex_work_queue_pop_and_invoke_item_source_func (gpointer data)
   return G_SOURCE_CONTINUE;
 }
 
-guint
-dex_work_queue_attach (DexWorkQueue *work_queue,
-                       DexScheduler *scheduler)
+GSource *
+dex_work_queue_create_source (DexWorkQueue *work_queue)
 {
-  GMainContext *main_context;
-  GSource *source;
-  guint source_id;
-
   g_return_val_if_fail (work_queue != NULL, 0);
   g_return_val_if_fail (work_queue->semaphore != NULL, 0);
-  g_return_val_if_fail (DEX_IS_SCHEDULER (scheduler), 0);
 
-  source = dex_semaphore_source_new (G_PRIORITY_DEFAULT,
-                                     work_queue->semaphore,
-                                     dex_work_queue_pop_and_invoke_item_source_func,
-                                     dex_work_queue_ref (work_queue),
-                                     (GDestroyNotify)dex_work_queue_unref);
-  main_context = dex_scheduler_get_main_context (scheduler);
-  source_id = g_source_attach (source, main_context);
-  g_source_unref (source);
-
-  return source_id;
+  return dex_semaphore_source_new (G_PRIORITY_DEFAULT,
+                                   work_queue->semaphore,
+                                   dex_work_queue_pop_and_invoke_item_source_func,
+                                   dex_work_queue_ref (work_queue),
+                                   (GDestroyNotify)dex_work_queue_unref);
 }
