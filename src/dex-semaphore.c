@@ -45,35 +45,19 @@ struct _DexSemaphore
 {
   gatomicrefcount ref_count;
   int eventfd;
-  int epollfd;
 };
 
 DexSemaphore *
 dex_semaphore_new (void)
 {
   DexSemaphore *semaphore;
-  struct epoll_event event;
-  int evfd;
-  int epfd;
-
-  /* Create our eventfd in semaphore mode */
-  evfd = eventfd (0, EFD_CLOEXEC | EFD_NONBLOCK | EFD_SEMAPHORE);
-  if (evfd == -1)
-    return NULL;
-
-  /* Create epollfd for edge-triggered changes */
-  epfd = epoll_create (EPOLL_CLOEXEC);
-  if (epfd == -1)
-    return NULL;
-
-  event.events = EPOLLIN | EPOLLET | EPOLLEXCLUSIVE;
-  event.data.fd = evfd;
-  epoll_ctl (epfd, EPOLL_CTL_ADD, evfd, &event);
 
   semaphore = g_new0 (DexSemaphore, 1);
   g_atomic_ref_count_init (&semaphore->ref_count);
-  semaphore->eventfd = evfd;
-  semaphore->epollfd = epfd;
+  semaphore->eventfd = eventfd (0, EFD_SEMAPHORE);
+
+  if (semaphore->eventfd == -1)
+    g_clear_pointer (&semaphore, dex_semaphore_unref);
 
   return semaphore;
 }
@@ -130,9 +114,12 @@ dex_semaphore_post_many (DexSemaphore *semaphore,
 
 typedef struct _DexSemaphoreSource
 {
-  GSource       source;
-  DexSemaphore *semaphore;
-  gpointer      fdtag;
+  GSource          source;
+  DexSemaphore    *semaphore;
+  struct io_uring  ring;
+  gint64           counter;
+  int              eventfd;
+  gpointer         eventfdtag;
 } DexSemaphoreSource;
 
 static gboolean
@@ -141,22 +128,26 @@ dex_semaphore_source_dispatch (GSource     *source,
                                gpointer     user_data)
 {
   DexSemaphoreSource *semaphore_source = (DexSemaphoreSource *)source;
+  struct io_uring_cqe *cqe;
+  struct io_uring_sqe *sqe;
   gint64 counter;
   gssize n_read;
 
   g_assert (semaphore_source != NULL);
   g_assert (semaphore_source->semaphore != NULL);
   g_assert (semaphore_source->semaphore->eventfd > -1);
- 
-  n_read = read (semaphore_source->semaphore->eventfd, &counter, sizeof counter);
 
-  g_print ("%p: n_read %d counter %d\n", g_thread_self(), (int)n_read, (int)counter);
+  n_read = read (semaphore_source->eventfd, &counter, sizeof counter);
 
-  if (n_read == sizeof counter && counter > 0)
-    {
-      if (callback != NULL)
-        return callback (user_data);
-    }
+  while (io_uring_peek_cqe (&semaphore_source->ring, &cqe))
+    io_uring_cqe_seen (&semaphore_source->ring, cqe);
+
+  if (n_read == sizeof counter)
+    callback (user_data);
+
+	sqe = io_uring_get_sqe (&semaphore_source->ring);
+	io_uring_prep_read (sqe, semaphore_source->semaphore->eventfd, &semaphore_source->counter, sizeof semaphore_source->counter, -1);
+  io_uring_submit (&semaphore_source->ring);
 
   return G_SOURCE_CONTINUE;
 }
@@ -167,6 +158,11 @@ dex_semaphore_source_finalize (GSource *source)
   DexSemaphoreSource *semaphore_source = (DexSemaphoreSource *)source;
 
   g_clear_pointer (&semaphore_source->semaphore, dex_semaphore_unref);
+
+  if (semaphore_source->eventfd != -1)
+    close (semaphore_source->eventfd);
+
+  io_uring_queue_exit (&semaphore_source->ring);
 }
 
 static GSourceFuncs dex_semaphore_source_funcs = {
@@ -182,6 +178,7 @@ dex_semaphore_source_new (int             priority,
                           GDestroyNotify  callback_data_destroy)
 {
   DexSemaphoreSource *semaphore_source;
+  struct io_uring_sqe *sqe;
   GSource *source;
 
   g_return_val_if_fail (semaphore != NULL, NULL);
@@ -190,14 +187,23 @@ dex_semaphore_source_new (int             priority,
   g_return_val_if_fail (callback != NULL || callback_data_destroy == NULL, NULL);
 
   source = g_source_new (&dex_semaphore_source_funcs, sizeof (DexSemaphoreSource));
+  semaphore_source = (DexSemaphoreSource *)source;
+
   if (callback != NULL)
     g_source_set_callback (source, callback, callback_data, callback_data_destroy);
   g_source_set_priority (source, priority);
   g_source_set_static_name (source, "[dex-semaphore-source]");
 
-  semaphore_source = (DexSemaphoreSource *)source;
   semaphore_source->semaphore = dex_semaphore_ref (semaphore);
-  semaphore_source->fdtag = g_source_add_unix_fd (source, semaphore->epollfd, G_IO_IN);
+  semaphore_source->eventfd = eventfd (0, EFD_CLOEXEC);
+  semaphore_source->eventfdtag = g_source_add_unix_fd (source, semaphore_source->eventfd, G_IO_IN);
+
+  io_uring_queue_init (8, &semaphore_source->ring, 0);
+  io_uring_register_eventfd (&semaphore_source->ring, semaphore_source->eventfd);
+
+	sqe = io_uring_get_sqe (&semaphore_source->ring);
+	io_uring_prep_read (sqe, semaphore->eventfd, &semaphore_source->counter, sizeof semaphore_source->counter, -1);
+  io_uring_submit (&semaphore_source->ring);
 
   return source;
 }

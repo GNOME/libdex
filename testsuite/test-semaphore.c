@@ -22,20 +22,19 @@
 
 #define N_THREADS 32
 
+static guint total_count;
+
 typedef struct
 {
   DexSemaphore *semaphore;
   GThread *thread;
   int threadid;
-  int count;
 } WorkerState;
 
 static gboolean
 worker_thread_callback (gpointer user_data)
 {
-  WorkerState *state = user_data;
-
-  state->count++;
+  g_atomic_int_inc (&total_count);
 
   return G_SOURCE_CONTINUE;
 }
@@ -72,7 +71,6 @@ main (int argc,
 
       state[i].semaphore = semaphore;
       state[i].threadid = i;
-      state[i].count = 0;
       state[i].thread = g_thread_new (name, worker_thread_func, &state[i]);
 
       g_free (name);
@@ -82,15 +80,16 @@ main (int argc,
 
   for (guint i = 0; i < 10; i++)
     {
-      dex_semaphore_post_many (semaphore, 3);
+      int count = g_random_int_range (1, 12);
+      g_atomic_int_set (&total_count, 0);
+      dex_semaphore_post_many (semaphore, count);
       g_usleep (G_USEC_PER_SEC);
-      g_print ("==============\n");
+      g_print ("Expected %u, got %u\n", count, g_atomic_int_get (&total_count));
+      g_assert_cmpint (g_atomic_int_get (&total_count), ==, count);
     }
 
-#if 0
   for (guint i = 0; i < G_N_ELEMENTS (state); i++)
     g_thread_join (state[i].thread);
-#endif
 
   return 0;
 }
