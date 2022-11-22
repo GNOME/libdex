@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "dex-aio-context-private.h"
 #include "dex-object-private.h"
 #include "dex-scheduler.h"
 
@@ -44,14 +45,16 @@ typedef struct _DexSchedulerClass
 {
   DexObjectClass parent_class;
 
-  void (*push)   (DexScheduler *scheduler,
-                  DexWorkItem   work_item);
-  void (*attach) (DexScheduler *scheduler,
-                  GSource      *source);
+  void           (*push)            (DexScheduler *scheduler,
+                                     DexWorkItem   work_item);
+  void           (*attach)          (DexScheduler *scheduler,
+                                     GSource      *source);
+  DexAioContext *(*get_aio_context) (DexScheduler *scheduler);
 } DexSchedulerClass;
 
-void dex_scheduler_set_thread_default (DexScheduler *scheduler);
-void dex_scheduler_set_default        (DexScheduler *scheduler);
+void           dex_scheduler_set_thread_default (DexScheduler *scheduler);
+void           dex_scheduler_set_default        (DexScheduler *scheduler);
+DexAioContext *dex_scheduler_get_aio_context    (DexScheduler *scheduler);
 
 static inline void
 dex_work_item_invoke (const DexWorkItem *work_item)

@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include "dex-aio-context-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-thread-storage-private.h"
 
@@ -138,4 +139,10 @@ dex_scheduler_attach (DexScheduler *scheduler,
                       GSource      *source)
 {
   DEX_SCHEDULER_GET_CLASS (scheduler)->attach (scheduler, source);
+}
+
+DexAioContext *
+dex_scheduler_get_aio_context (DexScheduler *scheduler)
+{
+  return DEX_SCHEDULER_GET_CLASS (scheduler)->get_aio_context (scheduler);
 }

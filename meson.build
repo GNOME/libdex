@@ -10,6 +10,9 @@ cc = meson.get_compiler('c')
 gnome = import('gnome')
 pkg = import('pkgconfig')
 
+config_h = configuration_data()
+config_h.set_quoted('PACKAGE_VERSION', meson.project_version())
+
 prefix = get_option('prefix')
 datadir = join_paths(prefix, get_option('datadir'))
 libdir = join_paths(prefix, get_option('libdir'))
@@ -26,10 +29,11 @@ glib_dep = dependency('gio-2.0', version: glib_req)
 
 liburing_req_version = '2.3'
 liburing_req = '>= @0@'.format(liburing_req_version)
-liburing_dep = dependency('liburing', version: liburing_req)
+liburing_dep = dependency('liburing', version: liburing_req, required: false)
 
-config_h = configuration_data()
-config_h.set_quoted('PACKAGE_VERSION', meson.project_version())
+if liburing_dep.found()
+  config_h.set10('HAVE_LIBURING', true)
+endif
 
 project_c_args = []
 test_c_args = [

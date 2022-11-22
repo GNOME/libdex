@@ -1,4 +1,5 @@
 libdex_sources = [
+  'dex-aio-context.c',
   'dex-async-pair.c',
   'dex-block.c',
   'dex-callable.c',
@@ -25,6 +26,7 @@ libdex_sources = [
 ]
 
 libdex_headers = [
+  'dex-aio.h',
   'dex-async-pair.h',
   'dex-block.h',
   'dex-callable.h',
@@ -45,6 +47,10 @@ libdex_headers = [
   'dex-timeout.h',
   'libdex.h',
 ]
+
+if liburing_dep.found()
+  libdex_sources += ['dex-uring-future.c']
+endif
 
 if host_machine.system() != 'windows'
   libdex_sources += ['dex-unix-signal.c']
