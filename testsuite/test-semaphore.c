@@ -23,11 +23,14 @@
 #define N_THREADS 32
 
 static guint total_count;
+static gboolean shutdown;
+static guint done;
 
 typedef struct
 {
   DexSemaphore *semaphore;
   GThread *thread;
+  GSource *source;
   int threadid;
 } WorkerState;
 
@@ -47,13 +50,18 @@ worker_thread_func (gpointer data)
   GSource *source = dex_semaphore_source_new (0, state->semaphore, worker_thread_callback, state, NULL);
   char *name = g_strdup_printf ("semaphore-thread-%u", state->threadid);
 
+  state->source = source;
+
   g_source_set_name (source, name);
   g_source_attach (source, main_context);
+
+  while (!g_atomic_int_get (&shutdown))
+    g_main_context_iteration (main_context, TRUE);
+
   g_source_unref (source);
   g_free (name);
 
-  for (;;)
-    g_main_context_iteration (main_context, TRUE);
+  g_atomic_int_inc (&done);
 
   return NULL;
 }
@@ -80,13 +88,18 @@ main (int argc,
 
   for (guint i = 0; i < 10; i++)
     {
-      int count = g_random_int_range (1, 12);
+      int count = 10000;
       g_atomic_int_set (&total_count, 0);
       dex_semaphore_post_many (semaphore, count);
       g_usleep (G_USEC_PER_SEC);
       g_print ("Expected %u, got %u\n", count, g_atomic_int_get (&total_count));
       g_assert_cmpint (g_atomic_int_get (&total_count), ==, count);
     }
+
+  g_atomic_int_set (&shutdown, TRUE);
+
+  while (g_atomic_int_get (&done) < N_THREADS)
+    dex_semaphore_post (semaphore);
 
   for (guint i = 0; i < G_N_ELEMENTS (state); i++)
     g_thread_join (state[i].thread);
