@@ -24,27 +24,15 @@
 #include "dex-aio-context-private.h"
 #include "dex-main-scheduler.h"
 #include "dex-scheduler-private.h"
-
-typedef struct _DexMainWorkItem
-{
-  struct _DexMainWorkItem *next;
-  DexWorkItem work_item;
-} DexMainWorkItem;
-
-typedef struct _DexMainQueue
-{
-  DexMainWorkItem *head;
-  DexMainWorkItem *tail;
-} DexMainQueue;
+#include "dex-work-queue-private.h"
 
 typedef struct _DexMainScheduler
 {
   DexScheduler   parent_scheduler;
   GMainContext  *main_context;
-  DexAioContext *aio_context;
-  GSource       *source;
-  DexMainQueue   queue;
-  guint          running : 1;
+  GSource       *aio_context;
+  GSource       *work_queue_source;
+  DexWorkQueue  *work_queue;
 } DexMainScheduler;
 
 typedef struct _DexMainSchedulerClass
@@ -52,47 +40,17 @@ typedef struct _DexMainSchedulerClass
   DexSchedulerClass parent_class;
 } DexMainSchedulerClass;
 
-typedef struct _DexMainSource
-{
-  GSource           source;
-  DexMainScheduler *scheduler;
-} DexMainSource;
-
 DEX_DEFINE_FINAL_TYPE (DexMainScheduler, dex_main_scheduler, DEX_TYPE_SCHEDULER)
-
-static inline void
-dex_main_queue_push (DexMainQueue    *queue,
-                     DexMainWorkItem *work_item)
-{
-  if (queue->tail != NULL)
-    queue->tail->next = work_item;
-  queue->tail = work_item;
-  if (queue->head == NULL)
-    queue->head = queue->tail;
-}
 
 static void
 dex_main_scheduler_push (DexScheduler *scheduler,
                          DexWorkItem   work_item)
 {
   DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (scheduler);
-  DexMainWorkItem *item;
-  GMainContext *wakeup;
 
   g_assert (DEX_IS_MAIN_SCHEDULER (main_scheduler));
-  g_assert (work_item.func != NULL);
 
-  item = g_new (DexMainWorkItem, 1);
-  item->next = NULL;
-  item->work_item = work_item;
-
-  dex_object_lock (scheduler);
-  dex_main_queue_push (&main_scheduler->queue, item);
-  wakeup = main_scheduler->running ? NULL : main_scheduler->main_context;
-  dex_object_unlock (scheduler);
-
-  if G_UNLIKELY (wakeup != NULL)
-    g_main_context_wakeup (wakeup);
+  dex_work_queue_push (main_scheduler->work_queue, work_item);
 }
 
 static GMainContext *
@@ -112,7 +70,7 @@ dex_main_scheduler_get_aio_context (DexScheduler *scheduler)
 
   g_assert (DEX_IS_MAIN_SCHEDULER (main_scheduler));
 
-  return main_scheduler->aio_context;
+  return (DexAioContext *)main_scheduler->aio_context;
 }
 
 static void
@@ -120,12 +78,14 @@ dex_main_scheduler_finalize (DexObject *object)
 {
   DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (object);
 
-  g_source_destroy ((GSource *)main_scheduler->aio_context);
-  g_source_destroy ((GSource *)main_scheduler->source);
+  g_source_destroy (main_scheduler->work_queue_source);
+  g_clear_pointer (&main_scheduler->work_queue_source, g_source_unref);
+  g_clear_pointer (&main_scheduler->work_queue, dex_work_queue_unref);
+
+  g_source_destroy (main_scheduler->aio_context);
+  g_clear_pointer (&main_scheduler->aio_context, g_source_unref);
 
   g_clear_pointer (&main_scheduler->main_context, g_main_context_unref);
-  g_clear_pointer ((GSource **)&main_scheduler->aio_context, g_source_unref);
-  g_clear_pointer ((GSource **)&main_scheduler->source, g_source_unref);
 
   DEX_OBJECT_CLASS (dex_main_scheduler_parent_class)->finalize (object);
 }
@@ -148,73 +108,22 @@ dex_main_scheduler_init (DexMainScheduler *main_scheduler)
 {
 }
 
-static gboolean
-dex_main_scheduler_dispatch (GSource     *source,
-                             GSourceFunc  callback,
-                             gpointer     user_data)
-{
-  DexMainSource *main_source = (DexMainSource *)source;
-  DexMainScheduler *main_scheduler = main_source->scheduler;
-  DexMainWorkItem *items;
-
-  dex_object_lock (main_scheduler);
-  main_scheduler->running = TRUE;
-  items = g_steal_pointer (&main_scheduler->queue.head);
-  main_scheduler->queue.tail = NULL;
-  dex_object_unlock (main_scheduler);
-
-  for (DexMainWorkItem *item = items; item; item = item->next)
-    dex_work_item_invoke (&item->work_item);
-
-  dex_object_lock (main_scheduler);
-  main_scheduler->running = FALSE;
-  dex_object_unlock (main_scheduler);
-
-  while (items)
-    {
-      DexMainWorkItem *to_free = items;
-      items = items->next;
-      g_free (to_free);
-    }
-
-  return TRUE;
-}
-
-static gboolean
-dex_main_scheduler_check (GSource *source)
-{
-  DexMainSource *main_source = (DexMainSource *)source;
-
-  return g_atomic_pointer_get (&main_source->scheduler->queue.head) != NULL;
-}
-
-static GSourceFuncs main_source_funcs = {
-  .check = dex_main_scheduler_check,
-  .dispatch = dex_main_scheduler_dispatch,
-};
-
 DexMainScheduler *
 dex_main_scheduler_new (GMainContext *main_context)
 {
   DexMainScheduler *main_scheduler;
-  GSource *source;
 
   if (main_context == NULL)
     main_context = g_main_context_default ();
 
-  source = g_source_new (&main_source_funcs, sizeof (DexMainSource));
-  g_source_set_name (source, "[dex-main-scheduler]");
-  g_source_set_priority (source, G_PRIORITY_HIGH);
-
   main_scheduler = (DexMainScheduler *)g_type_create_instance (DEX_TYPE_MAIN_SCHEDULER);
   main_scheduler->main_context = g_main_context_ref (main_context);
-  main_scheduler->aio_context = (DexAioContext *)_dex_aio_context_new ();
-  main_scheduler->source = source;
+  main_scheduler->aio_context = _dex_aio_context_new ();
+  main_scheduler->work_queue = dex_work_queue_new ();
+  main_scheduler->work_queue_source = dex_work_queue_create_source (main_scheduler->work_queue);
 
-  ((DexMainSource *)source)->scheduler = main_scheduler;
-
-  g_source_attach ((GSource *)main_scheduler->aio_context, main_context);
-  g_source_attach (source, main_context);
+  g_source_attach (main_scheduler->aio_context, main_context);
+  g_source_attach (main_scheduler->work_queue_source, main_context);
 
   return main_scheduler;
 }
