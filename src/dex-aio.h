@@ -24,13 +24,17 @@
 
 G_BEGIN_DECLS
 
-DexFuture *dex_aio_read  (int           fd,
-                          gpointer      buffer,
-                          gsize         count,
-                          goffset       offset);
-DexFuture *dex_aio_write (int           fd,
-                          gconstpointer buffer,
-                          gsize         count,
-                          goffset       offset);
+typedef struct _DexAioContext DexAioContext;
+
+DexFuture *dex_aio_read  (DexAioContext *aio_context,
+                          int            fd,
+                          gpointer       buffer,
+                          gsize          count,
+                          goffset        offset);
+DexFuture *dex_aio_write (DexAioContext *aio_context,
+                          int            fd,
+                          gconstpointer  buffer,
+                          gsize          count,
+                          goffset        offset);
 
 G_END_DECLS

@@ -193,12 +193,15 @@ dex_aio_context_uring_queue (DexUringFuture *future)
 #endif
 
 DexFuture *
-dex_aio_read (int      fd,
-              gpointer buffer,
-              gsize    count,
-              goffset  offset)
+dex_aio_read (DexAioContext *aio_context,
+              int            fd,
+              gpointer       buffer,
+              gsize          count,
+              goffset        offset)
 {
 #ifdef HAVE_LIBURING
+  /* TODO: We probably want aio futures to all be unified w/ different prepare/complete calls
+   * for the given backends */
   return dex_aio_context_uring_queue (dex_uring_future_new_read (fd, buffer, count, offset));
 #else
 # error "No aio backend configured for dex_aio_read()"
