@@ -50,6 +50,18 @@ libdex_headers = [
 
 if liburing_dep.found()
   libdex_sources += ['dex-uring-future.c']
+
+  liburing_version_split = liburing_dep.version().split('.')
+  liburing_version_conf = configuration_data()
+  liburing_version_conf.set('DEX_URING_VERSION', meson.project_version())
+  liburing_version_conf.set('DEX_URING_MAJOR_VERSION', liburing_version_split[0])
+  liburing_version_conf.set('DEX_URING_MINOR_VERSION', liburing_version_split[1])
+
+  configure_file(
+            input: 'dex-uring-version.h.in',
+           output: 'dex-uring-version.h',
+    configuration: liburing_version_conf,
+  )
 endif
 
 if host_machine.system() != 'windows'

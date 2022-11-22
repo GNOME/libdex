@@ -29,6 +29,7 @@
 #include "dex-scheduler-private.h"
 #ifdef HAVE_LIBURING
 # include "dex-uring-future-private.h"
+# include "dex-uring-version.h"
 #endif
 
 #define DEFAULT_URING_SIZE 32
