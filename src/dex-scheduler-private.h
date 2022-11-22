@@ -45,11 +45,10 @@ typedef struct _DexSchedulerClass
 {
   DexObjectClass parent_class;
 
-  void           (*push)            (DexScheduler *scheduler,
-                                     DexWorkItem   work_item);
-  void           (*attach)          (DexScheduler *scheduler,
-                                     GSource      *source);
-  DexAioContext *(*get_aio_context) (DexScheduler *scheduler);
+  void           (*push)             (DexScheduler *scheduler,
+                                      DexWorkItem   work_item);
+  GMainContext  *(*get_main_context) (DexScheduler *scheduler);
+  DexAioContext *(*get_aio_context)  (DexScheduler *scheduler);
 } DexSchedulerClass;
 
 void           dex_scheduler_set_thread_default (DexScheduler *scheduler);

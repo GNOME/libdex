@@ -37,9 +37,5 @@ typedef struct _DexThreadPoolWorker DexThreadPoolWorker;
 
 GType                dex_thread_pool_worker_get_type (void) G_GNUC_CONST;
 DexThreadPoolWorker *dex_thread_pool_worker_new      (DexThreadPoolScheduler *scheduler);
-void                 dex_thread_pool_worker_push     (DexThreadPoolWorker    *worker,
-                                                      DexWorkItem             work_item);
-void                 dex_thread_pool_worker_attach   (DexThreadPoolWorker    *worker,
-                                                      GSource                *source);
 
 G_END_DECLS

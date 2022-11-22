@@ -121,26 +121,38 @@ dex_scheduler_push (DexScheduler     *scheduler,
 }
 
 /**
- * dex_scheduler_attach:
+ * dex_scheduler_get_main_context:
  * @scheduler: a #DexScheduler
- * @source: a #GSource
  *
- * Attaches @source to the schedulers #GMainContext.
+ * Gets the default main context for a scheduler.
  *
- * This function will request that a #GSource is attached to a #GMainContext
- * that is processed by the scheduler. It is up to schedulers to determine
- * how this is processed such as the owning thread.
+ * This may be a different value depending on the calling thread.
  *
- * Use g_source_destroy() to remove the source and g_source_unref() to
- * release your final reference to it.
+ * For example, calling this on the #DexThreadPoolScheduer from outside
+ * a worker thread may result in getting a shared #GMainContext for the
+ * process.
+ *
+ * However, calling from a worker thread may give you a #GMainContext
+ * specifically for that thread.
+ *
+ * Returns: (transfer none): a #GMainContext
  */
-void
-dex_scheduler_attach (DexScheduler *scheduler,
-                      GSource      *source)
+GMainContext *
+dex_scheduler_get_main_context (DexScheduler *scheduler)
 {
-  DEX_SCHEDULER_GET_CLASS (scheduler)->attach (scheduler, source);
+  return DEX_SCHEDULER_GET_CLASS (scheduler)->get_main_context (scheduler);
 }
 
+/**
+ * dex_scheduler_get_aio_context: (skip)
+ * @scheduler: a #DexScheduler
+ *
+ * Gets a #DexAioContext for the scheduler.
+ *
+ * This context can be used to execute asyncronous operations within the
+ * context of the scheduler. Generally this is done using asynchronous
+ * operations and submission/completions managed by the threads scheduler.
+ */
 DexAioContext *
 dex_scheduler_get_aio_context (DexScheduler *scheduler)
 {

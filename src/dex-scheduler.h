@@ -46,8 +46,7 @@ DexScheduler *dex_scheduler_ref_thread_default (void);
 DEX_AVAILABLE_IN_ALL
 DexScheduler *dex_scheduler_get_default        (void);
 DEX_AVAILABLE_IN_ALL
-void          dex_scheduler_attach             (DexScheduler     *scheduler,
-                                                GSource          *source);
+GMainContext *dex_scheduler_get_main_context   (DexScheduler     *scheduler);
 DEX_AVAILABLE_IN_ALL
 void          dex_scheduler_push               (DexScheduler     *scheduler,
                                                 DexSchedulerFunc  func,

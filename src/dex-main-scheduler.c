@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include "dex-aio-context-private.h"
 #include "dex-main-scheduler.h"
 #include "dex-scheduler-private.h"
 
@@ -38,11 +39,12 @@ typedef struct _DexMainQueue
 
 typedef struct _DexMainScheduler
 {
-  DexScheduler  parent_scheduler;
-  GMainContext *main_context;
-  GSource      *source;
-  DexMainQueue  queue;
-  guint         running : 1;
+  DexScheduler   parent_scheduler;
+  GMainContext  *main_context;
+  DexAioContext *aio_context;
+  GSource       *source;
+  DexMainQueue   queue;
+  guint          running : 1;
 } DexMainScheduler;
 
 typedef struct _DexMainSchedulerClass
@@ -93,16 +95,24 @@ dex_main_scheduler_push (DexScheduler *scheduler,
     g_main_context_wakeup (wakeup);
 }
 
-static void
-dex_main_scheduler_attach (DexScheduler *scheduler,
-                           GSource      *source)
+static GMainContext *
+dex_main_scheduler_get_main_context (DexScheduler *scheduler)
 {
   DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (scheduler);
 
   g_assert (DEX_IS_MAIN_SCHEDULER (main_scheduler));
-  g_assert (source != NULL);
 
-  g_source_attach (source, main_scheduler->main_context);
+  return main_scheduler->main_context;
+}
+
+static DexAioContext *
+dex_main_scheduler_get_aio_context (DexScheduler *scheduler)
+{
+  DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (scheduler);
+
+  g_assert (DEX_IS_MAIN_SCHEDULER (main_scheduler));
+
+  return main_scheduler->aio_context;
 }
 
 static void
@@ -110,7 +120,12 @@ dex_main_scheduler_finalize (DexObject *object)
 {
   DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (object);
 
+  g_source_destroy ((GSource *)main_scheduler->aio_context);
+  g_source_destroy ((GSource *)main_scheduler->source);
+
   g_clear_pointer (&main_scheduler->main_context, g_main_context_unref);
+  g_clear_pointer ((GSource **)&main_scheduler->aio_context, g_source_unref);
+  g_clear_pointer ((GSource **)&main_scheduler->source, g_source_unref);
 
   DEX_OBJECT_CLASS (dex_main_scheduler_parent_class)->finalize (object);
 }
@@ -123,7 +138,8 @@ dex_main_scheduler_class_init (DexMainSchedulerClass *main_scheduler_class)
 
   object_class->finalize = dex_main_scheduler_finalize;
 
-  scheduler_class->attach = dex_main_scheduler_attach;
+  scheduler_class->get_aio_context = dex_main_scheduler_get_aio_context;
+  scheduler_class->get_main_context = dex_main_scheduler_get_main_context;
   scheduler_class->push = dex_main_scheduler_push;
 }
 
@@ -192,10 +208,12 @@ dex_main_scheduler_new (GMainContext *main_context)
 
   main_scheduler = (DexMainScheduler *)g_type_create_instance (DEX_TYPE_MAIN_SCHEDULER);
   main_scheduler->main_context = g_main_context_ref (main_context);
+  main_scheduler->aio_context = (DexAioContext *)_dex_aio_context_new ();
   main_scheduler->source = source;
 
   ((DexMainSource *)source)->scheduler = main_scheduler;
 
+  g_source_attach ((GSource *)main_scheduler->aio_context, main_context);
   g_source_attach (source, main_context);
 
   return main_scheduler;
