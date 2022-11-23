@@ -58,7 +58,6 @@ dex_thread_pool_scheduler_push (DexScheduler *scheduler,
 static GMainContext *
 dex_thread_pool_scheduler_get_main_context (DexScheduler *scheduler)
 {
-  DexThreadPoolScheduler *thread_pool_scheduler = DEX_THREAD_POOL_SCHEDULER (scheduler);
   DexThreadPoolWorker *worker = DEX_THREAD_POOL_WORKER_CURRENT;
 
   /* Give the worker's main context if we're on a pooled thread */
@@ -72,7 +71,6 @@ dex_thread_pool_scheduler_get_main_context (DexScheduler *scheduler)
 static DexAioContext *
 dex_thread_pool_scheduler_get_aio_context (DexScheduler *scheduler)
 {
-  DexThreadPoolScheduler *thread_pool_scheduler = DEX_THREAD_POOL_SCHEDULER (scheduler);
   DexThreadPoolWorker *worker = DEX_THREAD_POOL_WORKER_CURRENT;
 
   /* Give the worker's aio context if we're on a pooled thread */
