@@ -14,11 +14,7 @@
  * More/better support for non-standard API using DexAsyncPair
  * Some integration with various I/O API in GLib like GIOChannel
    or other FD based tooling for futures, possibly GPollFD?
- * We probably want to make a GSource specifically for integrating
-   `io_uring` that does some AIO abstractions similar to QEMU. Of
-   course, we can't actually do it the most optimal way as you would
-   if you ran the whole thing on `io_uring`, but we can progress things
-   closer to an "ideal".
+ * Support for AIO models other than `io_uring` (using DexAioBackend)
  * DexThreadPoolWorker should also be a DexScheduler, so that it can
    be the default for the thread. That way tasks come back to the
    same thread they are executing on. This would provide some amount
