@@ -22,27 +22,21 @@
 #include "config.h"
 
 #include "dex-scheduler-private.h"
-#include "dex-thread-pool-scheduler-private.h"
+#include "dex-thread-pool-scheduler.h"
 #include "dex-thread-pool-worker-private.h"
 #include "dex-thread-storage-private.h"
+#include "dex-work-queue-private.h"
 
 struct _DexThreadPoolScheduler
 {
-  DexScheduler parent_instance;
-  GQueue global_queue;
-  GMutex mutex;
+  DexScheduler  parent_instance;
+  DexWorkQueue *global_work_queue;
 };
 
 typedef struct _DexThreadPoolSchedulerClass
 {
   DexSchedulerClass parent_class;
 } DexThreadPoolSchedulerClass;
-
-typedef struct _QueuedWorkItem
-{
-  GList link;
-  DexWorkItem work_item;
-} QueuedWorkItem;
 
 DEX_DEFINE_FINAL_TYPE (DexThreadPoolScheduler, dex_thread_pool_scheduler, DEX_TYPE_SCHEDULER)
 
@@ -56,61 +50,7 @@ dex_thread_pool_scheduler_push (DexScheduler *scheduler,
   if (worker != NULL)
     DEX_SCHEDULER_GET_CLASS (worker)->push (DEX_SCHEDULER (worker), work_item);
   else
-    dex_thread_pool_scheduler_push_global (thread_pool_scheduler, work_item);
-}
-
-void
-dex_thread_pool_scheduler_push_global (DexThreadPoolScheduler *thread_pool_scheduler,
-                                       DexWorkItem             work_item)
-{
-  QueuedWorkItem *qwi;
-
-  g_return_if_fail (DEX_IS_THREAD_POOL_SCHEDULER (thread_pool_scheduler));
-
-  qwi = g_new0 (QueuedWorkItem, 1);
-  qwi->work_item = work_item;
-
-  g_mutex_lock (&thread_pool_scheduler->mutex);
-  g_queue_push_tail_link (&thread_pool_scheduler->global_queue, &qwi->link);
-  g_mutex_unlock (&thread_pool_scheduler->mutex);
-}
-
-/**
- * dex_thread_pool_scheduler_pop_global: (skip)
- * @thread_pool_scheduler: a #DexThreadPoolScheduler
- * @work_item: (out): a location for a #DexWorkItem
- *
- * Pops an item off the global work queue.
- *
- * This can be used to take an item from the work queue. This is generally
- * only useful to situations where you'd want to cooperate in processing
- * work, such as from #DexThreadPoolWorker.
- *
- * Returns:  %TRUE if an item was removed and placed in @work_item; otherwise
- *   %FALSE is returned.
- */
-gboolean
-dex_thread_pool_scheduler_pop_global (DexThreadPoolScheduler *thread_pool_scheduler,
-                                      DexWorkItem            *work_item)
-{
-  GList *link;
-
-  g_return_val_if_fail (DEX_IS_THREAD_POOL_SCHEDULER (thread_pool_scheduler), FALSE);
-  g_return_val_if_fail (work_item != NULL, FALSE);
-
-  g_mutex_lock (&thread_pool_scheduler->mutex);
-  link = g_queue_pop_head_link (&thread_pool_scheduler->global_queue);
-  g_mutex_unlock (&thread_pool_scheduler->mutex);
-
-  if (link != NULL)
-    {
-      QueuedWorkItem *qwi = link->data;
-      *work_item = qwi->work_item;
-      g_free (qwi);
-      return TRUE;
-    }
-
-  return FALSE;
+    dex_work_queue_push (thread_pool_scheduler->global_work_queue, work_item);
 }
 
 static GMainContext *
@@ -163,7 +103,7 @@ dex_thread_pool_scheduler_class_init (DexThreadPoolSchedulerClass *thread_pool_s
 static void
 dex_thread_pool_scheduler_init (DexThreadPoolScheduler *thread_pool_scheduler)
 {
-  g_mutex_init (&thread_pool_scheduler->mutex);
+  thread_pool_scheduler->global_work_queue = dex_work_queue_new ();
 }
 
 /**
