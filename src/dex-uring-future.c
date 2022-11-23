@@ -30,6 +30,7 @@
 typedef enum _DexUringType
 {
   DEX_URING_TYPE_READ = 1,
+  DEX_URING_TYPE_WRITE,
 } DexUringType;
 
 struct _DexUringFuture
@@ -43,6 +44,12 @@ struct _DexUringFuture
       gsize count;
       goffset offset;
     } read;
+    struct {
+      int fd;
+      gconstpointer buffer;
+      gsize count;
+      goffset offset;
+    } write;
   };
 };
 
@@ -80,6 +87,7 @@ dex_uring_future_complete (DexUringFuture      *uring_future,
   switch (uring_future->type)
     {
     case DEX_URING_TYPE_READ:
+    case DEX_URING_TYPE_WRITE:
       GValue value = {G_TYPE_INT64, {{.v_int64 = cqe->res}}};
       dex_future_complete (DEX_FUTURE (uring_future), &value, NULL);
       break;
@@ -103,6 +111,14 @@ dex_uring_future_prepare (DexUringFuture      *uring_future,
                           uring_future->read.offset);
       break;
 
+    case DEX_URING_TYPE_WRITE:
+      io_uring_prep_write (sqe,
+                           uring_future->write.fd,
+                           uring_future->write.buffer,
+                           uring_future->write.count,
+                           uring_future->write.offset);
+      break;
+
     default:
       g_assert_not_reached ();
     }
@@ -122,6 +138,24 @@ dex_uring_future_new_read (int      fd,
   future->read.buffer = buffer;
   future->read.count = count;
   future->read.offset = offset;
+
+  return future;
+}
+
+DexUringFuture *
+dex_uring_future_new_write (int           fd,
+                            gconstpointer buffer,
+                            gsize         count,
+                            goffset       offset)
+{
+  DexUringFuture *future;
+
+  future = (DexUringFuture *)g_type_create_instance (DEX_TYPE_URING_FUTURE);
+  future->type = DEX_URING_TYPE_WRITE;
+  future->write.fd = fd;
+  future->write.buffer = buffer;
+  future->write.count = count;
+  future->write.offset = offset;
 
   return future;
 }

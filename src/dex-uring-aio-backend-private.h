@@ -1,4 +1,4 @@
-/* dex-aio-context-private.h
+/* dex-uring-aio-backend.h
  *
  * Copyright 2022 Christian Hergert <chergert@redhat.com>
  *
@@ -20,12 +20,18 @@
 
 #pragma once
 
-#include <glib.h>
+#include "dex-aio-backend-private.h"
 
 G_BEGIN_DECLS
 
-typedef struct _DexAioContext DexAioContext;
+#define DEX_TYPE_URING_AIO_BACKEND    (dex_uring_aio_backend_get_type())
+#define DEX_URING_AIO_BACKEND(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_URING_AIO_BACKEND, DexUringAioBackend))
+#define DEX_IS_URING_AIO_BACKEND(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_URING_AIO_BACKEND))
 
-GSource *_dex_aio_context_new (void);
+typedef struct _DexUringAioBackend      DexUringAioBackend;
+typedef struct _DexUringAioBackendClass DexUringAioBackendClass;
+
+GType          dex_uring_aio_backend_get_type (void) G_GNUC_CONST;
+DexAioBackend *dex_uring_aio_backend_new      (void);
 
 G_END_DECLS

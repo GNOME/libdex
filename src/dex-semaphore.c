@@ -27,6 +27,7 @@
 #include <liburing.h>
 #include <unistd.h>
 
+#include "dex-aio.h"
 #include "dex-semaphore-private.h"
 
 /* TODO: This is just getting the mechanics in place, particularly for Linux.

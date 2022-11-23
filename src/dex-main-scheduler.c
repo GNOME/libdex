@@ -21,7 +21,7 @@
 
 #include "config.h"
 
-#include "dex-aio-context-private.h"
+#include "dex-aio-backend-private.h"
 #include "dex-main-scheduler.h"
 #include "dex-scheduler-private.h"
 #include "dex-work-queue-private.h"
@@ -112,13 +112,16 @@ DexMainScheduler *
 dex_main_scheduler_new (GMainContext *main_context)
 {
   DexMainScheduler *main_scheduler;
+  DexAioBackend *aio_backend;
 
   if (main_context == NULL)
     main_context = g_main_context_default ();
 
+  aio_backend = dex_aio_backend_get_default ();
+
   main_scheduler = (DexMainScheduler *)g_type_create_instance (DEX_TYPE_MAIN_SCHEDULER);
   main_scheduler->main_context = g_main_context_ref (main_context);
-  main_scheduler->aio_context = _dex_aio_context_new ();
+  main_scheduler->aio_context = (GSource *)dex_aio_backend_create_context (aio_backend);
   main_scheduler->work_queue = dex_work_queue_new ();
   main_scheduler->work_queue_source = dex_work_queue_create_source (main_scheduler->work_queue);
 

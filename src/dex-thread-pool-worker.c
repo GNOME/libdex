@@ -23,7 +23,7 @@
 
 #include <stdatomic.h>
 
-#include "dex-aio-context-private.h"
+#include "dex-aio-backend-private.h"
 #include "dex-thread-pool-worker-private.h"
 #include "dex-thread-storage-private.h"
 #include "dex-work-stealing-queue-private.h"
@@ -367,14 +367,17 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
                             DexThreadPoolWorkerSet *set)
 {
   DexThreadPoolWorker *thread_pool_worker;
+  DexAioBackend *aio_backend;
   GSource *source;
 
   g_return_val_if_fail (work_queue != NULL, NULL);
   g_return_val_if_fail (set != NULL, NULL);
 
+  aio_backend = dex_aio_backend_get_default ();
+
   thread_pool_worker = (DexThreadPoolWorker *)g_type_create_instance (DEX_TYPE_THREAD_POOL_WORKER);
   thread_pool_worker->main_context = g_main_context_new ();
-  thread_pool_worker->aio_context = (DexAioContext *)_dex_aio_context_new ();
+  thread_pool_worker->aio_context = dex_aio_backend_create_context (aio_backend);
   thread_pool_worker->global_work_queue = dex_work_queue_ref (work_queue);
   thread_pool_worker->work_stealing_queue = dex_work_stealing_queue_new (255);
   thread_pool_worker->set = set;

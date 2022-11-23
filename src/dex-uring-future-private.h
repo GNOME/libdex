@@ -32,14 +32,18 @@ G_BEGIN_DECLS
 
 typedef struct _DexUringFuture DexUringFuture;
 
-GType           dex_uring_future_get_type (void) G_GNUC_CONST;
-DexUringFuture *dex_uring_future_new_read (int                  fd,
-                                           gpointer             buffer,
-                                           gsize                count,
-                                           goffset              offset);
-void            dex_uring_future_prepare  (DexUringFuture      *uring_future,
-                                           struct io_uring_sqe *sqe);
-void            dex_uring_future_complete (DexUringFuture      *uring_future,
-                                           struct io_uring_cqe *cqe);
+GType           dex_uring_future_get_type  (void) G_GNUC_CONST;
+DexUringFuture *dex_uring_future_new_read  (int                  fd,
+                                            gpointer             buffer,
+                                            gsize                count,
+                                            goffset              offset);
+DexUringFuture *dex_uring_future_new_write (int                  fd,
+                                            gconstpointer        buffer,
+                                            gsize                count,
+                                            goffset              offset);
+void            dex_uring_future_prepare   (DexUringFuture      *uring_future,
+                                            struct io_uring_sqe *sqe);
+void            dex_uring_future_complete  (DexUringFuture      *uring_future,
+                                            struct io_uring_cqe *cqe);
 
 G_END_DECLS

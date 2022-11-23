@@ -1,5 +1,5 @@
 libdex_sources = [
-  'dex-aio-context.c',
+  'dex-aio-backend.c',
   'dex-async-pair.c',
   'dex-block.c',
   'dex-callable.c',
@@ -50,7 +50,10 @@ libdex_headers = [
 ]
 
 if liburing_dep.found()
-  libdex_sources += ['dex-uring-future.c']
+  libdex_sources += [
+    'dex-uring-aio-backend.c',
+    'dex-uring-future.c',
+  ]
 
   liburing_version_split = liburing_dep.version().split('.')
   liburing_version_conf = configuration_data()
