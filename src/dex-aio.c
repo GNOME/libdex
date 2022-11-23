@@ -1,4 +1,4 @@
-/* dex-aio.h
+/* dex-aio.c
  *
  * Copyright 2022 Christian Hergert <chergert@redhat.com>
  *
@@ -18,25 +18,29 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-#pragma once
+#include "config.h"
 
-#include "dex-future.h"
+#include "dex-aio.h"
+#include "dex-aio-backend-private.h"
 
-G_BEGIN_DECLS
+DexFuture *
+dex_aio_read (DexAioContext *aio_context,
+              int            fd,
+              gpointer       buffer,
+              gsize          count,
+              goffset        offset)
+{
+  return dex_aio_backend_read (aio_context->aio_backend, aio_context,
+                               fd, buffer, count, offset);
+}
 
-typedef struct _DexAioContext DexAioContext;
-
-DEX_AVAILABLE_IN_ALL
-DexFuture *dex_aio_read  (DexAioContext *aio_context,
-                          int            fd,
-                          gpointer       buffer,
-                          gsize          count,
-                          goffset        offset);
-DEX_AVAILABLE_IN_ALL
-DexFuture *dex_aio_write (DexAioContext *aio_context,
-                          int            fd,
-                          gconstpointer  buffer,
-                          gsize          count,
-                          goffset        offset);
-
-G_END_DECLS
+DexFuture *
+dex_aio_write (DexAioContext *aio_context,
+               int            fd,
+               gconstpointer  buffer,
+               gsize          count,
+               goffset        offset)
+{
+  return dex_aio_backend_write (aio_context->aio_backend, aio_context,
+                                fd, buffer, count, offset);
+}

@@ -1,4 +1,5 @@
 libdex_sources = [
+  'dex-aio.c',
   'dex-aio-backend.c',
   'dex-async-pair.c',
   'dex-block.c',

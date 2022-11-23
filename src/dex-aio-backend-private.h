@@ -59,6 +59,13 @@ struct _DexAioBackendClass
                                     goffset        offset);
 };
 
+struct _DexAioContext
+{
+  GSource        parent_source;
+  DexAioBackend *aio_backend;
+  /*< private >*/
+};
+
 GType          dex_aio_backend_get_type       (void) G_GNUC_CONST;
 DexAioBackend *dex_aio_backend_get_default    (void);
 DexAioContext *dex_aio_backend_create_context (DexAioBackend *aio_backend);

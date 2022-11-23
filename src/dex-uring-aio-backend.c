@@ -40,16 +40,15 @@ struct _DexUringAioBackendClass
   DexAioBackendClass parent_class;
 };
 
-struct _DexAioContext
+typedef struct _DexUringAioContext
 {
-  GSource          parent_instance;
-  DexAioBackend   *aio_backend;
+  DexAioContext    parent;
   struct io_uring  ring;
   int              eventfd;
   gpointer         eventfdtag;
   GMutex           mutex;
   GQueue           queued;
-};
+} DexUringAioContext;
 
 DEX_DEFINE_FINAL_TYPE (DexUringAioBackend, dex_uring_aio_backend, DEX_TYPE_AIO_BACKEND)
 
@@ -58,7 +57,7 @@ dex_uring_aio_context_dispatch (GSource     *source,
                                 GSourceFunc  callback,
                                 gpointer     user_data)
 {
-  DexAioContext *aio_context = (DexAioContext *)source;
+  DexUringAioContext *aio_context = (DexUringAioContext *)source;
   struct io_uring_cqe *cqe;
 
   while (io_uring_peek_cqe (&aio_context->ring, &cqe))
@@ -76,7 +75,10 @@ static gboolean
 dex_uring_aio_context_prepare (GSource *source,
                                int     *timeout)
 {
-  DexAioContext *aio_context = (DexAioContext *)source;
+  DexUringAioContext *aio_context = (DexUringAioContext *)source;
+
+  g_assert (aio_context != NULL);
+  g_assert (DEX_IS_URING_AIO_BACKEND (aio_context->parent.aio_backend));
 
   *timeout = -1;
 
@@ -110,16 +112,16 @@ dex_uring_aio_context_prepare (GSource *source,
 static void
 dex_uring_aio_context_finalize (GSource *source)
 {
-  DexAioContext *aio_context = (DexAioContext *)source;
+  DexUringAioContext *aio_context = (DexUringAioContext *)source;
 
   g_assert (aio_context != NULL);
-  g_assert (DEX_IS_URING_AIO_BACKEND (aio_context->aio_backend));
+  g_assert (DEX_IS_URING_AIO_BACKEND (aio_context->parent.aio_backend));
 
   if (aio_context->queued.length > 0)
     g_critical ("Destroying DexAioContext with queued items!");
 
   io_uring_queue_exit (&aio_context->ring);
-  dex_clear (&aio_context->aio_backend);
+  dex_clear (&aio_context->parent.aio_backend);
   g_mutex_clear (&aio_context->mutex);
 
   if (aio_context->eventfd != -1)
@@ -136,13 +138,13 @@ static GSourceFuncs dex_uring_aio_context_source_funcs = {
 };
 
 static DexFuture *
-dex_uring_aio_context_queue (DexAioContext  *aio_context,
-                             DexUringFuture *future)
+dex_uring_aio_context_queue (DexUringAioContext *aio_context,
+                             DexUringFuture     *future)
 {
   struct io_uring_sqe *sqe;
 
   g_assert (aio_context != NULL);
-  g_assert (DEX_IS_URING_AIO_BACKEND (aio_context->aio_backend));
+  g_assert (DEX_IS_URING_AIO_BACKEND (aio_context->parent.aio_backend));
   g_assert (DEX_IS_URING_FUTURE (future));
 
   g_mutex_lock (&aio_context->mutex);
@@ -171,15 +173,15 @@ static DexAioContext *
 dex_uring_aio_backend_create_context (DexAioBackend *aio_backend)
 {
   DexUringAioBackend *uring_aio_backend = DEX_URING_AIO_BACKEND (aio_backend);
-  DexAioContext *aio_context;
+  DexUringAioContext *aio_context;
   guint uring_flags = 0;
 
   g_assert (DEX_IS_URING_AIO_BACKEND (uring_aio_backend));
 
-  aio_context = (DexAioContext *)
+  aio_context = (DexUringAioContext *)
     g_source_new (&dex_uring_aio_context_source_funcs,
                   sizeof *aio_context);
-  aio_context->aio_backend = dex_ref (aio_backend);
+  aio_context->parent.aio_backend = dex_ref (aio_backend);
   g_mutex_init (&aio_context->mutex);
 
 #ifdef IORING_SETUP_COOP_TASKRUN
@@ -210,7 +212,7 @@ dex_uring_aio_backend_create_context (DexAioBackend *aio_backend)
                                                   aio_context->eventfd,
                                                   G_IO_IN);
 
-  return aio_context;
+  return (DexAioContext *)aio_context;
 
 failure:
   g_source_unref ((GSource *)aio_context);
@@ -226,7 +228,7 @@ dex_uring_aio_backend_read (DexAioBackend *aio_backend,
                             gsize          count,
                             goffset        offset)
 {
-  return dex_uring_aio_context_queue (aio_context,
+  return dex_uring_aio_context_queue ((DexUringAioContext *)aio_context,
                                       dex_uring_future_new_read (fd, buffer, count, offset));
 }
 
@@ -238,7 +240,7 @@ dex_uring_aio_backend_write (DexAioBackend *aio_backend,
                              gsize          count,
                              goffset        offset)
 {
-  return dex_uring_aio_context_queue (aio_context,
+  return dex_uring_aio_context_queue ((DexUringAioContext *)aio_context,
                                       dex_uring_future_new_write (fd, buffer, count, offset));
 }
 
