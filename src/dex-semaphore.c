@@ -27,8 +27,11 @@
 #include <liburing.h>
 #include <unistd.h>
 
+#include <gio/gio.h>
+
 #include "dex-aio.h"
 #include "dex-object-private.h"
+#include "dex-promise.h"
 #include "dex-semaphore-private.h"
 
 struct _DexSemaphore
@@ -196,4 +199,23 @@ dex_semaphore_source_new (int             priority,
   io_uring_submit (&semaphore_source->ring);
 
   return source;
+}
+
+DexFuture *
+dex_semaphore_wait (DexSemaphore *semaphore)
+{
+  static gint64 trash_value;
+
+  g_return_val_if_fail (DEX_IS_SEMAPHORE (semaphore), NULL);
+
+  if (semaphore->eventfd < 0)
+    return DEX_FUTURE (dex_promise_new_reject (G_IO_ERROR,
+                                               G_IO_ERROR_CLOSED,
+                                               "The semaphore has already been closed"));
+
+  return dex_aio_read (NULL,
+                       semaphore->eventfd,
+                       &trash_value,
+                       sizeof trash_value,
+                       -1);
 }

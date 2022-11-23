@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <glib-object.h>
+#include "dex-future.h"
 
 G_BEGIN_DECLS
 
@@ -36,6 +36,8 @@ DexSemaphore *dex_semaphore_new        (void);
 void          dex_semaphore_post       (DexSemaphore *semaphore);
 void          dex_semaphore_post_many  (DexSemaphore *semaphore,
                                         guint         count);
+DexFuture    *dex_semaphore_wait       (DexSemaphore *semaphore);
+
 GSource      *dex_semaphore_source_new (int             priority,
                                         DexSemaphore   *semaphore,
                                         GSourceFunc     callback,
