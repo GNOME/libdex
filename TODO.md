@@ -15,8 +15,4 @@
  * Some integration with various I/O API in GLib like GIOChannel
    or other FD based tooling for futures, possibly GPollFD?
  * Support for AIO models other than `io_uring` (using DexAioBackend)
- * DexThreadPoolWorker should also be a DexScheduler, so that it can
-   be the default for the thread. That way tasks come back to the
-   same thread they are executing on. This would provide some amount
-   of thread pinning for free.
 
