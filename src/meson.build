@@ -23,6 +23,7 @@ libdex_sources = [
   'dex-timeout.c',
   'dex-unix-signal.c',
   'dex-work-queue.c',
+  'dex-work-stealing-queue.c',
 ]
 
 libdex_headers = [

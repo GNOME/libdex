@@ -53,6 +53,8 @@
 
 #include <stdatomic.h>
 
+#include <glib.h>
+
 #include "dex-scheduler-private.h"
 
 /**
@@ -87,7 +89,13 @@ typedef struct _DexWorkStealingQueue
   _Alignas(DEX_CACHELINE_SIZE) _Atomic(gint64)                bottom;
   _Alignas(DEX_CACHELINE_SIZE) _Atomic(DexWorkStealingArray*) array;
                                        GPtrArray             *garbage;
+                                       gatomicrefcount        ref_count;
 } DexWorkStealingQueue;
+
+DexWorkStealingQueue *dex_work_stealing_queue_new           (gint64                capacity);
+DexWorkStealingQueue *dex_work_stealing_queue_ref           (DexWorkStealingQueue *work_stealing_queue);
+void                  dex_work_stealing_queue_unref         (DexWorkStealingQueue *work_stealing_queue);
+GSource              *dex_work_stealing_queue_create_source (DexWorkStealingQueue *work_stealing_queue);
 
 static inline DexWorkStealingArray *
 dex_work_stealing_array_new (gint64 c)
@@ -142,41 +150,6 @@ static inline void
 dex_work_stealing_array_free (DexWorkStealingArray *work_stealing_array)
 {
   g_aligned_free (work_stealing_array);
-}
-
-static inline DexWorkStealingQueue *
-dex_work_stealing_queue_new (gint64 capacity)
-{
-  DexWorkStealingQueue *work_stealing_queue;
-
-  work_stealing_queue = g_aligned_alloc0 (1,
-                                          sizeof (DexWorkStealingQueue),
-                                          G_ALIGNOF (DexWorkStealingQueue));
-  atomic_store_explicit (&work_stealing_queue->top, 0, memory_order_relaxed);
-  atomic_store_explicit (&work_stealing_queue->bottom, 0, memory_order_relaxed);
-  atomic_store_explicit (&work_stealing_queue->array,
-                         dex_work_stealing_array_new (capacity),
-                         memory_order_relaxed);
-  work_stealing_queue->garbage = g_ptr_array_new_full (32, (GDestroyNotify)dex_work_stealing_array_free);
-
-  return work_stealing_queue;
-}
-
-static inline void
-dex_work_stealing_queue_free (DexWorkStealingQueue *work_stealing_queue)
-{
-  GPtrArray *garbage = work_stealing_queue->garbage;
-  DexWorkStealingArray *array = atomic_load (&work_stealing_queue->array);
-
-  work_stealing_queue->top = 0;
-  work_stealing_queue->bottom = 0;
-  work_stealing_queue->array = NULL;
-  work_stealing_queue->garbage = NULL;
-
-  g_clear_pointer (&garbage, g_ptr_array_unref);
-  g_clear_pointer (&array, dex_work_stealing_array_free);
-
-  g_aligned_free (work_stealing_queue);
 }
 
 static inline gboolean
