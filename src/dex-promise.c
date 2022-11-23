@@ -165,6 +165,34 @@ dex_promise_new_for_error (GError *error)
 }
 
 /**
+ * dex_promise_new_reject: (constructor)
+ * @domain: the error domain
+ * @code: the error code
+ * @format: a printf-style format string
+ *
+ * Creates a new #DexPromise that is rejeced.
+ *
+ * Returns: (transfer full): a new #DexPromise
+ */
+DexPromise *
+dex_promise_new_reject (GQuark      domain,
+                        int         code,
+                        const char *format,
+                        ...)
+{
+  GError *error;
+  va_list args;
+
+  va_start (args, format);
+  error = g_error_new_valist (domain, code, format, args);
+  va_end (args);
+
+  g_return_val_if_fail (error != NULL, NULL);
+
+  return dex_promise_new_for_error (error);
+}
+
+/**
  * dex_promise_resolve:
  * @promise: a #DexPromise
  * @value: a #GValue containing the resolved value

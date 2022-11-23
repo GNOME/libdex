@@ -41,6 +41,11 @@ DexPromise *dex_promise_new             (void);
 DEX_AVAILABLE_IN_ALL
 DexPromise *dex_promise_new_for_error   (GError       *error);
 DEX_AVAILABLE_IN_ALL
+DexPromise *dex_promise_new_reject      (GQuark        domain,
+                                         int           code,
+                                         const char   *format,
+                                         ...) G_GNUC_PRINTF (3, 4);
+DEX_AVAILABLE_IN_ALL
 DexPromise *dex_promise_new_for_value   (const GValue *value);
 DEX_AVAILABLE_IN_ALL
 DexPromise *dex_promise_new_for_string  (const char   *string);
