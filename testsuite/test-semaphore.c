@@ -18,7 +18,11 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <libdex.h>
+
+#include "dex-aio-backend-private.h"
 #include "dex-semaphore-private.h"
+#include "dex-thread-storage-private.h"
 
 #define N_THREADS 32
 
@@ -34,31 +38,48 @@ typedef struct
   int threadid;
 } WorkerState;
 
-static gboolean
-worker_thread_callback (gpointer user_data)
+static DexFuture *
+worker_thread_callback (DexFuture *future,
+                        gpointer   user_data)
 {
+  WorkerState *state = user_data;
+
   g_atomic_int_inc (&total_count);
 
-  return G_SOURCE_CONTINUE;
+  future = dex_semaphore_wait (state->semaphore);
+  future = dex_future_then (future, worker_thread_callback, state, NULL);
+
+  /* TODO: We need to make it possible to continue to
+   * return futures here in an async loop w/o unbound memory
+   * growth (ie: collapse them over time).
+   */
+
+  return future;
 }
 
 static gpointer
 worker_thread_func (gpointer data)
 {
   WorkerState *state = data;
+  DexAioBackend *aio_backend = dex_aio_backend_get_default ();
+  DexAioContext *aio_context = dex_aio_backend_create_context (aio_backend);
   GMainContext *main_context = g_main_context_new ();
-  GSource *source = dex_semaphore_source_new (0, state->semaphore, worker_thread_callback, state, NULL);
   char *name = g_strdup_printf ("semaphore-thread-%u", state->threadid);
+  DexFuture *future;
 
-  state->source = source;
+  state->source = (GSource *)aio_context;
 
-  g_source_set_name (source, name);
-  g_source_attach (source, main_context);
+  dex_thread_storage_get ()->aio_context = aio_context;
+
+  g_source_set_name (state->source, name);
+  g_source_attach (state->source, main_context);
+
+  future = dex_semaphore_wait (state->semaphore);
+  future = dex_future_then (future, worker_thread_callback, state, NULL);
 
   while (!g_atomic_int_get (&shutdown))
     g_main_context_iteration (main_context, TRUE);
 
-  g_source_unref (source);
   g_free (name);
 
   g_atomic_int_inc (&done);
