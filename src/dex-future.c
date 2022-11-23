@@ -376,6 +376,42 @@ dex_future_then (DexFuture         *future,
 }
 
 /**
+ * dex_future_loop:
+ * @future: (transfer full): a #DexFuture
+ * @callback: (scope async): a callback to execute
+ * @callback_data: closure data for @callback
+ * @callback_data_destroy: destroy notify for @callback_data
+ *
+ * Asynchronously calls @callback upon future completion until
+ * @callback returns a resolved #DexFuture or %NULL.
+ *
+ * This is similar to dex_future_then() except that it will call
+ * @callback multiple times as each returned #DexFuture resolves.
+ *
+ * If @future rejects, then @callback will not be called. If any
+ * #DexFuture returnd from @callback rejects, then @callback will
+ * not be called again.
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
+DexFuture *
+dex_future_loop (DexFuture         *future,
+                 DexFutureCallback  callback,
+                 gpointer           callback_data,
+                 GDestroyNotify     callback_data_destroy)
+{
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+  g_return_val_if_fail (callback != NULL, NULL);
+
+  return dex_block_new (future,
+                        NULL,
+                        DEX_BLOCK_KIND_THEN | DEX_BLOCK_KIND_LOOP,
+                        callback,
+                        callback_data,
+                        callback_data_destroy);
+}
+
+/**
  * dex_future_catch:
  * @future: (transfer full): a #DexFuture
  * @callback: (scope async): a callback to execute

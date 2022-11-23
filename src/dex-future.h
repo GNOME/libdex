@@ -53,6 +53,11 @@ DexFuture       *dex_future_then            (DexFuture          *future,
                                              gpointer            callback_data,
                                              GDestroyNotify      callback_data_destroy);
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_loop            (DexFuture          *future,
+                                             DexFutureCallback   callback,
+                                             gpointer            callback_data,
+                                             GDestroyNotify      callback_data_destroy);
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_catch           (DexFuture          *future,
                                              DexFutureCallback   callback,
                                              gpointer            callback_data,

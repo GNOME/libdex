@@ -31,7 +31,7 @@ typedef struct _DexBlock
   DexFutureCallback  callback;
   gpointer           callback_data;
   GDestroyNotify     callback_data_destroy;
-  DexBlockKind       kind : 2;
+  DexBlockKind       kind : 3;
   guint              handled : 1;
 } DexBlock;
 
@@ -134,7 +134,9 @@ dex_block_propagate (DexFuture *future,
    * which completes.
    */
   dex_object_lock (future);
-  if (!block->handled)
+  if ((block->kind & DEX_BLOCK_KIND_LOOP) != 0)
+    do_callback = TRUE;
+  else if (!block->handled)
     do_callback = block->handled = TRUE;
   awaiting = g_steal_pointer (&block->awaiting);
   dex_object_unlock (future);

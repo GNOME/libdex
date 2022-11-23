@@ -37,6 +37,7 @@ typedef enum _DexBlockKind
 {
   DEX_BLOCK_KIND_THEN    = 1 << 0,
   DEX_BLOCK_KIND_CATCH   = 1 << 1,
+  DEX_BLOCK_KIND_LOOP    = 1 << 2,
   DEX_BLOCK_KIND_FINALLY = DEX_BLOCK_KIND_THEN | DEX_BLOCK_KIND_CATCH,
 } DexBlockKind;
 
