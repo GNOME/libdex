@@ -37,9 +37,17 @@ typedef enum _DexThreadPoolWorkerStatus
   DEX_THREAD_POOL_WORKER_FINISHED,
 } DexThreadPoolWorkerStatus;
 
+typedef struct _DexThreadPoolWorkerSet
+{
+  GQueue  queue;
+  GRWLock rwlock;
+} DexThreadPoolWorkerSet;
+
 struct _DexThreadPoolWorker
 {
   DexScheduler               parent_instance;
+  GList                      set_link;
+  DexThreadPoolWorkerSet    *set;
   GThread                   *thread;
   GMainContext              *main_context;
   DexAioContext             *aio_context;
@@ -54,6 +62,23 @@ typedef struct _DexThreadPoolWorkerClass
 } DexThreadPoolWorkerClass;
 
 DEX_DEFINE_FINAL_TYPE (DexThreadPoolWorker, dex_thread_pool_worker, DEX_TYPE_SCHEDULER)
+
+static inline void
+dex_thread_pool_worker_set_foreach (DexThreadPoolWorkerSet *set,
+                                    DexThreadPoolWorker    *head,
+                                    GFunc                   func,
+                                    gpointer                func_data)
+{
+  g_rw_lock_reader_lock (&set->rwlock);
+
+  for (const GList *iter = head->set_link.next; iter; iter = iter->next)
+    func (iter->data, func_data);
+
+  for (const GList *iter = set->queue.head; iter->data != head; iter = iter->next)
+    func (iter->data, func_data);
+
+  g_rw_lock_reader_unlock (&set->rwlock);
+}
 
 static void
 dex_thread_pool_worker_push (DexScheduler *scheduler,
@@ -123,6 +148,8 @@ dex_thread_pool_worker_finalize (DexObject *object)
   g_clear_pointer (&thread_pool_worker->work_stealing_queue, dex_work_stealing_queue_unref);
   g_clear_pointer (&thread_pool_worker->global_work_queue, dex_work_queue_unref);
 
+  g_assert (thread_pool_worker->set == NULL);
+
   DEX_OBJECT_CLASS (dex_thread_pool_worker_parent_class)->finalize (object);
 }
 
@@ -151,6 +178,7 @@ dex_thread_pool_worker_class_init (DexThreadPoolWorkerClass *thread_pool_worker_
 static void
 dex_thread_pool_worker_init (DexThreadPoolWorker *thread_pool_worker)
 {
+  thread_pool_worker->set_link.data = thread_pool_worker;
 }
 
 static gpointer
@@ -217,4 +245,47 @@ dex_thread_pool_worker_new (DexWorkQueue *work_queue)
                                              thread_pool_worker);
 
   return thread_pool_worker;
+}
+
+DexThreadPoolWorkerSet *
+dex_thread_pool_worker_set_new (void)
+{
+  DexThreadPoolWorkerSet *set;
+
+  set = g_atomic_rc_box_new0 (DexThreadPoolWorkerSet);
+  g_rw_lock_init (&set->rwlock);
+
+  return set;
+}
+
+void
+dex_thread_pool_worker_set_add (DexThreadPoolWorkerSet *set,
+                                DexThreadPoolWorker    *thread_pool_worker)
+{
+  g_return_if_fail (set != NULL);
+  g_return_if_fail (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
+  g_return_if_fail (thread_pool_worker->set == NULL);
+  g_return_if_fail (thread_pool_worker->set_link.data == thread_pool_worker);
+  g_return_if_fail (thread_pool_worker->set_link.prev == NULL);
+  g_return_if_fail (thread_pool_worker->set_link.next == NULL);
+
+  g_rw_lock_writer_lock (&set->rwlock);
+  thread_pool_worker->set = set;
+  g_queue_push_tail_link (&set->queue, &thread_pool_worker->set_link);
+  g_rw_lock_writer_unlock (&set->rwlock);
+}
+
+void
+dex_thread_pool_worker_set_remove (DexThreadPoolWorkerSet *set,
+                                   DexThreadPoolWorker    *thread_pool_worker)
+{
+  g_return_if_fail (set != NULL);
+  g_return_if_fail (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
+  g_return_if_fail (thread_pool_worker->set_link.data == thread_pool_worker);
+  g_return_if_fail (thread_pool_worker->set == set);
+
+  g_rw_lock_writer_lock (&set->rwlock);
+  thread_pool_worker->set = NULL;
+  g_queue_unlink (&set->queue, &thread_pool_worker->set_link);
+  g_rw_lock_writer_unlock (&set->rwlock);
 }
