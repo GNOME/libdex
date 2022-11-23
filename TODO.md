@@ -7,6 +7,8 @@
  * DexCallable needs work so we can bridge to bindings and thunk
    and/or trampoline
  * DexFunction needs to follow above
+ * Allow DexFuture block callbacks to infinitely return new futures
+   so we can have async loops.
  * DexTasklet needs API to wire up futures to parameters, this is
    where we may have thunks to transform promise values into
    parameters for the callable.
