@@ -21,15 +21,18 @@
 
 #pragma once
 
-#include <glib.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
+#define DEX_TYPE_SEMAPHORE    (dex_semaphore_get_type())
+#define DEX_SEMAPHORE(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_SEMAPHORE, DexSemaphore))
+#define DEX_IS_SEMAPHORE(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_SEMAPHORE))
+
 typedef struct _DexSemaphore DexSemaphore;
 
+GType         dex_semaphore_get_type   (void) G_GNUC_CONST;
 DexSemaphore *dex_semaphore_new        (void);
-void          dex_semaphore_unref      (DexSemaphore *semaphore);
-DexSemaphore *dex_semaphore_ref        (DexSemaphore *semaphore);
 void          dex_semaphore_post       (DexSemaphore *semaphore);
 void          dex_semaphore_post_many  (DexSemaphore *semaphore,
                                         guint         count);

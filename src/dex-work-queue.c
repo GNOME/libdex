@@ -66,7 +66,7 @@ dex_work_queue_finalize (gpointer data)
                 work_queue, work_queue->queue.length);
 
   g_mutex_clear (&work_queue->mutex);
-  g_clear_pointer (&work_queue->semaphore, dex_semaphore_unref);
+  dex_clear (&work_queue->semaphore);
 }
 
 void

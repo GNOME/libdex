@@ -28,65 +28,54 @@
 #include <unistd.h>
 
 #include "dex-aio.h"
+#include "dex-object-private.h"
 #include "dex-semaphore-private.h"
-
-/* TODO: This is just getting the mechanics in place, particularly for Linux.
- *       It will still have thundering herd because we're using both poll()
- *       and not Edge-Triggered interrupts yet.
- *
- *       To make ET work with GMainContext, we'll probably have to create an
- *       epollfd in ET mode and wrap that into the g_poll() usage.
- *
- *       But I want to get this stuff committed so that I can iterate upon it
- *       before moving forward onto other bits, as it's fairly critical to
- *       get right from the start.
- */
 
 struct _DexSemaphore
 {
-  gatomicrefcount ref_count;
+  DexObject parent_instance;
   int eventfd;
 };
+
+typedef struct _DexSemaphoreClass
+{
+  DexObjectClass parent_class;
+} DexSemaphoreClass;
+
+DEX_DEFINE_FINAL_TYPE (DexSemaphore, dex_semaphore, DEX_TYPE_OBJECT)
 
 DexSemaphore *
 dex_semaphore_new (void)
 {
-  DexSemaphore *semaphore;
-
-  semaphore = g_new0 (DexSemaphore, 1);
-  g_atomic_ref_count_init (&semaphore->ref_count);
-  semaphore->eventfd = eventfd (0, EFD_SEMAPHORE);
-
-  if (semaphore->eventfd == -1)
-    g_clear_pointer (&semaphore, dex_semaphore_unref);
-
-  return semaphore;
+  return (DexSemaphore *)g_type_create_instance (DEX_TYPE_SEMAPHORE);
 }
 
 static void
-dex_semaphore_finalize (DexSemaphore *semaphore)
+dex_semaphore_finalize (DexObject *object)
 {
+  DexSemaphore *semaphore = (DexSemaphore *)object;
+
   if (semaphore->eventfd != -1)
     {
       close (semaphore->eventfd);
       semaphore->eventfd = -1;
     }
 
-  g_free (semaphore);
+  DEX_OBJECT_CLASS (dex_semaphore_parent_class)->finalize (object);
 }
 
-void
-dex_semaphore_unref (DexSemaphore *semaphore)
+static void
+dex_semaphore_class_init (DexSemaphoreClass *semaphore_class)
 {
-	if (g_atomic_ref_count_dec (&semaphore->ref_count))
-		dex_semaphore_finalize (semaphore);
+  DexObjectClass *object_class = DEX_OBJECT_CLASS (semaphore_class);
+
+  object_class->finalize = dex_semaphore_finalize;
 }
 
-DexSemaphore *
-dex_semaphore_ref (DexSemaphore *semaphore)
+static void
+dex_semaphore_init (DexSemaphore *semaphore)
 {
-	g_atomic_ref_count_inc (&semaphore->ref_count);
-	return semaphore;
+  semaphore->eventfd = eventfd (0, EFD_SEMAPHORE);
 }
 
 void
@@ -158,7 +147,7 @@ dex_semaphore_source_finalize (GSource *source)
 {
   DexSemaphoreSource *semaphore_source = (DexSemaphoreSource *)source;
 
-  g_clear_pointer (&semaphore_source->semaphore, dex_semaphore_unref);
+  dex_clear (&semaphore_source->semaphore);
 
   if (semaphore_source->eventfd != -1)
     close (semaphore_source->eventfd);
@@ -195,7 +184,7 @@ dex_semaphore_source_new (int             priority,
   g_source_set_priority (source, priority);
   g_source_set_static_name (source, "[dex-semaphore-source]");
 
-  semaphore_source->semaphore = dex_semaphore_ref (semaphore);
+  semaphore_source->semaphore = dex_ref (semaphore);
   semaphore_source->eventfd = eventfd (0, EFD_CLOEXEC);
   semaphore_source->eventfdtag = g_source_add_unix_fd (source, semaphore_source->eventfd, G_IO_IN);
 
