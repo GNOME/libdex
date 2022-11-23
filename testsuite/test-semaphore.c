@@ -36,6 +36,7 @@ typedef struct
   GThread *thread;
   GSource *source;
   int threadid;
+  int handled;
 } WorkerState;
 
 static DexFuture *
@@ -45,6 +46,7 @@ worker_thread_callback (DexFuture *future,
   WorkerState *state = user_data;
 
   g_atomic_int_inc (&total_count);
+  state->handled++;
 
   return dex_semaphore_wait (state->semaphore);
 }
@@ -116,7 +118,11 @@ main (int argc,
     dex_semaphore_post (semaphore);
 
   for (guint i = 0; i < G_N_ELEMENTS (state); i++)
-    g_thread_join (state[i].thread);
+    {
+      g_thread_join (state[i].thread);
+
+      g_print ("Thread %d handled %d items\n", i, state[i].handled);
+    }
 
   return 0;
 }
