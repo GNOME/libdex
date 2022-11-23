@@ -29,8 +29,10 @@
 
 struct _DexThreadPoolScheduler
 {
-  DexScheduler  parent_instance;
-  DexWorkQueue *global_work_queue;
+  DexScheduler            parent_instance;
+  DexWorkQueue           *global_work_queue;
+  DexThreadPoolWorkerSet *set;
+  GPtrArray              *workers;
 };
 
 typedef struct _DexThreadPoolSchedulerClass
@@ -84,6 +86,12 @@ dex_thread_pool_scheduler_get_aio_context (DexScheduler *scheduler)
 static void
 dex_thread_pool_scheduler_finalize (DexObject *object)
 {
+  DexThreadPoolScheduler *thread_pool_scheduler = (DexThreadPoolScheduler *)object;
+
+  g_clear_pointer (&thread_pool_scheduler->global_work_queue, dex_work_queue_unref);
+  g_clear_pointer (&thread_pool_scheduler->set, dex_thread_pool_worker_set_unref);
+  g_clear_pointer (&thread_pool_scheduler->workers, g_ptr_array_unref);
+
   DEX_OBJECT_CLASS (dex_thread_pool_scheduler_parent_class)->finalize (object);
 }
 
@@ -104,6 +112,8 @@ static void
 dex_thread_pool_scheduler_init (DexThreadPoolScheduler *thread_pool_scheduler)
 {
   thread_pool_scheduler->global_work_queue = dex_work_queue_new ();
+  thread_pool_scheduler->set = dex_thread_pool_worker_set_new ();
+  thread_pool_scheduler->workers = g_ptr_array_new_with_free_func (dex_unref);
 }
 
 /**
@@ -117,8 +127,21 @@ DexThreadPoolScheduler *
 dex_thread_pool_scheduler_new (void)
 {
   DexThreadPoolScheduler *thread_pool_scheduler;
+  guint n_procs;
 
   thread_pool_scheduler = (DexThreadPoolScheduler *)g_type_create_instance (DEX_TYPE_THREAD_POOL_SCHEDULER);
+
+  /* TODO: let this be dynamic and tunable, as well as thread pinning */
+  n_procs = g_get_num_processors ();
+
+  for (guint i = 0; i < n_procs; i++)
+    {
+      DexThreadPoolWorker *thread_pool_worker;
+
+      thread_pool_worker = dex_thread_pool_worker_new (thread_pool_scheduler->global_work_queue,
+                                                       thread_pool_scheduler->set);
+      g_ptr_array_add (thread_pool_scheduler->workers, g_steal_pointer (&thread_pool_worker));
+    }
 
   return thread_pool_scheduler;
 }
