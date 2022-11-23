@@ -23,19 +23,19 @@
 
 #include "dex-object-private.h"
 #include "dex-scheduler-private.h"
-#include "dex-thread-pool-scheduler.h"
+#include "dex-work-queue-private.h"
 
 G_BEGIN_DECLS
 
-#define DEX_TYPE_THREAD_POOL_WORKER       (dex_thread_pool_worker_get_type())
-#define DEX_THREAD_POOL_WORKER(obj)       (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_THREAD_POOL_WORKER, DexThreadPoolWorker))
-#define DEX_IS_THREAD_POOL_WORKER(obj)    (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_THREAD_POOL_WORKER))
-#define DEX_THREAD_POOL_WORKER_PRIORITY   G_PRIORITY_DEFAULT
-#define DEX_THREAD_POOL_WORKER_BATCH_SIZE 10
+#define DEX_TYPE_THREAD_POOL_WORKER    (dex_thread_pool_worker_get_type())
+#define DEX_THREAD_POOL_WORKER(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_THREAD_POOL_WORKER, DexThreadPoolWorker))
+#define DEX_IS_THREAD_POOL_WORKER(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_THREAD_POOL_WORKER))
 
 typedef struct _DexThreadPoolWorker DexThreadPoolWorker;
 
 GType                dex_thread_pool_worker_get_type (void) G_GNUC_CONST;
-DexThreadPoolWorker *dex_thread_pool_worker_new      (DexThreadPoolScheduler *scheduler);
+DexThreadPoolWorker *dex_thread_pool_worker_new      (DexWorkQueue *work_queue
+                                                      // TODO: need to inform about worker round-robin for stealing
+                                                     );
 
 G_END_DECLS

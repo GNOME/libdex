@@ -25,17 +25,9 @@
 
 #include "dex-aio-context-private.h"
 #include "dex-thread-pool-worker-private.h"
-#include "dex-thread-pool-scheduler-private.h"
 #include "dex-thread-storage-private.h"
 #include "dex-work-stealing-queue-private.h"
-
-#if GLIB_SIZEOF_VOID_P == 8
-# define DEFAULT_QUEUE_SIZE 255
-#elif GLIB_SIZEOF_VOID_P == 4
-# define DEFAULT_QUEUE_SIZE 1020
-#else
-# error "Unsupported value for GLIB_SIZEOF_VOID_P"
-#endif
+#include "dex-work-queue-private.h"
 
 typedef enum _DexThreadPoolWorkerStatus
 {
@@ -48,12 +40,11 @@ typedef enum _DexThreadPoolWorkerStatus
 struct _DexThreadPoolWorker
 {
   DexScheduler               parent_instance;
-
   GThread                   *thread;
   GMainContext              *main_context;
   DexAioContext             *aio_context;
-  DexThreadPoolScheduler    *scheduler;
-  DexWorkStealingQueue      *queue;
+  DexWorkQueue              *global_work_queue;
+  DexWorkStealingQueue      *work_stealing_queue;
   DexThreadPoolWorkerStatus  status : 2;
 };
 
@@ -73,9 +64,9 @@ dex_thread_pool_worker_push (DexScheduler *scheduler,
   g_assert (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
 
   if G_LIKELY (g_thread_self () == thread_pool_worker->thread)
-    dex_work_stealing_queue_push (thread_pool_worker->queue, work_item);
+    dex_work_stealing_queue_push (thread_pool_worker->work_stealing_queue, work_item);
   else
-    dex_thread_pool_scheduler_push_global (thread_pool_worker->scheduler, work_item);
+    dex_work_queue_push (thread_pool_worker->global_work_queue, work_item);
 }
 
 static gboolean
@@ -88,8 +79,8 @@ dex_thread_pool_worker_finalize_cb (gpointer data)
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_STOPPING;
 
   /* Now flush out the rest of the work items if there are any */
-  while (dex_work_stealing_queue_pop (thread_pool_worker->queue, &work_item))
-    work_item.func (work_item.func_data);
+  while (dex_work_stealing_queue_pop (thread_pool_worker->work_stealing_queue, &work_item))
+    dex_work_item_invoke (&work_item);
 
   return G_SOURCE_REMOVE;
 }
@@ -129,7 +120,8 @@ dex_thread_pool_worker_finalize (DexObject *object)
 
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
   g_clear_pointer (&thread_pool_worker->main_context, g_main_context_unref);
-  g_clear_pointer (&thread_pool_worker->queue, dex_work_stealing_queue_free);
+  g_clear_pointer (&thread_pool_worker->work_stealing_queue, dex_work_stealing_queue_unref);
+  g_clear_pointer (&thread_pool_worker->global_work_queue, dex_work_queue_unref);
 
   DEX_OBJECT_CLASS (dex_thread_pool_worker_parent_class)->finalize (object);
 }
@@ -159,7 +151,6 @@ dex_thread_pool_worker_class_init (DexThreadPoolWorkerClass *thread_pool_worker_
 static void
 dex_thread_pool_worker_init (DexThreadPoolWorker *thread_pool_worker)
 {
-  thread_pool_worker->queue = dex_work_stealing_queue_new (DEFAULT_QUEUE_SIZE);
 }
 
 static gpointer
@@ -184,87 +175,39 @@ dex_thread_pool_worker_thread_func (gpointer data)
   return NULL;
 }
 
-typedef struct _DexThreadPoolWorkerSource
-{
-  GSource source;
-  DexThreadPoolWorker *thread_pool_worker;
-} DexThreadPoolWorkerSource;
-
-static gboolean
-dex_thread_pool_worker_source_check (GSource *source)
-{
-  DexThreadPoolWorkerSource *thread_pool_worker_source = (DexThreadPoolWorkerSource *)source;
-  DexThreadPoolWorker *thread_pool_worker = thread_pool_worker_source->thread_pool_worker;
-
-  return !dex_work_stealing_queue_empty (thread_pool_worker->queue);
-}
-
-static gboolean
-dex_thread_pool_worker_source_dispatch (GSource     *source,
-                                        GSourceFunc  callback,
-                                        gpointer     callback_data)
-{
-  DexThreadPoolWorkerSource *thread_pool_worker_source = (DexThreadPoolWorkerSource *)source;
-  DexThreadPoolWorker *thread_pool_worker = thread_pool_worker_source->thread_pool_worker;
-  DexWorkItem work_item;
-
-  for (guint i = 0; i < DEX_THREAD_POOL_WORKER_BATCH_SIZE; i++)
-    {
-      if (!dex_work_stealing_queue_pop (thread_pool_worker->queue, &work_item))
-        break;
-
-      dex_work_item_invoke (&work_item);
-    }
-
-  /* TODO: Iterate across neighbors and attempt to steal work items */
-
-  /* Take an item from the global queue if there are any */
-  /* TODO: We probably want to deal with this another way using DexSemaphore */
-  if (dex_thread_pool_scheduler_pop_global (thread_pool_worker->scheduler, &work_item))
-    dex_work_item_invoke (&work_item);
-
-  return G_SOURCE_CONTINUE;
-}
-
-static GSourceFuncs dex_thread_pool_worker_source_funcs = {
-  .check = dex_thread_pool_worker_source_check,
-  .dispatch = dex_thread_pool_worker_source_dispatch,
-};
-
-static GSource *
-dex_thread_pool_worker_source_new (DexThreadPoolWorker *thread_pool_worker)
-{
-  GSource *source;
-
-  source = g_source_new (&dex_thread_pool_worker_source_funcs, sizeof (DexThreadPoolWorkerSource));
-  g_source_set_static_name (source, "[dex-thread-pool-worker-source]");
-  g_source_set_priority (source, DEX_THREAD_POOL_WORKER_PRIORITY);
-
-  ((DexThreadPoolWorkerSource *)source)->thread_pool_worker = thread_pool_worker;
-
-  return source;
-}
-
 DexThreadPoolWorker *
-dex_thread_pool_worker_new (DexThreadPoolScheduler *scheduler)
+dex_thread_pool_worker_new (DexWorkQueue *work_queue)
 {
   DexThreadPoolWorker *thread_pool_worker;
   GSource *source;
 
-  g_return_val_if_fail (DEX_IS_THREAD_POOL_SCHEDULER (scheduler), NULL);
+  g_return_val_if_fail (work_queue != NULL, NULL);
 
   thread_pool_worker = (DexThreadPoolWorker *)g_type_create_instance (DEX_TYPE_THREAD_POOL_WORKER);
   thread_pool_worker->main_context = g_main_context_new ();
-  thread_pool_worker->scheduler = scheduler;
   thread_pool_worker->aio_context = (DexAioContext *)_dex_aio_context_new ();
+  thread_pool_worker->global_work_queue = dex_work_queue_ref (work_queue);
+  thread_pool_worker->work_stealing_queue = dex_work_stealing_queue_new (255);
 
-  /* Create a GSource which will dispatch work items as they come in.
-   * We do this via a GMainContext rather than just some code directly
-   * against a Queue so that we can integrate other GSource on the same
-   * thread without ping-pong'ing between threads for some types of
-   * DexFuture.
+  /* Attach a GSource that will process items from the worker threads
+   * work queue.
+   *
+   * TODO: This should attempt to steal from the thread neighbor after
+   * it has run out of work items.
    */
-  source = dex_thread_pool_worker_source_new (thread_pool_worker);
+  source = dex_work_stealing_queue_create_source (thread_pool_worker->work_stealing_queue);
+  g_source_set_priority (source, G_PRIORITY_DEFAULT);
+  g_source_attach (source, thread_pool_worker->main_context);
+  g_source_unref (source);
+
+  /* Attach our global work queue so that we take items from the
+   * global queue and process them on our thread automatically.
+   * This is slightly lower priority than our work-stealing-queue
+   * because we prefer to always process our own work items before
+   * the global work queue.
+   */
+  source = dex_work_queue_create_source (work_queue);
+  g_source_set_priority (source, G_PRIORITY_DEFAULT_IDLE);
   g_source_attach (source, thread_pool_worker->main_context);
   g_source_unref (source);
 
