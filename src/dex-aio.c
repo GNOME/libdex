@@ -22,6 +22,21 @@
 
 #include "dex-aio.h"
 #include "dex-aio-backend-private.h"
+#include "dex-thread-storage-private.h"
+
+static DexAioContext *
+dex_aio_context_current (void)
+{
+  DexThreadStorage *storage = dex_thread_storage_get ();
+
+  if (storage->aio_context)
+    return storage->aio_context;
+
+  if (storage->scheduler)
+    return dex_scheduler_get_aio_context (storage->scheduler);
+
+  g_return_val_if_reached (NULL);
+}
 
 DexFuture *
 dex_aio_read (DexAioContext *aio_context,
@@ -30,6 +45,9 @@ dex_aio_read (DexAioContext *aio_context,
               gsize          count,
               goffset        offset)
 {
+  if (aio_context == NULL)
+    aio_context = dex_aio_context_current ();
+
   return dex_aio_backend_read (aio_context->aio_backend, aio_context,
                                fd, buffer, count, offset);
 }
@@ -41,6 +59,9 @@ dex_aio_write (DexAioContext *aio_context,
                gsize          count,
                goffset        offset)
 {
+  if (aio_context == NULL)
+    aio_context = dex_aio_context_current ();
+
   return dex_aio_backend_write (aio_context->aio_backend, aio_context,
                                 fd, buffer, count, offset);
 }

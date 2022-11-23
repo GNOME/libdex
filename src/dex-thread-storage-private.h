@@ -21,8 +21,7 @@
 
 #pragma once
 
-#include <glib.h>
-
+#include "dex-aio.h"
 #include "dex-scheduler.h"
 #include "dex-thread-pool-worker-private.h"
 
@@ -34,6 +33,7 @@ typedef struct _DexThreadStorage
 {
   DexScheduler        *scheduler;
   DexThreadPoolWorker *worker;
+  DexAioContext       *aio_context;
 } DexThreadStorage;
 
 DexThreadStorage *dex_thread_storage_get (void);
