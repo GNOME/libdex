@@ -59,14 +59,27 @@ dex_uring_aio_context_dispatch (GSource     *source,
 {
   DexUringAioContext *aio_context = (DexUringAioContext *)source;
   struct io_uring_cqe *cqe;
+  gint64 counter;
 
-  while (io_uring_peek_cqe (&aio_context->ring, &cqe))
+  if (g_source_query_unix_fd (source, aio_context->eventfdtag) & G_IO_IN)
+    read (aio_context->eventfd, &counter, sizeof counter);
+
+  while (io_uring_peek_cqe (&aio_context->ring, &cqe) == 0)
     {
+      /* TODO: it would be nice if we could freeze completion
+       *  of these items while we're in the hot path of the
+       *  io_uring so it can go back to producing.
+       */
       DexUringFuture *future = io_uring_cqe_get_data (cqe);
       dex_uring_future_complete (future, cqe);
       io_uring_cqe_seen (&aio_context->ring, cqe);
       dex_unref (future);
     }
+
+  g_mutex_lock (&aio_context->mutex);
+  if (io_uring_sq_ready (&aio_context->ring))
+    io_uring_submit (&aio_context->ring);
+  g_mutex_unlock (&aio_context->mutex);
 
   return G_SOURCE_CONTINUE;
 }
@@ -97,6 +110,7 @@ dex_uring_aio_context_prepare (GSource *source,
         {
           DexUringFuture *future = g_queue_pop_head (&aio_context->queued);
           dex_uring_future_prepare (future, sqe);
+          io_uring_sqe_set_data (sqe, dex_ref (future));
           do_submit = TRUE;
         }
 
@@ -105,6 +119,17 @@ dex_uring_aio_context_prepare (GSource *source,
     }
 
   g_mutex_unlock (&aio_context->mutex);
+
+  return io_uring_cq_ready (&aio_context->ring) > 0;
+}
+
+static gboolean
+dex_uring_aio_context_check (GSource *source)
+{
+  DexUringAioContext *aio_context = (DexUringAioContext *)source;
+
+  g_assert (aio_context != NULL);
+  g_assert (DEX_IS_URING_AIO_BACKEND (aio_context->parent.aio_backend));
 
   return io_uring_cq_ready (&aio_context->ring) > 0;
 }
@@ -132,6 +157,7 @@ dex_uring_aio_context_finalize (GSource *source)
 }
 
 static GSourceFuncs dex_uring_aio_context_source_funcs = {
+  .check = dex_uring_aio_context_check,
   .prepare = dex_uring_aio_context_prepare,
   .dispatch = dex_uring_aio_context_dispatch,
   .finalize = dex_uring_aio_context_finalize,
