@@ -46,15 +46,7 @@ worker_thread_callback (DexFuture *future,
 
   g_atomic_int_inc (&total_count);
 
-  future = dex_semaphore_wait (state->semaphore);
-  future = dex_future_then (future, worker_thread_callback, state, NULL);
-
-  /* TODO: We need to make it possible to continue to
-   * return futures here in an async loop w/o unbound memory
-   * growth (ie: collapse them over time).
-   */
-
-  return future;
+  return dex_semaphore_wait (state->semaphore);
 }
 
 static gpointer
@@ -75,11 +67,12 @@ worker_thread_func (gpointer data)
   g_source_attach (state->source, main_context);
 
   future = dex_semaphore_wait (state->semaphore);
-  future = dex_future_then (future, worker_thread_callback, state, NULL);
+  future = dex_future_loop (future, worker_thread_callback, state, NULL);
 
   while (!g_atomic_int_get (&shutdown))
     g_main_context_iteration (main_context, TRUE);
 
+  dex_unref (future);
   g_free (name);
 
   g_atomic_int_inc (&done);
