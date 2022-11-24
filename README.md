@@ -53,12 +53,25 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
      * DexAsyncPair (Final)
      * DexBlock (Final)
      * DexCancellable (Final)
+     * DexFutureSet (Final)
      * DexPromise (Final)
      * DexTasklet (Final)
      * DexTimeout (Final)
+     * DexUnixSignal (Final)
    * DexScheduler (Abstract)
      * DexMainScheduler (Final)
      * DexThreadPoolScheduler (Final)
+     * DexThreadPoolWorker (Final)
    * DexCallbale (Abstract)
      * DexFunction (Final)
+ * GSource
+   * DexAioContext
+
+## Internal Types
+
+  * DexWorkQueue
+  * DexWorkStealingQueue
+  * DexSemaphore
+  * DexAioBackend
+    * DexUringAioBackend
 
