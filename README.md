@@ -11,6 +11,13 @@ asynchronous-based APIs is provided through the use of wrapper promises.
 
 Dex is licensed as LGPL-2.1+.
 
+## More Information
+
+You can read about why this is being created and what led to it over the
+past two decades of contributing to GNOME and GTK.
+
+https://blogs.gnome.org/chergert/2022/11/24/concurrency-parallelism-i-o-scheduling-thread-pooling-and-work-stealing/
+
 ## Implementation Notes
 
 While Dex is using GObject and GIO, it implements it's own fundamental type
