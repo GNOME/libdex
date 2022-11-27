@@ -21,7 +21,7 @@
 #include "config.h"
 
 #include "dex-aio-backend-private.h"
-#if HAVE_LIBURING
+#ifdef HAVE_LIBURING
 # include "dex-uring-aio-backend-private.h"
 #endif
 
@@ -81,7 +81,7 @@ dex_aio_backend_get_default (void)
   if (g_once_init_enter (&instance))
     {
       DexAioBackend *backend = NULL;
-#if HAVE_LIBURING
+#ifdef HAVE_LIBURING
       backend = dex_uring_aio_backend_new ();
 #else
 # error "No aio backend configured"
