@@ -29,7 +29,7 @@
 
 #include <gio/gio.h>
 
-#include "dex-aio.h"
+#include "dex-aio-private.h"
 #include "dex-object-private.h"
 #include "dex-promise.h"
 #include "dex-semaphore-private.h"

@@ -71,8 +71,6 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
      * DexThreadPoolWorker (Final)
    * DexCallbale (Abstract)
      * DexFunction (Final)
- * GSource
-   * DexAioContext
 
 ## Internal Types
 
@@ -81,4 +79,9 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
   * DexSemaphore
   * DexAioBackend
     * DexUringAioBackend
+  * GSource
+    * DexAioContext
 
+Currently, libdex is not trying to abstract the AIO models and it is used
+internally only for some features. However, that could be expanded in the
+future if there is sufficient use for it such as with GFile streams.

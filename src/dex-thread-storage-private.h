@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "dex-aio.h"
+#include "dex-aio-private.h"
 #include "dex-scheduler.h"
 #include "dex-thread-pool-worker-private.h"
 

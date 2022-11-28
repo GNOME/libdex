@@ -29,7 +29,6 @@ libdex_sources = [
 ]
 
 libdex_headers = [
-  'dex-aio.h',
   'dex-async-pair.h',
   'dex-async-result.h',
   'dex-block.h',

@@ -14,5 +14,7 @@
  * More/better support for non-standard API using DexAsyncPair
  * Some integration with various I/O API in GLib like GIOChannel
    or other FD based tooling for futures, possibly GPollFD?
- * Support for AIO models other than `io_uring` (using DexAioBackend)
+ * Support for AIO models other than `io_uring` (using DexAioBackend). This
+   is internal only and used by things like DexSemaphore, but it could be made
+   more generally available if we find purpose for it.
 

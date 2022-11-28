@@ -26,13 +26,11 @@ G_BEGIN_DECLS
 
 typedef struct _DexAioContext DexAioContext;
 
-DEX_AVAILABLE_IN_ALL
 DexFuture *dex_aio_read  (DexAioContext *aio_context,
                           int            fd,
                           gpointer       buffer,
                           gsize          count,
                           goffset        offset);
-DEX_AVAILABLE_IN_ALL
 DexFuture *dex_aio_write (DexAioContext *aio_context,
                           int            fd,
                           gconstpointer  buffer,
