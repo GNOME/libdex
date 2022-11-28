@@ -69,6 +69,49 @@ dex_input_stream_read_bytes (GInputStream *stream,
 }
 
 static void
+dex_output_stream_write_bytes_cb (GObject      *object,
+                                  GAsyncResult *result,
+                                  gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+  GValue value = G_VALUE_INIT;
+  const GValue *ret = NULL;
+  gssize len;
+
+  if (!(len = g_output_stream_write_bytes_finish (G_OUTPUT_STREAM (object), result, &error)))
+    {
+      g_value_init (&value, G_TYPE_INT64);
+      g_value_set_int64 (&value, len);
+      ret = &value;
+    }
+
+  dex_future_complete (DEX_FUTURE (async_pair), ret, error);
+  g_value_unset (&value);
+}
+
+DexFuture *
+dex_output_stream_write_bytes (GOutputStream *stream,
+                               GBytes        *bytes,
+                               int            priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_OUTPUT_STREAM (stream), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_output_stream_write_bytes_async (stream,
+                                     bytes,
+                                     priority,
+                                     async_pair->cancellable,
+                                     dex_output_stream_write_bytes_cb,
+                                     dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
 dex_file_read_cb (GObject      *object,
                   GAsyncResult *result,
                   gpointer      user_data)

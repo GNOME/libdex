@@ -28,11 +28,15 @@
 G_BEGIN_DECLS
 
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_file_read               (GFile        *file,
-                                        int           priority);
+DexFuture *dex_file_read                 (GFile         *file,
+                                          int            priority);
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_input_stream_read_bytes (GInputStream *self,
-                                        gsize         count,
-                                        int           priority);
+DexFuture *dex_input_stream_read_bytes   (GInputStream  *self,
+                                          gsize          count,
+                                          int            priority);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_output_stream_write_bytes (GOutputStream *self,
+                                          GBytes        *bytes,
+                                          int            priority);
 
 G_END_DECLS
