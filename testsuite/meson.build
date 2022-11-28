@@ -16,6 +16,7 @@ testsuite_c_args = [
 ]
 
 testsuite_sources = [
+  ['test-async-result'],
   ['test-object'],
   ['test-future'],
   ['test-scheduler'],

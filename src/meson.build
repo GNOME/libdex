@@ -2,6 +2,7 @@ libdex_sources = [
   'dex-aio.c',
   'dex-aio-backend.c',
   'dex-async-pair.c',
+  'dex-async-result.c',
   'dex-block.c',
   'dex-callable.c',
   'dex-cancellable.c',
@@ -30,6 +31,7 @@ libdex_sources = [
 libdex_headers = [
   'dex-aio.h',
   'dex-async-pair.h',
+  'dex-async-result.h',
   'dex-block.h',
   'dex-callable.h',
   'dex-cancellable.h',
