@@ -135,4 +135,5 @@ add_project_arguments(['-I' + meson.project_build_root()], language: 'c')
 
 subdir('src')
 subdir('testsuite')
+subdir('examples')
 subdir('docs')

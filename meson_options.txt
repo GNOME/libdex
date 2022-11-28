@@ -1,6 +1,9 @@
 option('docs',
        type: 'boolean', value: false,
        description: 'Build reference manual (requires gi-doc and gobject-introspection)')
+option('build-examples',
+       type: 'boolean', value: true,
+       description: 'Build example programs')
 option('vapi',
        type: 'boolean', value: true,
        description: 'Generate vapi data (requires vapigen)')
