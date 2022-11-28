@@ -100,7 +100,7 @@ dex_timeout_source_func (gpointer data)
   return G_SOURCE_REMOVE;
 }
 
-DexTimeout *
+DexFuture *
 dex_timeout_new_deadline (gint64 deadline)
 {
   static const char *name;
@@ -145,24 +145,24 @@ dex_timeout_new_deadline (gint64 deadline)
    */
   g_source_attach (timeout->source, NULL);
 
-  return timeout;
+  return DEX_FUTURE (timeout);
 }
 
-DexTimeout *
+DexFuture *
 dex_timeout_new_seconds (int seconds)
 {
   gint64 usec = G_USEC_PER_SEC * seconds;
   return dex_timeout_new_deadline (g_get_monotonic_time () + usec);
 }
 
-DexTimeout *
+DexFuture *
 dex_timeout_new_msec (int msec)
 {
   gint64 usec = (G_USEC_PER_SEC/1000L) * msec;
   return dex_timeout_new_deadline (g_get_monotonic_time () + usec);
 }
 
-DexTimeout *
+DexFuture *
 dex_timeout_new_usec (gint64 usec)
 {
   return dex_timeout_new_deadline (g_get_monotonic_time () + usec);

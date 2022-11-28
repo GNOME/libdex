@@ -38,13 +38,13 @@ typedef struct _DexTimeout DexTimeout;
 DEX_AVAILABLE_IN_ALL
 GType       dex_timeout_get_type       (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexTimeout *dex_timeout_new_deadline   (gint64      deadline);
+DexFuture  *dex_timeout_new_deadline   (gint64      deadline);
 DEX_AVAILABLE_IN_ALL
-DexTimeout *dex_timeout_new_seconds    (int         seconds);
+DexFuture  *dex_timeout_new_seconds    (int         seconds);
 DEX_AVAILABLE_IN_ALL
-DexTimeout *dex_timeout_new_msec       (int         msec);
+DexFuture  *dex_timeout_new_msec       (int         msec);
 DEX_AVAILABLE_IN_ALL
-DexTimeout *dex_timeout_new_usec       (gint64      usec);
+DexFuture   *dex_timeout_new_usec       (gint64      usec);
 DEX_AVAILABLE_IN_ALL
 void        dex_timeout_postpone_until (DexTimeout *timeout,
                                         gint64      deadline);

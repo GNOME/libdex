@@ -150,7 +150,7 @@ static void
 test_timeout (void)
 {
   GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
-  DexTimeout *timeout = dex_timeout_new_deadline (g_get_monotonic_time ());
+  DexFuture *timeout = dex_timeout_new_deadline (g_get_monotonic_time ());
   DexFuture *future = dex_future_catch (dex_ref (timeout), on_timed_out, main_loop, NULL);
 
   g_assert_cmpint (dex_future_get_status (DEX_FUTURE (timeout)), ==, DEX_FUTURE_STATUS_PENDING);
