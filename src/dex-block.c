@@ -93,8 +93,26 @@ dex_block_propagate_within_scheduler_internal (PropagateState *state)
 
       return TRUE;
     }
+  else
+    {
+      GDestroyNotify notify = NULL;
+      gpointer notify_data = NULL;
 
-  return FALSE;
+      /* We can't asynchronously wait for more futures now so we should
+       * aggressively release the callback data so that any reference cycles
+       * are broken immediately.
+       */
+      dex_object_lock (state->block);
+      notify = g_steal_pointer (&state->block->callback_data_destroy);
+      notify_data = g_steal_pointer (&state->block->callback_data);
+      state->block->callback = NULL;
+      dex_object_unlock (state->block);
+
+      if (notify != NULL)
+        notify (notify_data);
+
+      return FALSE;
+    }
 }
 
 static void
