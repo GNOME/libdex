@@ -1,5 +1,5 @@
 /*
- * dex-input-stream.h
+ * dex-gio.h
  *
  * Copyright 2022 Christian Hergert <chergert@redhat.com>
  *
@@ -23,10 +23,13 @@
 
 #include <gio/gio.h>
 
-#include "dex-version-macros.h"
+#include "dex-future.h"
 
 G_BEGIN_DECLS
 
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_file_read               (GFile        *file,
+                                        int           priority);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_read_bytes (GInputStream *self,
                                         gsize         count,

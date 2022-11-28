@@ -1,5 +1,5 @@
 /*
- * dex-input-stream.c
+ * dex-gio.c
  *
  * Copyright 2022 Christian Hergert <chergert@redhat.com>
  *
@@ -23,7 +23,7 @@
 
 #include "dex-async-pair-private.h"
 #include "dex-future-private.h"
-#include "dex-input-stream.h"
+#include "dex-gio.h"
 
 static void
 dex_input_stream_read_bytes_cb (GObject      *object,
@@ -64,6 +64,47 @@ dex_input_stream_read_bytes (GInputStream *stream,
                                    async_pair->cancellable,
                                    dex_input_stream_read_bytes_cb,
                                    dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_file_read_cb (GObject      *object,
+                  GAsyncResult *result,
+                  gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+  GValue value = G_VALUE_INIT;
+  const GValue *ret = NULL;
+  GFileInputStream *stream;
+
+  if ((stream = g_file_read_finish (G_FILE (object), result, &error)))
+    {
+      g_value_init (&value, G_TYPE_FILE_INPUT_STREAM);
+      g_value_take_object (&value, g_steal_pointer (&stream));
+      ret = &value;
+    }
+
+  dex_future_complete (DEX_FUTURE (async_pair), ret, error);
+  g_value_unset (&value);
+}
+
+DexFuture *
+dex_file_read (GFile *file,
+               int    priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_FILE (file), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_file_read_async (file,
+                     priority,
+                     async_pair->cancellable,
+                     dex_file_read_cb,
+                     dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
 }
