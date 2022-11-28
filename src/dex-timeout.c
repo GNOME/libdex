@@ -104,6 +104,7 @@ DexFuture *
 dex_timeout_new_deadline (gint64 deadline)
 {
   static const char *name;
+  DexScheduler *scheduler;
   DexTimeout *timeout;
   DexWeakRef *wr;
 
@@ -123,27 +124,23 @@ dex_timeout_new_deadline (gint64 deadline)
                          dex_timeout_source_func,
                          wr, clear_weak_ref);
 
-  /* TODO: allow attaching to the current scheduler
+  if (!(scheduler = dex_scheduler_get_thread_default ()))
+    scheduler = dex_scheduler_get_default ();
+
+  /* TODO: Delay attaching until timeout is awaited.
    *
-   * Currently, this will end up on the main context (so the main scheduler for
-   * the application) which could cause a ping-pong between the main scheduler and
-   * other thread pool schedulers for work items.
+   * Currently, this attaches the GSource when the timeout is created. This
+   * can be the wrong thing to do when you are creating a bunch of futures and
+   * then want them to run on a specific scheduler.
    *
-   * Of course, this is only really an issue for situations where you are doing
-   * user timeouts, but if it where to be used for something more timing sensitive
-   * like deadlines, you'd end up in a lot of cross-thread operations.
+   * In that case, you probably want to delay arming the timeout until something
+   * on the thread has "awaited" it.
    *
-   * Instead, if we require that all schedulers support a GMainContext for main
-   * loop integration, we could connect to the current schedulers main loop (which
-   * should attach to the current threads main loop if the scheduler is a thread
-   * pool situation).
-   *
-   * But to do this, we need to be able to have more control than GThreadPool will
-   * give us, and therefore need to do our own threadpool. We probably want to do
-   * that anyway though because GThreadPool does not scale with thread count very
-   * well to begin with.
+   * Currently we don't have explicit awaiting though, so this will need to be
+   * implemented first before we can do the above work.
    */
-  g_source_attach (timeout->source, NULL);
+
+  g_source_attach (timeout->source, dex_scheduler_get_main_context (scheduler));
 
   return DEX_FUTURE (timeout);
 }
