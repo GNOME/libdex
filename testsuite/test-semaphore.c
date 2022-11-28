@@ -69,7 +69,7 @@ worker_thread_func (gpointer data)
   g_source_attach (state->source, main_context);
 
   future = dex_semaphore_wait (state->semaphore);
-  future = dex_future_loop (future, worker_thread_callback, state, NULL);
+  future = dex_future_then_loop (future, worker_thread_callback, state, NULL);
 
   while (!g_atomic_int_get (&shutdown))
     g_main_context_iteration (main_context, TRUE);

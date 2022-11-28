@@ -53,7 +53,7 @@ DexFuture       *dex_future_then            (DexFuture          *future,
                                              gpointer            callback_data,
                                              GDestroyNotify      callback_data_destroy);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_loop            (DexFuture          *future,
+DexFuture       *dex_future_then_loop       (DexFuture          *future,
                                              DexFutureCallback   callback,
                                              gpointer            callback_data,
                                              GDestroyNotify      callback_data_destroy);
@@ -63,7 +63,17 @@ DexFuture       *dex_future_catch           (DexFuture          *future,
                                              gpointer            callback_data,
                                              GDestroyNotify      callback_data_destroy);
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_catch_loop      (DexFuture          *future,
+                                             DexFutureCallback   callback,
+                                             gpointer            callback_data,
+                                             GDestroyNotify      callback_data_destroy);
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_finally         (DexFuture          *future,
+                                             DexFutureCallback   callback,
+                                             gpointer            callback_data,
+                                             GDestroyNotify      callback_data_destroy);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_finally_loop    (DexFuture          *future,
                                              DexFutureCallback   callback,
                                              gpointer            callback_data,
                                              GDestroyNotify      callback_data_destroy);
