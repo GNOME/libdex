@@ -382,15 +382,12 @@ dex_future_then (DexFuture         *future,
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
- * Asynchronously calls @callback upon future completion until
- * @callback returns a resolved #DexFuture or %NULL.
+ * Asynchronously calls @callback when @future either resolves or
+ * rejects.
  *
- * This is similar to dex_future_then() except that it will call
- * @callback multiple times as each returned #DexFuture resolves.
- *
- * If @future rejects, then @callback will not be called. If any
- * #DexFuture returnd from @callback rejects, then @callback will
- * not be called again.
+ * This is similar to dex_future_finally() except that it will call
+ * @callback multiple times as each returned #DexFuture resolves or
+ * rejects, allowing for infinite loops.
  *
  * Returns: (transfer full): a #DexFuture
  */
@@ -405,7 +402,7 @@ dex_future_loop (DexFuture         *future,
 
   return dex_block_new (future,
                         NULL,
-                        DEX_BLOCK_KIND_THEN | DEX_BLOCK_KIND_LOOP,
+                        DEX_BLOCK_KIND_THEN | DEX_BLOCK_KIND_CATCH | DEX_BLOCK_KIND_LOOP,
                         callback,
                         callback_data,
                         callback_data_destroy);
