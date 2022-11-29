@@ -59,6 +59,25 @@ dex_delayed_propagate (DexFuture *future,
 }
 
 static void
+dex_delayed_discard (DexFuture *future)
+{
+  DexDelayed *delayed = DEX_DELAYED (future);
+  DexFuture *awaiting;
+
+  g_assert (DEX_IS_DELAYED (delayed));
+
+  dex_object_lock (delayed);
+  awaiting = g_steal_pointer (&delayed->future);
+  dex_object_unlock (delayed);
+
+  if (awaiting != NULL)
+    {
+      dex_future_discard (awaiting, future);
+      dex_clear (&awaiting);
+    }
+}
+
+static void
 dex_delayed_finalize (DexObject *object)
 {
   DexDelayed *delayed = DEX_DELAYED (object);
@@ -77,6 +96,7 @@ dex_delayed_class_init (DexDelayedClass *delayed_class)
   object_class->finalize = dex_delayed_finalize;
 
   future_class->propagate = dex_delayed_propagate;
+  future_class->discard = dex_delayed_discard;
 }
 
 static void
