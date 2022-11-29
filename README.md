@@ -65,6 +65,7 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
      * DexTasklet (Final)
      * DexTimeout (Final)
      * DexUnixSignal (Final)
+     * DexDelayed (Final)
    * DexScheduler (Abstract)
      * DexMainScheduler (Final)
      * DexThreadPoolScheduler (Final)

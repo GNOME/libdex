@@ -833,6 +833,22 @@ test_unix_signal_sigusr2 (void)
 }
 #endif
 
+static void
+test_delayed_simple (void)
+{
+  DexPromise *result = dex_promise_new_for_int (123);
+  DexFuture *delayed = dex_delayed_new (dex_ref (result));
+
+  ASSERT_STATUS (result, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (delayed, DEX_FUTURE_STATUS_PENDING);
+
+  dex_delayed_release (DEX_DELAYED (delayed));
+  ASSERT_STATUS (delayed, DEX_FUTURE_STATUS_RESOLVED);
+
+  dex_clear (&delayed);
+  dex_clear (&result);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -870,6 +886,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Future/any", test_future_any);
   g_test_add_func ("/Dex/TestSuite/Future/any_race", test_future_any_race);
   g_test_add_func ("/Dex/TestSuite/Future/discard", test_future_discard);
+  g_test_add_func ("/Dex/TestSuite/Delayed/simple", test_delayed_simple);
 #ifdef G_OS_UNIX
   g_test_add_func ("/Dex/TestSuite/UnixSignal/sigusr2", test_unix_signal_sigusr2);
 #endif
