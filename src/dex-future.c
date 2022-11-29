@@ -68,6 +68,15 @@ dex_chained_future_free (DexChainedFuture *cf)
 }
 
 void
+dex_future_complete_from (DexFuture *future,
+                          DexFuture *completed)
+{
+  GError *error = NULL;
+  const GValue *value = dex_future_get_value (completed, &error);
+  dex_future_complete (future, value, error);
+}
+
+void
 dex_future_complete (DexFuture    *future,
                      const GValue *resolved,
                      GError       *rejected)
