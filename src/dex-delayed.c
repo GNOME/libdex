@@ -59,10 +59,22 @@ dex_delayed_propagate (DexFuture *future,
 }
 
 static void
+dex_delayed_finalize (DexObject *object)
+{
+  DexDelayed *delayed = DEX_DELAYED (object);
+
+  dex_clear (&delayed->future);
+
+  DEX_OBJECT_CLASS (dex_delayed_parent_class)->finalize (object);
+}
+
+static void
 dex_delayed_class_init (DexDelayedClass *delayed_class)
 {
   DexObjectClass *object_class = DEX_OBJECT_CLASS (delayed_class);
   DexFutureClass *future_class = DEX_FUTURE_CLASS (delayed_class);
+
+  object_class->finalize = dex_delayed_finalize;
 
   future_class->propagate = dex_delayed_propagate;
 }
