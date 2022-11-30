@@ -25,15 +25,18 @@
 
 G_BEGIN_DECLS
 
+#define DEX_TYPE_WORK_QUEUE    (dex_work_queue_get_type())
+#define DEX_WORK_QUEUE(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_WORK_QUEUE, DexWorkQueue))
+#define DEX_IS_WORK_QUEUE(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_WORK_QUEUE))
+
 typedef struct _DexWorkQueue DexWorkQueue;
 
-DexWorkQueue *dex_work_queue_new           (void);
-DexWorkQueue *dex_work_queue_ref           (DexWorkQueue *work_queue);
-void          dex_work_queue_unref         (DexWorkQueue *work_queue);
-void          dex_work_queue_push          (DexWorkQueue *work_queue,
-                                            DexWorkItem   work_item);
-gboolean      dex_work_queue_pop           (DexWorkQueue *work_queue,
-                                            DexWorkItem  *out_work_item);
-GSource      *dex_work_queue_create_source (DexWorkQueue *work_queue);
+GType         dex_work_queue_get_type (void) G_GNUC_CONST;
+DexWorkQueue *dex_work_queue_new      (void);
+void          dex_work_queue_push     (DexWorkQueue *work_queue,
+                                       DexWorkItem   work_item);
+gboolean      dex_work_queue_try_pop  (DexWorkQueue *work_queue,
+                                       DexWorkItem  *out_work_item);
+DexFuture    *dex_work_queue_run      (DexWorkQueue *work_queue);
 
 G_END_DECLS

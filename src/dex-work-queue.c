@@ -21,15 +21,24 @@
 
 #include "config.h"
 
+#include "dex-object-private.h"
 #include "dex-semaphore-private.h"
 #include "dex-work-queue-private.h"
 
 struct _DexWorkQueue
 {
+  DexObject parent_instance;
   DexSemaphore *semaphore;
   GMutex mutex;
   GQueue queue;
 };
+
+typedef struct _DexWorkQueueClass
+{
+  DexObjectClass parent_class;
+} DexWorkQueueClass;
+
+DEX_DEFINE_FINAL_TYPE (DexWorkQueue, dex_work_queue, DEX_TYPE_OBJECT)
 
 typedef struct _DexWorkQueueItem
 {
@@ -37,29 +46,10 @@ typedef struct _DexWorkQueueItem
   DexWorkItem work_item;
 } DexWorkQueueItem;
 
-DexWorkQueue *
-dex_work_queue_new (void)
-{
-  DexWorkQueue *work_queue;
-
-  work_queue = g_atomic_rc_box_new0 (DexWorkQueue);
-  work_queue->semaphore = dex_semaphore_new ();
-  g_mutex_init (&work_queue->mutex);
-
-  return work_queue;
-}
-
-DexWorkQueue *
-dex_work_queue_ref (DexWorkQueue *work_queue)
-{
-  g_atomic_rc_box_acquire (work_queue);
-  return work_queue;
-}
-
 static void
-dex_work_queue_finalize (gpointer data)
+dex_work_queue_finalize (DexObject *object)
 {
-  DexWorkQueue *work_queue = data;
+  DexWorkQueue *work_queue = DEX_WORK_QUEUE (object);
 
   if (work_queue->queue.length > 0)
     g_critical ("Work queue %p freed with %u items still in it!",
@@ -67,12 +57,29 @@ dex_work_queue_finalize (gpointer data)
 
   g_mutex_clear (&work_queue->mutex);
   dex_clear (&work_queue->semaphore);
+
+  DEX_OBJECT_CLASS (dex_work_queue_parent_class)->finalize (object);
 }
 
-void
-dex_work_queue_unref (DexWorkQueue *work_queue)
+static void
+dex_work_queue_class_init (DexWorkQueueClass *work_queue_class)
 {
-  g_atomic_rc_box_release_full (work_queue, dex_work_queue_finalize);
+  DexObjectClass *object_class = DEX_OBJECT_CLASS (work_queue_class);
+
+  object_class->finalize = dex_work_queue_finalize;
+}
+
+static void
+dex_work_queue_init (DexWorkQueue *work_queue)
+{
+  work_queue->semaphore = dex_semaphore_new ();
+  g_mutex_init (&work_queue->mutex);
+}
+
+DexWorkQueue *
+dex_work_queue_new (void)
+{
+  return (DexWorkQueue *)g_type_create_instance (DEX_TYPE_WORK_QUEUE);
 }
 
 void
@@ -80,6 +87,9 @@ dex_work_queue_push (DexWorkQueue *work_queue,
                      DexWorkItem   work_item)
 {
   DexWorkQueueItem *work_queue_item;
+
+  g_return_if_fail (DEX_IS_WORK_QUEUE (work_queue));
+  g_return_if_fail (work_item.func != NULL);
 
   work_queue_item = g_new0 (DexWorkQueueItem, 1);
   work_queue_item->link.data = work_queue_item;
@@ -93,12 +103,12 @@ dex_work_queue_push (DexWorkQueue *work_queue,
 }
 
 gboolean
-dex_work_queue_pop (DexWorkQueue *work_queue,
-                    DexWorkItem  *out_work_item)
+dex_work_queue_try_pop (DexWorkQueue *work_queue,
+                        DexWorkItem  *out_work_item)
 {
   GList *link;
 
-  g_return_val_if_fail (work_queue != NULL, FALSE);
+  g_return_val_if_fail (DEX_IS_WORK_QUEUE (work_queue), FALSE);
   g_return_val_if_fail (out_work_item != NULL, FALSE);
 
   g_mutex_lock (&work_queue->mutex);
@@ -115,29 +125,33 @@ dex_work_queue_pop (DexWorkQueue *work_queue,
   return link != NULL;
 }
 
-static gboolean
-dex_work_queue_pop_and_invoke_item_source_func (gpointer data)
+static DexFuture *
+dex_work_queue_run_cb (DexFuture *future,
+                       gpointer   user_data)
 {
-  DexWorkQueue *work_queue = data;
+  DexWorkQueue *work_queue = user_data;
   DexWorkItem work_item;
 
-  g_assert (work_queue != NULL);
+  g_assert (DEX_IS_WORK_QUEUE (work_queue));
 
-  if (dex_work_queue_pop (work_queue, &work_item))
+  if (dex_work_queue_try_pop (work_queue, &work_item))
     dex_work_item_invoke (&work_item);
 
-  return G_SOURCE_CONTINUE;
+  return dex_semaphore_wait (work_queue->semaphore);
 }
 
-GSource *
-dex_work_queue_create_source (DexWorkQueue *work_queue)
+DexFuture *
+dex_work_queue_run (DexWorkQueue *work_queue)
 {
-  g_return_val_if_fail (work_queue != NULL, 0);
-  g_return_val_if_fail (work_queue->semaphore != NULL, 0);
+  DexFuture *future;
 
-  return dex_semaphore_source_new (G_PRIORITY_DEFAULT,
-                                   work_queue->semaphore,
-                                   dex_work_queue_pop_and_invoke_item_source_func,
-                                   dex_work_queue_ref (work_queue),
-                                   (GDestroyNotify)dex_work_queue_unref);
+  g_return_val_if_fail (work_queue != NULL, NULL);
+
+  future = dex_semaphore_wait (work_queue->semaphore);
+  future = dex_future_finally_loop (future,
+                                    dex_work_queue_run_cb,
+                                    dex_ref (work_queue),
+                                    dex_unref);
+
+  return future;
 }

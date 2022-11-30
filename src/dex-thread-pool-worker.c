@@ -136,7 +136,8 @@ dex_thread_pool_worker_finalize (DexObject *object)
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
   g_clear_pointer (&thread_pool_worker->main_context, g_main_context_unref);
   g_clear_pointer (&thread_pool_worker->work_stealing_queue, dex_work_stealing_queue_unref);
-  g_clear_pointer (&thread_pool_worker->global_work_queue, dex_work_queue_unref);
+
+  dex_clear (&thread_pool_worker->global_work_queue);
 
   g_assert (thread_pool_worker->set_link.prev == NULL);
   g_assert (thread_pool_worker->set_link.next == NULL);
@@ -177,6 +178,7 @@ dex_thread_pool_worker_thread_func (gpointer data)
 {
   DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (data);
   DexThreadStorage *storage = dex_thread_storage_get ();
+  DexFuture *global_work_queue_loop;
 
   storage->scheduler = DEX_SCHEDULER (thread_pool_worker);
   storage->worker = thread_pool_worker;
@@ -187,9 +189,19 @@ dex_thread_pool_worker_thread_func (gpointer data)
   /* Add to set so others may steal work items from us */
   dex_thread_pool_worker_set_add (thread_pool_worker->set, thread_pool_worker);
 
+  /* Async processing global work-queue items until we're told to shutdown */
+  global_work_queue_loop = dex_work_queue_run (thread_pool_worker->global_work_queue);
+
   /* Process main context until we are told to shutdown */
   while (thread_pool_worker->status != DEX_THREAD_POOL_WORKER_STOPPING)
     g_main_context_iteration (thread_pool_worker->main_context, TRUE);
+
+  /* Discard our work queue loop */
+  dex_clear (&global_work_queue_loop);
+
+  /* Flush out any pending operations */
+  while (g_main_context_pending (thread_pool_worker->main_context))
+    g_main_context_iteration (thread_pool_worker->main_context, FALSE);
 
   /* Remove from set now so others will not try to steal from us */
   dex_thread_pool_worker_set_remove (thread_pool_worker->set, thread_pool_worker);
@@ -378,7 +390,7 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
   thread_pool_worker = (DexThreadPoolWorker *)g_type_create_instance (DEX_TYPE_THREAD_POOL_WORKER);
   thread_pool_worker->main_context = g_main_context_new ();
   thread_pool_worker->aio_context = dex_aio_backend_create_context (aio_backend);
-  thread_pool_worker->global_work_queue = dex_work_queue_ref (work_queue);
+  thread_pool_worker->global_work_queue = dex_ref (work_queue);
   thread_pool_worker->work_stealing_queue = dex_work_stealing_queue_new (255);
   thread_pool_worker->set = set;
 
@@ -398,17 +410,6 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
   g_source_set_priority (source, G_PRIORITY_DEFAULT_IDLE-1);
   g_source_attach (source, thread_pool_worker->main_context);
   thread_pool_worker->set_source = g_steal_pointer (&source);
-
-  /* Attach our global work queue so that we take items from the
-   * global queue and process them on our thread automatically.
-   * This is slightly lower priority than our work-stealing-queue
-   * because we prefer to always process our own work items before
-   * the global work queue.
-   */
-  source = dex_work_queue_create_source (work_queue);
-  g_source_set_priority (source, G_PRIORITY_DEFAULT_IDLE);
-  g_source_attach (source, thread_pool_worker->main_context);
-  thread_pool_worker->global_source = g_steal_pointer (&source);
 
   /* Now spawn our thread to process events via GSource */
   thread_pool_worker->thread = g_thread_new ("dex-thread-pool-worker",

@@ -86,7 +86,8 @@ dex_thread_pool_scheduler_finalize (DexObject *object)
 {
   DexThreadPoolScheduler *thread_pool_scheduler = (DexThreadPoolScheduler *)object;
 
-  g_clear_pointer (&thread_pool_scheduler->global_work_queue, dex_work_queue_unref);
+  dex_clear (&thread_pool_scheduler->global_work_queue);
+
   g_clear_pointer (&thread_pool_scheduler->set, dex_thread_pool_worker_set_unref);
   g_clear_pointer (&thread_pool_scheduler->workers, g_ptr_array_unref);
 

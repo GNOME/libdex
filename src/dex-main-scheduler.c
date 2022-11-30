@@ -25,14 +25,15 @@
 #include "dex-main-scheduler-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-work-queue-private.h"
+#include "dex-thread-storage-private.h"
 
 typedef struct _DexMainScheduler
 {
   DexScheduler   parent_scheduler;
   GMainContext  *main_context;
   GSource       *aio_context;
-  GSource       *work_queue_source;
   DexWorkQueue  *work_queue;
+  DexFuture     *work_queue_loop;
 } DexMainScheduler;
 
 typedef struct _DexMainSchedulerClass
@@ -78,9 +79,7 @@ dex_main_scheduler_finalize (DexObject *object)
 {
   DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (object);
 
-  g_source_destroy (main_scheduler->work_queue_source);
-  g_clear_pointer (&main_scheduler->work_queue_source, g_source_unref);
-  g_clear_pointer (&main_scheduler->work_queue, dex_work_queue_unref);
+  dex_clear (&main_scheduler->work_queue);
 
   g_source_destroy (main_scheduler->aio_context);
   g_clear_pointer (&main_scheduler->aio_context, g_source_unref);
@@ -113,20 +112,25 @@ dex_main_scheduler_new (GMainContext *main_context)
 {
   DexMainScheduler *main_scheduler;
   DexAioBackend *aio_backend;
+  DexAioContext *aio_context;
 
   if (main_context == NULL)
     main_context = g_main_context_default ();
 
   aio_backend = dex_aio_backend_get_default ();
+  aio_context = dex_aio_backend_create_context (aio_backend);
 
   main_scheduler = (DexMainScheduler *)g_type_create_instance (DEX_TYPE_MAIN_SCHEDULER);
   main_scheduler->main_context = g_main_context_ref (main_context);
-  main_scheduler->aio_context = (GSource *)dex_aio_backend_create_context (aio_backend);
+  main_scheduler->aio_context = (GSource *)aio_context;
   main_scheduler->work_queue = dex_work_queue_new ();
-  main_scheduler->work_queue_source = dex_work_queue_create_source (main_scheduler->work_queue);
+
+  dex_thread_storage_get ()->aio_context = aio_context;
+  dex_thread_storage_get ()->scheduler = DEX_SCHEDULER (main_scheduler);
+
+  main_scheduler->work_queue_loop = dex_work_queue_run (main_scheduler->work_queue);
 
   g_source_attach (main_scheduler->aio_context, main_context);
-  g_source_attach (main_scheduler->work_queue_source, main_context);
 
   return main_scheduler;
 }
