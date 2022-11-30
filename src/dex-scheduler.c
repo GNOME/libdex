@@ -104,7 +104,7 @@ dex_scheduler_ref_thread_default (void)
 /**
  * dex_scheduler_push:
  * @scheduler: a #DexScheduler
- * @func: (call async): the function callback
+ * @func: (scope async): the function callback
  * @func_data: the closure data for @func
  *
  * Queues @func to run on @scheduler.
