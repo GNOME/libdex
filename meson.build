@@ -130,10 +130,11 @@ deprecated_c_args = [
   '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_@0@_@1@'.format(glib_major_version, glib_minor_version),
 ]
 
-configure_file(output: 'config.h', configuration: config_h)
 add_project_arguments(['-I' + meson.project_build_root()], language: 'c')
 
 subdir('src')
 subdir('testsuite')
 subdir('examples')
 subdir('docs')
+
+configure_file(output: 'config.h', configuration: config_h)
