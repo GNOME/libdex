@@ -1,5 +1,7 @@
 functions = [
   'eventfd',
+  'kqueue',
+  'kevent',
 ]
 
 foreach f : functions
@@ -84,6 +86,14 @@ if liburing_dep.found()
            output: 'dex-uring-version.h',
     configuration: liburing_version_conf,
   )
+endif
+
+if have_func_kqueue and have_func_kevent
+  libdex_sources += [
+    'dex-kqueue-aio-backend.c',
+    'dex-kqueue-future.c',
+  ]
+  config_h.set10('HAVE_KQUEUE', true)
 endif
 
 if host_machine.system() != 'windows'
