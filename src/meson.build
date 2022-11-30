@@ -1,3 +1,17 @@
+functions = [
+  'eventfd',
+]
+
+foreach f : functions
+  if cc.has_function(f)
+    define = 'HAVE_' + f.underscorify().to_upper()
+    config_h.set10(define, true)
+    set_variable('have_func_' + f, true)
+  else
+    set_variable('have_func_' + f, false)
+  endif
+endforeach
+
 libdex_sources = [
   'dex-aio.c',
   'dex-aio-backend.c',

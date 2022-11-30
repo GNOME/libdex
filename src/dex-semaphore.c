@@ -22,10 +22,12 @@
 #include "config.h"
 
 #include <errno.h>
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
-#include <liburing.h>
 #include <unistd.h>
+
+#if defined(HAVE_URING) && defined(HAVE_EVENTFD)
+# include <sys/eventfd.h>
+# include <liburing.h>
+#endif
 
 #include <gio/gio.h>
 
