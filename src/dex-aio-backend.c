@@ -21,8 +21,12 @@
 #include "config.h"
 
 #include "dex-aio-backend-private.h"
+
 #ifdef HAVE_LIBURING
 # include "dex-uring-aio-backend-private.h"
+#endif
+#ifdef HAVE_KQUEUE
+# include "dex-kqueue-aio-backend-private.h"
 #endif
 
 DEX_DEFINE_ABSTRACT_TYPE (DexAioBackend, dex_aio_backend, DEX_TYPE_OBJECT)
@@ -81,8 +85,10 @@ dex_aio_backend_get_default (void)
   if (g_once_init_enter (&instance))
     {
       DexAioBackend *backend = NULL;
-#ifdef HAVE_LIBURING
+#if defined(HAVE_LIBURING)
       backend = dex_uring_aio_backend_new ();
+#elif defined(HAVE_KQUEUE)
+      backend = dex_kqueue_aio_backend_new ();
 #else
 # error "No aio backend configured"
 #endif
