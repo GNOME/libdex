@@ -38,10 +38,4 @@ void          dex_semaphore_post_many  (DexSemaphore *semaphore,
                                         guint         count);
 DexFuture    *dex_semaphore_wait       (DexSemaphore *semaphore);
 
-GSource      *dex_semaphore_source_new (int             priority,
-                                        DexSemaphore   *semaphore,
-                                        GSourceFunc     callback,
-                                        gpointer        callback_data,
-                                        GDestroyNotify  callback_data_destroy);
-
 G_END_DECLS
