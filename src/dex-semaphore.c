@@ -24,8 +24,11 @@
 #include <errno.h>
 #include <unistd.h>
 
-#if defined(HAVE_URING) && defined(HAVE_EVENTFD)
+#if HAVE_EVENTFD
 # include <sys/eventfd.h>
+#endif
+
+#ifdef HAVE_LIBURING
 # include <liburing.h>
 #endif
 
