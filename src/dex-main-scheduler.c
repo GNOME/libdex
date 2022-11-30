@@ -22,7 +22,7 @@
 #include "config.h"
 
 #include "dex-aio-backend-private.h"
-#include "dex-main-scheduler.h"
+#include "dex-main-scheduler-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-work-queue-private.h"
 

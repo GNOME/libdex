@@ -23,6 +23,7 @@
 
 #include "libdex.h"
 
+#include "dex-main-scheduler-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-thread-pool-worker-private.h"
 
