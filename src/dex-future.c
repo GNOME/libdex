@@ -560,7 +560,7 @@ dex_future_collect_futures (DexFuture *first_future,
 }
 
 /**
- * dex_future_all:
+ * dex_future_all: (skip)
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
@@ -594,7 +594,7 @@ dex_future_all (DexFuture *first_future,
 }
 
 /**
- * dex_future_any:
+ * dex_future_any: (skip)
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
@@ -717,9 +717,13 @@ dex_future_firstv (DexFuture * const *futures,
 }
 
 /**
- * dex_future_anyv:
+ * dex_future_anyv: (rename-to dex_future_any)
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
+ *
+ * Creates a new #DexFuture that resolves when the first future resolves.
+ *
+ * If all futures reject, then the #DexFuture returned will also reject.
  *
  * Returns: (transfer full): a #DexFuture
  */
@@ -733,9 +737,13 @@ dex_future_anyv (DexFuture * const *futures,
 }
 
 /**
- * dex_future_all_racev:
+ * dex_future_all_racev: (rename-to dex_future_all_race)
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
+ *
+ * Creates a new #DexFuture that resolves when all futures resolve.
+ *
+ * If any future rejects, the resulting #DexFuture also rejects immediately.
  *
  * Returns: (transfer full): a #DexFuture
  */
@@ -749,9 +757,14 @@ dex_future_all_racev (DexFuture * const *futures,
 }
 
 /**
- * dex_future_allv:
+ * dex_future_allv: (rename-to dex_future_all)
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
+ *
+ * Creates a new #DexFuture that resolves when all futures resolve.
+ *
+ * The resulting #DexFuture will not resolve or reject until all futures
+ * have either resolved or rejected.
  *
  * Returns: (transfer full): a #DexFuture
  */
