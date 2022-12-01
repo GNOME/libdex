@@ -38,9 +38,9 @@ infinite_loop_cb (DexFuture *future,
 
   g_print ("Looping ...\n");
 
-  return dex_future_any_race (dex_timeout_new_seconds (1),
-                              dex_unix_signal_new (SIGINT),
-                              NULL);
+  return dex_future_first (dex_timeout_new_seconds (1),
+                           dex_unix_signal_new (SIGINT),
+                           NULL);
 }
 
 int
@@ -53,9 +53,9 @@ main (int   argc,
   dex_init ();
 
   main_loop = g_main_loop_new (NULL, FALSE);
-  loop = dex_future_finally_loop (dex_future_any_race (dex_timeout_new_seconds (1),
-                                                       dex_unix_signal_new (SIGINT),
-                                                       NULL),
+  loop = dex_future_finally_loop (dex_future_first (dex_timeout_new_seconds (1),
+                                                    dex_unix_signal_new (SIGINT),
+                                                    NULL),
                                   infinite_loop_cb,
                                   g_main_loop_ref (main_loop),
                                   (GDestroyNotify)g_main_loop_unref);

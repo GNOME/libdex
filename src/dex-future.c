@@ -665,19 +665,18 @@ dex_future_all_race (DexFuture *first_future,
 }
 
 /**
- * dex_future_any_race:
+ * dex_future_first: (skip)
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
- * Creates a new #DexFuture that will resolve when any future either
- * resolves or rejects. This is similar to dex_future_any() except
- * that if any future rejects, this will also reject.
+ * Creates a new #DexFuture that resolves or rejects as soon as the
+ * first dependent future resolves or rejects, sharing the same result.
  *
  * Returns: (transfer full) (type DexFutureSet): a #DexFuture
  */
 DexFuture *
-dex_future_any_race (DexFuture *first_future,
-                     ...)
+dex_future_first (DexFuture *first_future,
+                  ...)
 {
   DexFutureSet *ret;
   GPtrArray *ar;
@@ -698,15 +697,18 @@ dex_future_any_race (DexFuture *first_future,
 }
 
 /**
- * dex_future_any_racev:
+ * dex_future_firstv: (rename-to dex_future_first)
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
+ *
+ * Creates a new #DexFuture that resolves or rejects as soon as the
+ * first dependent future resolves or rejects, sharing the same result.
  *
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_any_racev (DexFuture * const *futures,
-                      guint              n_futures)
+dex_future_firstv (DexFuture * const *futures,
+                   guint              n_futures)
 {
   return DEX_FUTURE (dex_future_set_new (futures, n_futures,
                                          (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |

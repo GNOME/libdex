@@ -413,11 +413,11 @@ typedef GObject ErrorTest;
 ASYNC_TEST_ERROR (ErrorTest, OBJECT, pointer)
 
 static void
-test_future_set_any_race_preresolved (void)
+test_future_set_first_preresolved (void)
 {
   DexPromise *promise1 = dex_promise_new_for_int (123);
   DexPromise *promise2 = dex_promise_new_for_int (321);
-  DexFuture *future = dex_future_any_race (DEX_FUTURE (promise1), promise2, NULL);
+  DexFuture *future = dex_future_first (DEX_FUTURE (promise1), promise2, NULL);
   GError *error = NULL;
   const GValue *value = dex_future_get_value (future, &error);
   g_assert_no_error (error);
@@ -692,7 +692,7 @@ test_future_any (void)
 }
 
 static void
-test_future_any_race (void)
+test_future_first (void)
 {
   DexCancellable *cancel1 = dex_cancellable_new ();
   DexCancellable *cancel2 = dex_cancellable_new ();
@@ -701,7 +701,7 @@ test_future_any_race (void)
   DexFuture *future;
   GError *error = NULL;
 
-  future = dex_future_any_race (dex_ref (cancel1), dex_ref (cancel2), dex_ref (cancel3), NULL);
+  future = dex_future_first (dex_ref (cancel1), dex_ref (cancel2), dex_ref (cancel3), NULL);
   ASSERT_STATUS (cancel1, DEX_FUTURE_STATUS_PENDING);
   ASSERT_STATUS (cancel2, DEX_FUTURE_STATUS_PENDING);
   ASSERT_STATUS (cancel3, DEX_FUTURE_STATUS_PENDING);
@@ -785,7 +785,7 @@ test_future_discard (void)
   GMenu *menu = g_menu_new ();
   DexFuture *call = dex_async_pair_new (menu, &DEX_ASYNC_PAIR_INFO (discard_async, discard_finish, G_TYPE_BOOLEAN));
   DexCancellable *cancel1 = dex_cancellable_new ();
-  DexFuture *any = dex_future_any_race (call, cancel1, NULL);
+  DexFuture *any = dex_future_first (call, cancel1, NULL);
   gboolean was_cancelled = FALSE;
 
   g_signal_connect (DEX_ASYNC_PAIR (call)->cancellable,
@@ -875,7 +875,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/AsyncPair/flags", test_async_pair_GSubprocessFlags);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/enums", test_async_pair_DexFutureStatus);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/GError", test_async_pair_ErrorTest);
-  g_test_add_func ("/Dex/TestSuite/Future/any_race_preresolved", test_future_set_any_race_preresolved);
+  g_test_add_func ("/Dex/TestSuite/Future/first_preresolved", test_future_set_first_preresolved);
   g_test_add_func ("/Dex/TestSuite/Future/all_race_preresolved", test_future_set_all_race_preresolved);
   g_test_add_func ("/Dex/TestSuite/Future/any_preresolved", test_future_set_any_preresolved);
   g_test_add_func ("/Dex/TestSuite/Future/all_preresolved", test_future_set_all_preresolved);
@@ -884,7 +884,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Future/all", test_future_all);
   g_test_add_func ("/Dex/TestSuite/Future/all_race", test_future_all_race);
   g_test_add_func ("/Dex/TestSuite/Future/any", test_future_any);
-  g_test_add_func ("/Dex/TestSuite/Future/any_race", test_future_any_race);
+  g_test_add_func ("/Dex/TestSuite/Future/first", test_future_first);
   g_test_add_func ("/Dex/TestSuite/Future/discard", test_future_discard);
   g_test_add_func ("/Dex/TestSuite/Delayed/simple", test_delayed_simple);
 #ifdef G_OS_UNIX

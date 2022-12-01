@@ -96,10 +96,10 @@ DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_anyv            (DexFuture * const  *futures,
                                              guint               n_futures);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_any_race        (DexFuture          *first_future,
+DexFuture       *dex_future_first           (DexFuture          *first_future,
                                              ...) G_GNUC_NULL_TERMINATED;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_any_racev       (DexFuture  * const *futures,
+DexFuture       *dex_future_firstv          (DexFuture  * const *futures,
                                              guint               n_futures);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFuture, dex_unref)
