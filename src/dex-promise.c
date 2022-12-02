@@ -120,6 +120,28 @@ dex_promise_new_for_int (int v_int)
 }
 
 /**
+ * dex_promise_new_for_uint: (constructor)
+ * @v_uint: the resolved value for the promise
+ *
+ * Creates a new #DexPromise and resolves it with @v_uint.
+ *
+ * Returns: (transfer full): a resolved #DexPromise
+ */
+DexPromise *
+dex_promise_new_for_uint (guint v_uint)
+{
+  GValue value = G_VALUE_INIT;
+  DexPromise *promise;
+
+  g_value_init (&value, G_TYPE_UINT);
+  g_value_set_uint (&value, v_uint);
+  promise = dex_promise_new_for_value (&value);
+  g_value_unset (&value);
+
+  return promise;
+}
+
+/**
  * dex_promise_new_for_string: (constructor)
  * @string: the resolved value for the promise
  *

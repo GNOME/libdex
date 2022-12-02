@@ -52,6 +52,8 @@ DexPromise *dex_promise_new_for_string  (const char   *string);
 DEX_AVAILABLE_IN_ALL
 DexPromise *dex_promise_new_for_int     (int           v_int);
 DEX_AVAILABLE_IN_ALL
+DexPromise *dex_promise_new_for_uint    (guint         v_uint);
+DEX_AVAILABLE_IN_ALL
 DexPromise *dex_promise_new_for_boolean (gboolean      v_bool);
 DEX_AVAILABLE_IN_ALL
 void        dex_promise_resolve         (DexPromise   *promise,
