@@ -32,10 +32,12 @@ G_BEGIN_DECLS
 typedef struct _DexDelayed DexDelayed;
 
 DEX_AVAILABLE_IN_ALL
-GType      dex_delayed_get_type (void) G_GNUC_CONST;
+GType      dex_delayed_get_type   (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_delayed_new      (DexFuture  *future);
+DexFuture *dex_delayed_new        (DexFuture  *future);
 DEX_AVAILABLE_IN_ALL
-void       dex_delayed_release  (DexDelayed *delayed);
+void       dex_delayed_release    (DexDelayed *delayed);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_delayed_dup_future (DexDelayed *delayed);
 
 G_END_DECLS

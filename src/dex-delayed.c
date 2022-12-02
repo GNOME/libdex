@@ -143,3 +143,29 @@ dex_delayed_release (DexDelayed *delayed)
       dex_clear (&complete);
     }
 }
+
+/**
+ * dex_delayed_dup_future:
+ * @delayed: a #DexDelayed
+ *
+ * Retrieves the delayed future provided to dex_delayed_new().
+ *
+ * This function can only return a #DexFuture before dex_delayed_release()
+ * is called. After that, the delayed future is released and this function
+ * will return %NULL.
+ *
+ * Returns: (transfer full) (nullable): a #DexFuture or %NULL
+ */
+DexFuture *
+dex_delayed_dup_future (DexDelayed *delayed)
+{
+  DexFuture *ret;
+
+  g_return_val_if_fail (DEX_IS_DELAYED (delayed), NULL);
+
+  dex_object_lock (delayed);
+  ret = delayed->future ? dex_ref (delayed->future) : NULL;
+  dex_object_unlock (delayed);
+
+  return ret;
+}
