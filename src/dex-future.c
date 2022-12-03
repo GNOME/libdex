@@ -775,3 +775,38 @@ dex_future_allv (DexFuture * const *futures,
 {
   return DEX_FUTURE (dex_future_set_new (futures, n_futures, DEX_FUTURE_SET_FLAGS_NONE));
 }
+
+/**
+ * dex_future_set_static_name: (skip)
+ * @future: a #DexFuture
+ * @name: the name of the future
+ *
+ * Sets the name of the future with a static/internal string.
+ *
+ * @name will not be copied, so it must be static/internal which can be done
+ * either by using string literals or by using g_string_intern().
+ */
+void
+dex_future_set_static_name (DexFuture  *future,
+                            const char *name)
+{
+  g_return_if_fail (DEX_IS_FUTURE (future));
+
+  dex_object_lock (future);
+  future->name = name;
+  dex_object_unlock (future);
+}
+
+const char *
+dex_future_get_name (DexFuture *future)
+{
+  const char *name;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  dex_object_lock (future);
+  name = future->name;
+  dex_object_unlock (future);
+
+  return name;
+}

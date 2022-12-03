@@ -849,12 +849,22 @@ test_delayed_simple (void)
   dex_clear (&result);
 }
 
+static void
+test_future_name (void)
+{
+  DexFuture *future = DEX_FUTURE (dex_promise_new ());
+  dex_future_set_static_name (future, "futuristic programming");
+  g_assert_cmpstr ("futuristic programming", ==, dex_future_get_name (future));
+  dex_unref (future);
+}
+
 int
 main (int   argc,
       char *argv[])
 {
   dex_init ();
   g_test_init (&argc, &argv, NULL);
+  g_test_add_func ("/Dex/TestSuite/Future/name", test_future_name);
   g_test_add_func ("/Dex/TestSuite/Block/then", test_future_then);
   g_test_add_func ("/Dex/TestSuite/Cancellable/cancel", test_cancellable_cancel);
   g_test_add_func ("/Dex/TestSuite/Promise/type", test_promise_type);

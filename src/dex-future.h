@@ -100,6 +100,11 @@ DexFuture       *dex_future_first           (DexFuture          *first_future,
 DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_firstv          (DexFuture  * const *futures,
                                              guint               n_futures);
+DEX_AVAILABLE_IN_ALL
+const char      *dex_future_get_name        (DexFuture          *future);
+DEX_AVAILABLE_IN_ALL
+void             dex_future_set_static_name (DexFuture          *future,
+                                             const char         *name);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFuture, dex_unref)
 

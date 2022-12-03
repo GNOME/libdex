@@ -35,6 +35,7 @@ typedef struct _DexFuture
   GValue resolved;
   GError *rejected;
   GList *chained;
+  const char *name;
   DexFutureStatus status : 2;
 } DexFuture;
 
