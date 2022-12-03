@@ -106,6 +106,28 @@ DEX_AVAILABLE_IN_ALL
 void             dex_future_set_static_name (DexFuture          *future,
                                              const char         *name);
 
+#if G_GNUC_CHECK_VERSION(3,0)
+# define _DEX_FUTURE_NEW_(func, counter, ...) \
+  ({ DexFuture *G_PASTE(__f, counter) = G_PASTE (dex_future_, func) (__VA_ARGS__); \
+     dex_future_set_static_name (DEX_FUTURE (G_PASTE (__f, counter)), G_STRLOC); \
+     G_PASTE (__f, counter); })
+# define _DEX_FUTURE_NEW(func, ...) _DEX_FUTURE_NEW_(func, __COUNTER__, __VA_ARGS__)
+# define dex_future_then(...) _DEX_FUTURE_NEW(then, __VA_ARGS__)
+# define dex_future_then_loop(...) _DEX_FUTURE_NEW(then_loop, __VA_ARGS__)
+# define dex_future_catch(...) _DEX_FUTURE_NEW(catch, __VA_ARGS__)
+# define dex_future_catch_loop(...) _DEX_FUTURE_NEW(catch_loop, __VA_ARGS__)
+# define dex_future_finally(...) _DEX_FUTURE_NEW(finally, __VA_ARGS__)
+# define dex_future_finally_loop(...) _DEX_FUTURE_NEW(finally_loop, __VA_ARGS__)
+# define dex_future_all(...) _DEX_FUTURE_NEW(all, __VA_ARGS__)
+# define dex_future_allv(...) _DEX_FUTURE_NEW(allv, __VA_ARGS__)
+# define dex_future_all_race(...) _DEX_FUTURE_NEW(all_race, __VA_ARGS__)
+# define dex_future_all_racev(...) _DEX_FUTURE_NEW(all_racev, __VA_ARGS__)
+# define dex_future_any(...) _DEX_FUTURE_NEW(any, __VA_ARGS__)
+# define dex_future_anyv(...) _DEX_FUTURE_NEW(anyv, __VA_ARGS__)
+# define dex_future_first(...) _DEX_FUTURE_NEW(first, __VA_ARGS__)
+# define dex_future_firstv(...) _DEX_FUTURE_NEW(firstv, __VA_ARGS__)
+#endif
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFuture, dex_unref)
 
 G_END_DECLS
