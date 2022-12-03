@@ -32,6 +32,7 @@ G_BEGIN_DECLS
 # include "dex-block.h"
 # include "dex-callable.h"
 # include "dex-cancellable.h"
+# include "dex-channel.h"
 # include "dex-delayed.h"
 # include "dex-enums.h"
 # include "dex-error.h"

@@ -72,6 +72,7 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
      * DexThreadPoolWorker (Final)
    * DexCallbale (Abstract)
      * DexFunction (Final)
+   * DexChannel (Final)
 
 ## Internal Types
 
