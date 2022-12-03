@@ -352,6 +352,7 @@ dex_channel_unset_state_flags (DexChannel           *channel,
   GQueue queue = G_QUEUE_INIT;
   GQueue sendq = G_QUEUE_INIT;
   GQueue recvq = G_QUEUE_INIT;
+  GQueue trunc = G_QUEUE_INIT;
 
   g_assert (DEX_IS_CHANNEL (channel));
 
@@ -359,7 +360,14 @@ dex_channel_unset_state_flags (DexChannel           *channel,
 
   /* If we need to close the send-side, do so now */
   if (flags & DEX_CHANNEL_STATE_CAN_SEND)
-    channel->flags &= ~DEX_CHANNEL_STATE_CAN_SEND;
+    {
+      guint pending = channel->sendq.length + channel->queue.length;
+
+      channel->flags &= ~DEX_CHANNEL_STATE_CAN_SEND;
+
+      while (channel->recvq.length > pending)
+        g_queue_push_head (&trunc, g_queue_pop_tail (&channel->recvq));
+    }
 
   /* If we need to close the receive-side, do so now and steal
    * all of the items and promises that need to be rejected.
@@ -378,6 +386,13 @@ dex_channel_unset_state_flags (DexChannel           *channel,
   while (recvq.length > 0)
     {
       DexPromise *promise = g_queue_pop_head (&recvq);
+      dex_promise_reject (promise, g_error_copy (&channel_closed_error));
+      dex_unref (promise);
+    }
+
+  while (trunc.length > 0)
+    {
+      DexPromise *promise = g_queue_pop_head (&trunc);
       dex_promise_reject (promise, g_error_copy (&channel_closed_error));
       dex_unref (promise);
     }
