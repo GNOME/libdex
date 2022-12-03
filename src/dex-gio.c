@@ -36,7 +36,9 @@ dex_input_stream_read_bytes_cb (GObject      *object,
   const GValue *ret = NULL;
   GBytes *bytes;
 
-  if ((bytes = g_input_stream_read_bytes_finish (G_INPUT_STREAM (object), result, &error)))
+  bytes = g_input_stream_read_bytes_finish (G_INPUT_STREAM (object), result, &error);
+
+  if (error == NULL)
     {
       g_value_init (&value, G_TYPE_BYTES);
       g_value_take_boxed (&value, g_steal_pointer (&bytes));
@@ -79,7 +81,9 @@ dex_output_stream_write_bytes_cb (GObject      *object,
   const GValue *ret = NULL;
   gssize len;
 
-  if (!(len = g_output_stream_write_bytes_finish (G_OUTPUT_STREAM (object), result, &error)))
+  len = g_output_stream_write_bytes_finish (G_OUTPUT_STREAM (object), result, &error);
+
+  if (error == NULL)
     {
       g_value_init (&value, G_TYPE_INT64);
       g_value_set_int64 (&value, len);
