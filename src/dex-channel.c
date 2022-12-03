@@ -260,6 +260,7 @@ DexFuture *
 dex_channel_send (DexChannel *channel,
                   DexFuture  *future)
 {
+  const DexChannelStateFlags required = DEX_CHANNEL_STATE_CAN_SEND|DEX_CHANNEL_STATE_CAN_RECEIVE;
   DexChannelItem *item;
   DexFuture *ret;
 
@@ -270,7 +271,7 @@ dex_channel_send (DexChannel *channel,
 
   dex_object_lock (channel);
 
-  if ((channel->flags & (DEX_CHANNEL_STATE_CAN_SEND|DEX_CHANNEL_STATE_CAN_RECEIVE)) == 0)
+  if ((channel->flags & required) != required)
     {
       dex_object_unlock (channel);
       dex_channel_item_free (item);
