@@ -312,18 +312,30 @@ dex_channel_receive (DexChannel *channel)
   dex_object_lock (channel);
 
   if ((channel->flags & DEX_CHANNEL_STATE_CAN_RECEIVE) == 0)
+    goto reject_receive;
+
+  /* If no more items can be sent, and there are no items immediately
+   * to fullfil this request, then we have to reject as it can never
+   * be fullfilled.
+   */
+  if ((channel->flags & DEX_CHANNEL_STATE_CAN_SEND) == 0)
     {
-      dex_object_unlock (channel);
-      dex_promise_reject (recv,
-                          g_error_new (DEX_ERROR,
-                                       DEX_ERROR_CHANNEL_CLOSED,
-                                       "Channel is closed"));
-      return DEX_FUTURE (recv);
+      if (channel->queue.length + channel->sendq.length <= channel->recvq.length)
+        goto reject_receive;
     }
 
+  /* Enqueue this receiver and then flush a queued operation if possible */
   g_queue_push_tail (&channel->recvq, dex_ref (recv));
   dex_channel_one_receive_and_unlock (channel);
 
+  return DEX_FUTURE (recv);
+
+reject_receive:
+  dex_object_unlock (channel);
+  dex_promise_reject (recv,
+                      g_error_new (DEX_ERROR,
+                                   DEX_ERROR_CHANNEL_CLOSED,
+                                   "Channel is closed"));
   return DEX_FUTURE (recv);
 }
 
