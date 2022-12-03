@@ -1,5 +1,5 @@
 /*
- * dex-error.h
+ * dex-routine.h
  *
  * Copyright 2022 Christian Hergert <chergert@redhat.com>
  *
@@ -21,24 +21,17 @@
 
 #pragma once
 
-#include "dex-version-macros.h"
+#include "dex-future.h"
 
 G_BEGIN_DECLS
 
-#define DEX_ERROR (dex_error_quark())
+#define DEX_TYPE_ROUTINE    (dex_routine_get_type())
+#define DEX_ROUTINE(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_ROUTINE, DexRoutine))
+#define DEX_IS_ROUTINE(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_ROUTINE))
 
-typedef enum _DexError
-{
-  DEX_ERROR_UNKNOWN,
-  DEX_ERROR_PENDING,
-  DEX_ERROR_DEPENDENCY_FAILED,
-  DEX_ERROR_TIMED_OUT,
-  DEX_ERROR_TYPE_NOT_SUPPORTED,
-  DEX_ERROR_CHANNEL_CLOSED,
-  DEX_ERROR_ROUTINE_COMPLETED,
-} DexError;
+typedef struct _DexRoutine DexRoutine;
 
 DEX_AVAILABLE_IN_ALL
-GQuark dex_error_quark (void) G_GNUC_CONST;
+GType dex_routine_get_type (void) G_GNUC_CONST;
 
 G_END_DECLS

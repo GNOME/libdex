@@ -25,7 +25,7 @@
 # error "Only <libdex.h> can be included directly."
 #endif
 
-#include "dex-object.h"
+#include "dex-future.h"
 
 G_BEGIN_DECLS
 
@@ -35,7 +35,8 @@ G_BEGIN_DECLS
 
 typedef struct _DexScheduler DexScheduler;
 
-typedef void (*DexSchedulerFunc) (gpointer func_data);
+typedef void       (*DexSchedulerFunc) (gpointer func_data);
+typedef DexFuture *(*DexRoutineFunc)   (gpointer func_data);
 
 DEX_AVAILABLE_IN_ALL
 GType         dex_scheduler_get_type           (void) G_GNUC_CONST;
@@ -51,6 +52,11 @@ DEX_AVAILABLE_IN_ALL
 void          dex_scheduler_push               (DexScheduler     *scheduler,
                                                 DexSchedulerFunc  func,
                                                 gpointer          func_data);
+DEX_AVAILABLE_IN_ALL
+DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
+                                                DexRoutineFunc    func,
+                                                gpointer          func_data,
+                                                GDestroyNotify    func_data_destroy);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexScheduler, dex_unref)
 

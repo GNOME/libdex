@@ -26,6 +26,7 @@
 #endif
 
 #include "dex-future.h"
+#include "dex-scheduler.h"
 
 G_BEGIN_DECLS
 

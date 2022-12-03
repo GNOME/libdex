@@ -1,5 +1,5 @@
 /*
- * dex-error.h
+ * dex-routine-private.h
  *
  * Copyright 2022 Christian Hergert <chergert@redhat.com>
  *
@@ -21,24 +21,14 @@
 
 #pragma once
 
-#include "dex-version-macros.h"
+#include "dex-routine.h"
+#include "dex-scheduler.h"
 
 G_BEGIN_DECLS
 
-#define DEX_ERROR (dex_error_quark())
+DexRoutine *dex_routine_new  (DexRoutineFunc  func,
+                              gpointer        func_data,
+                              GDestroyNotify  func_data_destroy);
+void       dex_routine_spawn (DexRoutine     *routine);
 
-typedef enum _DexError
-{
-  DEX_ERROR_UNKNOWN,
-  DEX_ERROR_PENDING,
-  DEX_ERROR_DEPENDENCY_FAILED,
-  DEX_ERROR_TIMED_OUT,
-  DEX_ERROR_TYPE_NOT_SUPPORTED,
-  DEX_ERROR_CHANNEL_CLOSED,
-  DEX_ERROR_ROUTINE_COMPLETED,
-} DexError;
-
-DEX_AVAILABLE_IN_ALL
-GQuark dex_error_quark (void) G_GNUC_CONST;
-
-G_END_DECLS
+G_END_DECLS;

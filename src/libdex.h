@@ -44,6 +44,7 @@ G_BEGIN_DECLS
 # include "dex-main-scheduler.h"
 # include "dex-object.h"
 # include "dex-promise.h"
+# include "dex-routine.h"
 # include "dex-scheduler.h"
 # include "dex-tasklet.h"
 # include "dex-thread-pool-scheduler.h"

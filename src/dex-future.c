@@ -28,6 +28,7 @@
 #include "dex-future-private.h"
 #include "dex-future-set-private.h"
 #include "dex-promise.h"
+#include "dex-scheduler.h"
 
 static void dex_future_propagate (DexFuture *future,
                                   DexFuture *completed);

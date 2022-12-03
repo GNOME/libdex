@@ -27,7 +27,6 @@
 
 #include "dex-enums.h"
 #include "dex-object.h"
-#include "dex-scheduler.h"
 
 G_BEGIN_DECLS
 
