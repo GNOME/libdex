@@ -97,4 +97,19 @@ void        dex_promise_reject          (DexPromise   *promise,
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexPromise, dex_unref)
 
+#if G_GNUC_CHECK_VERSION(3,0)
+# define _DEX_PROMISE_NEW(func, ...) \
+  ({ DexPromise *__p = G_PASTE (dex_promise_, func) (__VA_ARGS__); \
+     dex_future_set_static_name (DEX_FUTURE (__p), G_STRLOC); \
+     __p; })
+# define dex_promise_new() _DEX_PROMISE_NEW(new)
+# define dex_promise_new_for_error(...) _DEX_PROMISE_NEW(new_for_error, __VA_ARGS__)
+# define dex_promise_new_reject(...) _DEX_PROMISE_NEW(new_reject, __VA_ARGS__)
+# define dex_promise_new_for_value(...) _DEX_PROMISE_NEW(new_for_value, __VA_ARGS__)
+# define dex_promise_new_for_string(...) _DEX_PROMISE_NEW(new_for_string, __VA_ARGS__)
+# define dex_promise_new_for_int(...) _DEX_PROMISE_NEW(new_for_int, __VA_ARGS__)
+# define dex_promise_new_for_uint(...) _DEX_PROMISE_NEW(new_for_uint, __VA_ARGS__)
+# define dex_promise_new_for_boolean(...) _DEX_PROMISE_NEW(new_for_boolean, __VA_ARGS__)
+#endif
+
 G_END_DECLS

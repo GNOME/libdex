@@ -47,7 +47,7 @@ dex_promise_init (DexPromise *promise)
 }
 
 DexPromise *
-dex_promise_new (void)
+(dex_promise_new) (void)
 {
   return (DexPromise *)g_type_create_instance (dex_promise_type);
 }
@@ -61,7 +61,7 @@ dex_promise_new (void)
  * Returns: (transfer full): a resolved #DexPromise
  */
 DexPromise *
-dex_promise_new_for_value (const GValue *value)
+(dex_promise_new_for_value) (const GValue *value)
 {
   DexPromise *promise;
 
@@ -84,14 +84,14 @@ dex_promise_new_for_value (const GValue *value)
  * Returns: (transfer full): a resolved #DexPromise
  */
 DexPromise *
-dex_promise_new_for_boolean (gboolean v_bool)
+(dex_promise_new_for_boolean) (gboolean v_bool)
 {
   GValue value = G_VALUE_INIT;
   DexPromise *promise;
 
   g_value_init (&value, G_TYPE_BOOLEAN);
   g_value_set_boolean (&value, v_bool);
-  promise = dex_promise_new_for_value (&value);
+  promise = (dex_promise_new_for_value) (&value);
   g_value_unset (&value);
 
   return promise;
@@ -106,14 +106,14 @@ dex_promise_new_for_boolean (gboolean v_bool)
  * Returns: (transfer full): a resolved #DexPromise
  */
 DexPromise *
-dex_promise_new_for_int (int v_int)
+(dex_promise_new_for_int) (int v_int)
 {
   GValue value = G_VALUE_INIT;
   DexPromise *promise;
 
   g_value_init (&value, G_TYPE_INT);
   g_value_set_int (&value, v_int);
-  promise = dex_promise_new_for_value (&value);
+  promise = (dex_promise_new_for_value) (&value);
   g_value_unset (&value);
 
   return promise;
@@ -128,14 +128,14 @@ dex_promise_new_for_int (int v_int)
  * Returns: (transfer full): a resolved #DexPromise
  */
 DexPromise *
-dex_promise_new_for_uint (guint v_uint)
+(dex_promise_new_for_uint) (guint v_uint)
 {
   GValue value = G_VALUE_INIT;
   DexPromise *promise;
 
   g_value_init (&value, G_TYPE_UINT);
   g_value_set_uint (&value, v_uint);
-  promise = dex_promise_new_for_value (&value);
+  promise = (dex_promise_new_for_value) (&value);
   g_value_unset (&value);
 
   return promise;
@@ -150,14 +150,14 @@ dex_promise_new_for_uint (guint v_uint)
  * Returns: (transfer full): a resolved #DexPromise
  */
 DexPromise *
-dex_promise_new_for_string (const char *string)
+(dex_promise_new_for_string) (const char *string)
 {
   GValue value = G_VALUE_INIT;
   DexPromise *promise;
 
   g_value_init (&value, G_TYPE_STRING);
   g_value_set_static_string (&value, string);
-  promise = dex_promise_new_for_value (&value);
+  promise = (dex_promise_new_for_value) (&value);
   g_value_unset (&value);
 
   return promise;
@@ -175,7 +175,7 @@ dex_promise_new_for_string (const char *string)
  * Returns: (transfer full): a new #DexPromise
  */
 DexPromise *
-dex_promise_new_for_error (GError *error)
+(dex_promise_new_for_error) (GError *error)
 {
   DexPromise *promise;
 
@@ -197,10 +197,10 @@ dex_promise_new_for_error (GError *error)
  * Returns: (transfer full): a new #DexPromise
  */
 DexPromise *
-dex_promise_new_reject (GQuark      domain,
-                        int         code,
-                        const char *format,
-                        ...)
+(dex_promise_new_reject) (GQuark      domain,
+                          int         code,
+                          const char *format,
+                          ...)
 {
   GError *error;
   va_list args;
