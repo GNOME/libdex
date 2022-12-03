@@ -113,6 +113,41 @@ test_channel_basic (void)
   dex_clear (&channel);
 }
 
+static void
+test_channel_recv_first (void)
+{
+  DexChannel *channel = dex_channel_new (2);
+  DexFuture *recv1 = dex_channel_receive (channel);
+  DexFuture *recv2 = dex_channel_receive (channel);
+  DexFuture *recv3 = dex_channel_receive (channel);
+  DexFuture *recv4;
+  DexPromise *value1 = dex_promise_new_for_int (123);
+  DexFuture *send1;
+
+  ASSERT_STATUS (recv1, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (recv2, DEX_FUTURE_STATUS_PENDING);
+
+  send1 = dex_channel_send (channel, dex_ref (value1));
+  ASSERT_STATUS (send1, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (recv1, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (recv2, DEX_FUTURE_STATUS_PENDING);
+
+  dex_channel_close_send (channel);
+  ASSERT_STATUS (recv2, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (recv3, DEX_FUTURE_STATUS_REJECTED);
+
+  recv4 = dex_channel_receive (channel);
+  ASSERT_STATUS (recv4, DEX_FUTURE_STATUS_REJECTED);
+
+  dex_clear (&channel);
+  dex_clear (&recv1);
+  dex_clear (&recv2);
+  dex_clear (&recv3);
+  dex_clear (&recv4);
+  dex_clear (&value1);
+  dex_clear (&send1);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -120,5 +155,6 @@ main (int argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Channel/basic", test_channel_basic);
+  g_test_add_func ("/Dex/TestSuite/Channel/recv_first", test_channel_recv_first);
   return g_test_run ();
 }
