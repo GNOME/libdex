@@ -25,7 +25,16 @@
 
 #include "dex-error.h"
 #include "dex-future-private.h"
+#include "dex-scheduler.h"
 #include "dex-timeout.h"
+
+/* TODO: This future type suffers from an issue if it is the most bare
+ * future type returned, it could be ignored even if chained because it's
+ * last reference could be dropped.
+ *
+ * We could handle this by having explicit await propagation and then
+ * use that await count to determine when to properly discard.
+ */
 
 typedef struct _DexTimeout
 {
@@ -41,13 +50,29 @@ typedef struct _DexTimeoutClass
 DEX_DEFINE_FINAL_TYPE (DexTimeout, dex_timeout, DEX_TYPE_FUTURE)
 
 static void
+dex_timeout_discard (DexFuture *future)
+{
+  DexTimeout *timeout = DEX_TIMEOUT (future);
+
+  if (timeout->source != NULL)
+    g_source_destroy (timeout->source);
+}
+
+static void
 dex_timeout_finalize (DexObject *object)
 {
   DexTimeout *timeout = DEX_TIMEOUT (object);
 
   if (timeout->source != NULL)
     {
-      g_source_destroy (timeout->source);
+      if (!g_source_is_destroyed (timeout->source))
+        {
+          g_critical ("%s destroyed while timer was active. "
+                      "This is likely a bug as no future is holding a reference to %p",
+                      DEX_OBJECT_TYPE_NAME (object), object);
+          g_source_destroy (timeout->source);
+        }
+
       g_clear_pointer (&timeout->source, g_source_unref);
     }
 
@@ -58,8 +83,11 @@ static void
 dex_timeout_class_init (DexTimeoutClass *timeout_class)
 {
   DexObjectClass *object_class = DEX_OBJECT_CLASS (timeout_class);
+  DexFutureClass *future_class = DEX_FUTURE_CLASS (timeout_class);
 
   object_class->finalize = dex_timeout_finalize;
+
+  future_class->discard = dex_timeout_discard;
 }
 
 static void
