@@ -31,6 +31,7 @@ struct _DexRoutine
   DexRoutineFunc func;
   gpointer func_data;
   GDestroyNotify func_data_destroy;
+  DexFuture *future;
 };
 
 typedef struct _DexRoutineClass
@@ -51,6 +52,8 @@ dex_routine_finalize (DexObject *object)
   routine->func = NULL;
   routine->func_data_destroy = NULL;
   routine->func_data_destroy = NULL;
+
+  dex_clear (&routine->future);
 
   DEX_OBJECT_CLASS (dex_routine_parent_class)->finalize (object);
 }
@@ -92,20 +95,17 @@ dex_routine_new (DexRoutineFunc func,
 void
 dex_routine_spawn (DexRoutine *routine)
 {
-  DexFuture *future;
-
   g_return_if_fail (DEX_IS_ROUTINE (routine));
+  g_return_if_fail (routine->future == NULL);
 
-  future = routine->func (routine->func_data);
+  routine->future = routine->func (routine->func_data);
 
-  if (future == NULL)
+  if (routine->future == NULL)
     dex_future_complete (DEX_FUTURE (routine),
                          NULL,
                          g_error_new_literal (DEX_ERROR,
                                               DEX_ERROR_ROUTINE_COMPLETED,
                                               "Routine completed without a result"));
   else
-    dex_future_chain (future, DEX_FUTURE (routine));
-
-  dex_clear (&future);
+    dex_future_chain (routine->future, DEX_FUTURE (routine));
 }
