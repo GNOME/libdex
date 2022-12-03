@@ -369,10 +369,10 @@ dex_future_discard (DexFuture *future,
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_then (DexFuture         *future,
-                 DexFutureCallback  callback,
-                 gpointer           callback_data,
-                 GDestroyNotify     callback_data_destroy)
+(dex_future_then) (DexFuture         *future,
+                   DexFutureCallback  callback,
+                   gpointer           callback_data,
+                   GDestroyNotify     callback_data_destroy)
 {
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
   g_return_val_if_fail (callback != NULL, NULL);
@@ -401,10 +401,10 @@ dex_future_then (DexFuture         *future,
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_then_loop (DexFuture         *future,
-                      DexFutureCallback  callback,
-                      gpointer           callback_data,
-                      GDestroyNotify     callback_data_destroy)
+(dex_future_then_loop) (DexFuture         *future,
+                        DexFutureCallback  callback,
+                        gpointer           callback_data,
+                        GDestroyNotify     callback_data_destroy)
 {
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
   g_return_val_if_fail (callback != NULL, NULL);
@@ -433,10 +433,10 @@ dex_future_then_loop (DexFuture         *future,
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_catch_loop (DexFuture         *future,
-                       DexFutureCallback  callback,
-                       gpointer           callback_data,
-                       GDestroyNotify     callback_data_destroy)
+(dex_future_catch_loop) (DexFuture         *future,
+                         DexFutureCallback  callback,
+                         gpointer           callback_data,
+                         GDestroyNotify     callback_data_destroy)
 {
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
   g_return_val_if_fail (callback != NULL, NULL);
@@ -465,10 +465,10 @@ dex_future_catch_loop (DexFuture         *future,
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_finally_loop (DexFuture         *future,
-                         DexFutureCallback  callback,
-                         gpointer           callback_data,
-                         GDestroyNotify     callback_data_destroy)
+(dex_future_finally_loop) (DexFuture         *future,
+                           DexFutureCallback  callback,
+                           gpointer           callback_data,
+                           GDestroyNotify     callback_data_destroy)
 {
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
   g_return_val_if_fail (callback != NULL, NULL);
@@ -495,10 +495,10 @@ dex_future_finally_loop (DexFuture         *future,
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_catch (DexFuture         *future,
-                  DexFutureCallback  callback,
-                  gpointer           callback_data,
-                  GDestroyNotify     callback_data_destroy)
+(dex_future_catch) (DexFuture         *future,
+                    DexFutureCallback  callback,
+                    gpointer           callback_data,
+                    GDestroyNotify     callback_data_destroy)
 {
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
   g_return_val_if_fail (callback != NULL, NULL);
@@ -523,10 +523,10 @@ dex_future_catch (DexFuture         *future,
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_finally (DexFuture         *future,
-                    DexFutureCallback  callback,
-                    gpointer           callback_data,
-                    GDestroyNotify     callback_data_destroy)
+(dex_future_finally) (DexFuture         *future,
+                      DexFutureCallback  callback,
+                      gpointer           callback_data,
+                      GDestroyNotify     callback_data_destroy)
 {
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
   g_return_val_if_fail (callback != NULL, NULL);
@@ -575,8 +575,8 @@ dex_future_collect_futures (DexFuture *first_future,
  * Returns: (transfer full) (type DexFutureSet): a #DexFuture
  */
 DexFuture *
-dex_future_all (DexFuture *first_future,
-                ...)
+(dex_future_all) (DexFuture *first_future,
+                  ...)
 {
   DexFutureSet *ret;
   GPtrArray *ar;
@@ -607,8 +607,8 @@ dex_future_all (DexFuture *first_future,
  * Returns: (transfer full) (type DexFutureSet): a #DexFuture
  */
 DexFuture *
-dex_future_any (DexFuture *first_future,
-                ...)
+(dex_future_any) (DexFuture *first_future,
+                  ...)
 {
   DexFutureSet *ret;
   GPtrArray *ar;
@@ -645,8 +645,8 @@ dex_future_any (DexFuture *first_future,
  * Returns: (transfer full) (type DexFutureSet): a #DexFuture
  */
 DexFuture *
-dex_future_all_race (DexFuture *first_future,
-                     ...)
+(dex_future_all_race) (DexFuture *first_future,
+                       ...)
 {
   DexFutureSet *ret;
   GPtrArray *ar;
@@ -676,8 +676,8 @@ dex_future_all_race (DexFuture *first_future,
  * Returns: (transfer full) (type DexFutureSet): a #DexFuture
  */
 DexFuture *
-dex_future_first (DexFuture *first_future,
-                  ...)
+(dex_future_first) (DexFuture *first_future,
+                    ...)
 {
   DexFutureSet *ret;
   GPtrArray *ar;
@@ -708,8 +708,8 @@ dex_future_first (DexFuture *first_future,
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_firstv (DexFuture * const *futures,
-                   guint              n_futures)
+(dex_future_firstv) (DexFuture * const *futures,
+                     guint              n_futures)
 {
   return DEX_FUTURE (dex_future_set_new (futures, n_futures,
                                          (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
@@ -729,8 +729,8 @@ dex_future_firstv (DexFuture * const *futures,
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_anyv (DexFuture * const *futures,
-                 guint              n_futures)
+(dex_future_anyv) (DexFuture * const *futures,
+                   guint              n_futures)
 {
   return DEX_FUTURE (dex_future_set_new (futures, n_futures,
                                          (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
@@ -749,8 +749,8 @@ dex_future_anyv (DexFuture * const *futures,
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_all_racev (DexFuture * const *futures,
-                      guint              n_futures)
+(dex_future_all_racev) (DexFuture * const *futures,
+                        guint              n_futures)
 {
   return DEX_FUTURE (dex_future_set_new (futures, n_futures,
                                          (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
@@ -770,8 +770,8 @@ dex_future_all_racev (DexFuture * const *futures,
  * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
-dex_future_allv (DexFuture * const *futures,
-                 guint              n_futures)
+(dex_future_allv) (DexFuture * const *futures,
+                   guint              n_futures)
 {
   return DEX_FUTURE (dex_future_set_new (futures, n_futures, DEX_FUTURE_SET_FLAGS_NONE));
 }
