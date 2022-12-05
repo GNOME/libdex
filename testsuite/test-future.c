@@ -18,6 +18,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include "config.h"
+
 #include <libdex.h>
 
 #include <gio/gio.h>
@@ -26,6 +28,14 @@
 #include "dex-async-pair-private.h"
 
 #define ASSERT_STATUS(f,status) g_assert_cmpint(status, ==, dex_future_get_status(DEX_FUTURE(f)))
+#define ASSERT_INSTANCE_TYPE(obj,type) \
+  G_STMT_START { \
+    if (!G_TYPE_CHECK_INSTANCE_TYPE((obj), (type))) \
+      g_error ("%s: %s is not a %s", \
+               G_STRLOC, \
+               (obj) ? G_OBJECT_TYPE_NAME((obj)) \
+                     : "NULL", g_type_name(type)); \
+  } G_STMT_END
 
 typedef struct
 {
@@ -753,7 +763,14 @@ discard_async (GMenu               *menu,
                GAsyncReadyCallback  callback,
                gpointer             user_data)
 {
-  GTask *task = g_task_new (menu, cancellable, callback, user_data);
+  GTask *task;
+
+  g_print ("Discard async\n");
+
+  ASSERT_INSTANCE_TYPE (menu, G_TYPE_MENU);
+  ASSERT_INSTANCE_TYPE (cancellable, G_TYPE_CANCELLABLE);
+
+  task = g_task_new (menu, cancellable, callback, user_data);
   g_task_set_check_cancellable (task, TRUE);
   g_task_set_return_on_cancel (task, TRUE);
 }
@@ -765,6 +782,7 @@ discard_finish (GMenu         *menu,
 {
   GTask *task = G_TASK (result);
   gboolean ret;
+  ASSERT_INSTANCE_TYPE (menu, G_TYPE_MENU);
   g_task_return_error_if_cancelled (task);
   ret = g_task_propagate_boolean (task, error);
   g_object_unref (task);
@@ -784,9 +802,19 @@ test_future_discard (void)
 {
   GMenu *menu = g_menu_new ();
   DexFuture *call = dex_async_pair_new (menu, &DEX_ASYNC_PAIR_INFO (discard_async, discard_finish, G_TYPE_BOOLEAN));
-  DexCancellable *cancel1 = dex_cancellable_new ();
-  DexFuture *any = dex_future_first (call, cancel1, NULL);
+  DexCancellable *cancel1;
+  DexFuture *any;
   gboolean was_cancelled = FALSE;
+
+  ASSERT_INSTANCE_TYPE (call, DEX_TYPE_ASYNC_PAIR);
+  ASSERT_INSTANCE_TYPE (DEX_ASYNC_PAIR (call)->instance, G_TYPE_MENU);
+  ASSERT_INSTANCE_TYPE (DEX_ASYNC_PAIR (call)->cancellable, G_TYPE_CANCELLABLE);
+
+  cancel1 = dex_cancellable_new ();
+  ASSERT_INSTANCE_TYPE (cancel1, DEX_TYPE_CANCELLABLE);
+
+  any = dex_future_first (call, cancel1, NULL);
+  ASSERT_INSTANCE_TYPE (any, DEX_TYPE_FUTURE_SET);
 
   g_signal_connect (DEX_ASYNC_PAIR (call)->cancellable,
                     "cancelled",

@@ -18,6 +18,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <config.h>
+
 #include <libdex.h>
 
 #include <gio/gio.h>

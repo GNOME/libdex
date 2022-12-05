@@ -21,6 +21,10 @@
 
 #pragma once
 
+#ifndef PACKAGE_VERSION
+# error "config.h must be included before dex-future-private.h"
+#endif
+
 #include "dex-future.h"
 #include "dex-object-private.h"
 
