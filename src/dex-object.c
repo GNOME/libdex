@@ -265,6 +265,16 @@ dex_weak_ref_get_locked (DexWeakRef *weak_ref)
                                  1 + (watermark == G_MAXUINT32),
                                  memory_order_relaxed);
 
+#ifdef HAVE_SYSPROF
+      {
+        char *message = g_strdup_printf ("%s@%p converted to full",
+                                         DEX_OBJECT_TYPE_NAME (weak_ref->mem_block),
+                                         weak_ref->mem_block);
+        DEX_PROFILER_MARK (0, "DexWeakRef", message);
+        g_free (message);
+      }
+#endif
+
       return weak_ref->mem_block;
     }
 
