@@ -35,6 +35,11 @@ if liburing_dep.found()
   config_h.set10('HAVE_LIBURING', true)
 endif
 
+if get_option('sysprof')
+  libsysprof_capture_dep = dependency('sysprof-capture-4')
+  config_h.set10('HAVE_SYSPROF', true)
+endif
+
 project_c_args = []
 test_c_args = [
   '-Wcast-align',

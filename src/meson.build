@@ -113,6 +113,10 @@ libdex_deps = [
   glib_dep,
 ]
 
+if get_option('sysprof')
+  libdex_deps += [libsysprof_capture_dep]
+endif
+
 libdex_c_args = [
   deprecated_c_args,
   hidden_visibility_args,

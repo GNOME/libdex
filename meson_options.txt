@@ -10,3 +10,6 @@ option('vapi',
 option('introspection',
        type: 'feature', value: 'auto',
        description: 'Generate gir data (requires gobject-introspection)')
+option('sysprof',
+       type: 'boolean', value: false,
+       description: 'Provide anscillary profiling information when run under Sysprof')
