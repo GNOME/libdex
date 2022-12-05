@@ -34,7 +34,7 @@ dex_object_finalize (DexObject *object)
   g_assert (object != NULL);
   g_assert (object->ref_count == 0);
 
-#if HAVE_SYSPROF
+#ifdef HAVE_SYSPROF
   DEX_PROFILER_MARK (0, DEX_OBJECT_TYPE_NAME (object), "dex_object_finalize()");
   DEX_PROFILER_MARK (SYSPROF_CAPTURE_CURRENT_TIME - object->ctime, DEX_OBJECT_TYPE_NAME (object), "lifetime");
 #endif
