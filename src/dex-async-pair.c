@@ -185,16 +185,16 @@ dex_async_pair_new (gpointer                instance,
   void (*async_func) (gpointer, GCancellable*, GAsyncReadyCallback, gpointer);
   DexAsyncPair *async_pair;
 
-  g_return_val_if_fail (instance != NULL, NULL);
+  g_return_val_if_fail (!instance || G_IS_OBJECT (instance), NULL);
   g_return_val_if_fail (info != NULL, NULL);
 
   async_func = info->async;
 
   async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
-  async_pair->instance = g_object_ref (instance);
   async_pair->info = *info;
+  g_set_object (&async_pair->instance, instance);
 
-  async_func (instance,
+  async_func (async_pair->instance,
               async_pair->cancellable,
               dex_async_pair_ready_callback,
               dex_ref (async_pair));
