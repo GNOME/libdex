@@ -84,6 +84,9 @@ typedef struct _DexObject
   DexWeakRef      *weak_refs;
   guint            weak_refs_watermark;
   _Atomic int      ref_count;
+#ifdef HAVE_SYSPROF
+  gint64           ctime;
+#endif
 } DexObject;
 
 static inline void

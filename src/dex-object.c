@@ -26,12 +26,18 @@
 #include <gobject/gvaluecollector.h>
 
 #include "dex-object-private.h"
+#include "dex-profiler.h"
 
 static void
 dex_object_finalize (DexObject *object)
 {
   g_assert (object != NULL);
   g_assert (object->ref_count == 0);
+
+#if HAVE_SYSPROF
+  DEX_PROFILER_MARK (0, DEX_OBJECT_TYPE_NAME (object), "dex_object_finalize()");
+  DEX_PROFILER_MARK (SYSPROF_CAPTURE_CURRENT_TIME - object->ctime, DEX_OBJECT_TYPE_NAME (object), "lifetime");
+#endif
 
   g_type_free_instance ((GTypeInstance *)object);
 }
@@ -132,8 +138,16 @@ dex_object_class_init (DexObjectClass *klass)
 }
 
 static void
-dex_object_init (DexObject *self)
+dex_object_init (DexObject      *self,
+                 DexObjectClass *object_class)
 {
+#ifdef HAVE_SYSPROF
+  self->ctime = SYSPROF_CAPTURE_CURRENT_TIME;
+  DEX_PROFILER_MARK (0,
+                     g_type_name (G_TYPE_FROM_CLASS (object_class)),
+                     "dex_object_init()");
+#endif
+
   self->ref_count = 1;
   g_mutex_init (&self->mutex);
   self->weak_refs_watermark = 1;
