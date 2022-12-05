@@ -40,20 +40,19 @@ read_loop (DexFuture *future,
            gpointer   user_data)
 {
   const GValue *value;
-  GBytes *bytes;
 
   if (DEX_IS_FUTURE_SET (future))
     future = dex_future_set_get_future_at (DEX_FUTURE_SET (future), 0);
 
   value = dex_future_get_value (future, NULL);
-  if (!G_VALUE_HOLDS (value, G_TYPE_BYTES))
-    return NULL;
-
-  bytes = g_value_get_boxed (value);
-  if (g_bytes_get_size (bytes) > 0)
+  if (G_VALUE_HOLDS (value, G_TYPE_BYTES))
     {
-      size -= g_bytes_get_size (bytes);
-      return dex_channel_send (channel, dex_ref (future));
+      GBytes *bytes = g_value_get_boxed (value);
+      if (g_bytes_get_size (bytes) > 0)
+        {
+          size -= g_bytes_get_size (bytes);
+          return dex_channel_send (channel, dex_ref (future));
+        }
     }
 
   dex_channel_close_send (channel);
