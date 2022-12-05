@@ -206,8 +206,10 @@ dex_channel_one_receive_and_unlock (DexChannel *channel)
   if (channel->queue.length > 0 && channel->recvq.length > 0)
     {
       promise = g_queue_pop_head (&channel->recvq);
-      item = g_queue_peek_head (&channel->queue);
-      g_queue_unlink (&channel->queue, &item->link);
+      item = g_queue_pop_head_link (&channel->queue)->data;
+
+      g_assert (DEX_IS_PROMISE (promise));
+      g_assert (item != NULL);
 
       /* Try to advance a @sendq item into @queue */
       if (channel->sendq.length > 0 && channel->queue.length < channel->capacity)
