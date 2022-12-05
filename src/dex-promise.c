@@ -215,6 +215,32 @@ DexPromise *
 }
 
 /**
+ * dex_promise_new_take_boxed: (constructor) (skip)
+ * @boxed_type: the GBoxed-based type
+ * @value: (transfer full): the value for the boxed type
+ *
+ * Creates a new #DexPromise that is resolved with @value.
+ *
+ * Returns: (transfer full): a new #DexPromise that is resolved
+ */
+DexPromise *
+dex_promise_new_take_boxed (GType    boxed_type,
+                            gpointer value)
+{
+  GValue gvalue = G_VALUE_INIT;
+  DexPromise *ret;
+
+  g_return_val_if_fail (G_TYPE_FUNDAMENTAL (boxed_type) == G_TYPE_BOXED, NULL);
+
+  g_value_init (&gvalue, boxed_type);
+  g_value_take_boxed (&gvalue, value);
+  ret = dex_promise_new_for_value (&gvalue);
+  g_value_unset (&gvalue);
+
+  return ret;
+}
+
+/**
  * dex_promise_resolve:
  * @promise: a #DexPromise
  * @value: a #GValue containing the resolved value

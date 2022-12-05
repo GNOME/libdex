@@ -56,6 +56,9 @@ DexPromise *dex_promise_new_for_uint    (guint         v_uint);
 DEX_AVAILABLE_IN_ALL
 DexPromise *dex_promise_new_for_boolean (gboolean      v_bool);
 DEX_AVAILABLE_IN_ALL
+DexPromise *dex_promise_new_take_boxed  (GType         boxed_type,
+                                         gpointer      value);
+DEX_AVAILABLE_IN_ALL
 void        dex_promise_resolve         (DexPromise   *promise,
                                          const GValue *value);
 DEX_AVAILABLE_IN_ALL
