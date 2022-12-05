@@ -124,6 +124,27 @@ if get_option('default_library') != 'static'
   endif
 endif
 
+release_args = []
+global_link_args = []
+test_link_args = [
+  '-Wl,-z,relro',
+  '-Wl,-z,now',
+]
+if not get_option('buildtype').startswith('debug')
+  add_global_arguments(['-DG_DISABLE_CAST_CHECKS'], language: 'c')
+  release_args += [ '-DG_DISABLE_ASSERT' ]
+  test_link_args += [
+    '-Wl,-Bsymbolic',
+    '-fno-plt',
+  ]
+endif
+foreach link_arg: test_link_args
+  if cc.has_link_argument(link_arg)
+    global_link_args += link_arg
+  endif
+endforeach
+add_project_link_arguments(global_link_args, language: 'c')
+
 glib_major_version = glib_req_version.split('.')[0].to_int()
 glib_minor_version = glib_req_version.split('.')[1].to_int()
 if glib_minor_version % 2 == 1
