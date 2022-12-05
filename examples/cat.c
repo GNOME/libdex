@@ -26,6 +26,8 @@
 
 #include <libdex.h>
 
+#define BUFSIZE 4096*4
+
 static GFile         *file;
 static GInputStream  *input;
 static GOutputStream *output;
@@ -33,25 +35,35 @@ static DexChannel    *channel;
 static GMainLoop     *main_loop;
 static gsize          size;
 
-#define KB(n) ((n)*1024L)
+static DexFuture *
+read_next (void)
+{
+  g_assert (G_IS_INPUT_STREAM (input));
+
+  if (size == 0)
+    return DEX_FUTURE (dex_promise_new_take_boxed (G_TYPE_BYTES, g_bytes_new_static ("", 0)));
+
+  return dex_input_stream_read_bytes (input, MIN (BUFSIZE, size), 0);
+}
 
 static DexFuture *
 read_loop (DexFuture *future,
            gpointer   user_data)
 {
-  const GValue *value;
+  DexFuture *bytes_future = dex_future_set_get_future_at (DEX_FUTURE_SET (future), 0);
+  const GValue *value = dex_future_get_value (bytes_future, NULL);
 
-  if (DEX_IS_FUTURE_SET (future))
-    future = dex_future_set_get_future_at (DEX_FUTURE_SET (future), 0);
-
-  value = dex_future_get_value (future, NULL);
   if (G_VALUE_HOLDS (value, G_TYPE_BYTES))
     {
       GBytes *bytes = g_value_get_boxed (value);
+
       if (g_bytes_get_size (bytes) > 0)
         {
           size -= g_bytes_get_size (bytes);
-          return dex_channel_send (channel, dex_ref (future));
+
+          return dex_future_all (read_next (),
+                                 dex_channel_send (channel, dex_ref (bytes_future)),
+                                 NULL);
         }
     }
 
@@ -63,7 +75,7 @@ read_loop (DexFuture *future,
 static DexFuture *
 read_routine (gpointer user_data)
 {
-  return dex_future_then_loop (dex_input_stream_read_bytes (input, size, 0),
+  return dex_future_then_loop (dex_future_all (read_next (), NULL),
                                read_loop, NULL, NULL);
 }
 
