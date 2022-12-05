@@ -73,10 +73,12 @@ write_loop (DexFuture *future,
 {
   DexFuture *bytes_future = dex_future_set_get_future_at (DEX_FUTURE_SET (future), 0);
   const GValue *value = dex_future_get_value (bytes_future, NULL);
-  GBytes *bytes = g_value_get_boxed (value);
+
+  if (value == NULL)
+    return NULL;
 
   return dex_future_all (dex_channel_receive (channel),
-                         dex_output_stream_write_bytes (output, bytes, 0),
+                         dex_output_stream_write_bytes (output, g_value_get_boxed (value), 0),
                          NULL);
 }
 
