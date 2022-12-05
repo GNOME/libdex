@@ -211,6 +211,8 @@ dex_future_finalize (DexObject *object)
 {
   DexFuture *future = (DexFuture *)object;
 
+  g_assert (future->chained == NULL);
+
   if (G_IS_VALUE (&future->resolved))
     g_value_unset (&future->resolved);
   g_clear_error (&future->rejected);
