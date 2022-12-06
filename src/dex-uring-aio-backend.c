@@ -58,28 +58,56 @@ dex_uring_aio_context_dispatch (GSource     *source,
                                 gpointer     user_data)
 {
   DexUringAioContext *aio_context = (DexUringAioContext *)source;
+  DexUringFuture *handledstack[32];
+  GPtrArray *handled;
   struct io_uring_cqe *cqe;
   gint64 counter;
+  guint n_handled = 0;
 
   if (g_source_query_unix_fd (source, aio_context->eventfdtag) & G_IO_IN)
     read (aio_context->eventfd, &counter, sizeof counter);
 
   while (io_uring_peek_cqe (&aio_context->ring, &cqe) == 0)
     {
-      /* TODO: it would be nice if we could freeze completion
-       *  of these items while we're in the hot path of the
-       *  io_uring so it can go back to producing.
-       */
       DexUringFuture *future = io_uring_cqe_get_data (cqe);
-      dex_uring_future_complete (future, cqe);
+      dex_uring_future_cqe (future, cqe);
       io_uring_cqe_seen (&aio_context->ring, cqe);
+      handledstack[n_handled++] = future;
+
+      if G_UNLIKELY (n_handled == G_N_ELEMENTS (handledstack))
+        goto continue_with_ptr_array;
+    }
+
+  for (guint i = 0; i < n_handled; i++)
+    {
+      DexUringFuture *future = handledstack[i];
+      dex_uring_future_complete (future);
       dex_unref (future);
     }
 
-  g_mutex_lock (&aio_context->mutex);
-  if (io_uring_sq_ready (&aio_context->ring))
-    io_uring_submit (&aio_context->ring);
-  g_mutex_unlock (&aio_context->mutex);
+  return G_SOURCE_CONTINUE;
+
+continue_with_ptr_array:
+  handled = g_ptr_array_new_full (G_N_ELEMENTS (handledstack), NULL);
+  g_ptr_array_set_size (handled, G_N_ELEMENTS (handledstack));
+  memcpy (handled->pdata, handledstack, sizeof (gpointer) * handled->len);
+
+  while (io_uring_peek_cqe (&aio_context->ring, &cqe) == 0)
+    {
+      DexUringFuture *future = io_uring_cqe_get_data (cqe);
+      dex_uring_future_cqe (future, cqe);
+      io_uring_cqe_seen (&aio_context->ring, cqe);
+      g_ptr_array_add (handled, g_steal_pointer (&future));
+    }
+
+  for (guint i = 0; i < handled->len; i++)
+    {
+      DexUringFuture *future = g_ptr_array_index (handled, i);
+      dex_uring_future_complete (future);
+      dex_unref (future);
+    }
+
+  g_ptr_array_unref (handled);
 
   return G_SOURCE_CONTINUE;
 }
@@ -89,6 +117,7 @@ dex_uring_aio_context_prepare (GSource *source,
                                int     *timeout)
 {
   DexUringAioContext *aio_context = (DexUringAioContext *)source;
+  gboolean do_submit;
 
   g_assert (aio_context != NULL);
   g_assert (DEX_IS_URING_AIO_BACKEND (aio_context->parent.aio_backend));
@@ -97,26 +126,32 @@ dex_uring_aio_context_prepare (GSource *source,
 
   g_mutex_lock (&aio_context->mutex);
 
-  if (io_uring_sq_ready (&aio_context->ring) > 0)
-    io_uring_submit (&aio_context->ring);
+  do_submit = aio_context->queued.length > 0;
 
-  if (aio_context->queued.length)
+  while (aio_context->queued.length)
     {
       struct io_uring_sqe *sqe;
-      gboolean do_submit = FALSE;
+      DexUringFuture *future;
 
-      while (aio_context->queued.length &&
-             (sqe = io_uring_get_sqe (&aio_context->ring)))
+      /* Try to get the next sqe, and submit if we can't get
+       * one right away. If we still fail to get an sqe, then
+       * we'll wait for completions to come in to advance this.
+       */
+      if G_UNLIKELY (!(sqe = io_uring_get_sqe (&aio_context->ring)))
         {
-          DexUringFuture *future = g_queue_pop_head (&aio_context->queued);
-          dex_uring_future_prepare (future, sqe);
-          io_uring_sqe_set_data (sqe, dex_ref (future));
-          do_submit = TRUE;
+          io_uring_submit (&aio_context->ring);
+
+          if (!(sqe = io_uring_get_sqe (&aio_context->ring)))
+            break;
         }
 
-      if (do_submit)
-        io_uring_submit (&aio_context->ring);
+      future = g_queue_pop_head (&aio_context->queued);
+      dex_uring_future_sqe (future, sqe);
+      io_uring_sqe_set_data (sqe, dex_ref (future));
     }
+
+  if (do_submit || io_uring_sq_ready (&aio_context->ring) > 0)
+    io_uring_submit (&aio_context->ring);
 
   g_mutex_unlock (&aio_context->mutex);
 
@@ -178,7 +213,7 @@ dex_uring_aio_context_queue (DexUringAioContext *aio_context,
   if G_LIKELY (aio_context->queued.length == 0 &&
                (sqe = io_uring_get_sqe (&aio_context->ring)))
     {
-      dex_uring_future_prepare (future, sqe);
+      dex_uring_future_sqe (future, sqe);
       io_uring_sqe_set_data (sqe, dex_ref (future));
     }
   else

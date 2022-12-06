@@ -41,9 +41,10 @@ DexUringFuture *dex_uring_future_new_write (int                  fd,
                                             gconstpointer        buffer,
                                             gsize                count,
                                             goffset              offset);
-void            dex_uring_future_prepare   (DexUringFuture      *uring_future,
+void            dex_uring_future_sqe       (DexUringFuture      *uring_future,
                                             struct io_uring_sqe *sqe);
-void            dex_uring_future_complete  (DexUringFuture      *uring_future,
+void            dex_uring_future_cqe       (DexUringFuture      *uring_future,
                                             struct io_uring_cqe *cqe);
+void            dex_uring_future_complete  (DexUringFuture      *uring_future);
 
 G_END_DECLS

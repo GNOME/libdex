@@ -43,12 +43,14 @@ struct _DexUringFuture
       gpointer buffer;
       gsize count;
       goffset offset;
+      gssize result;
     } read;
     struct {
       int fd;
       gconstpointer buffer;
       gsize count;
       goffset offset;
+      gssize result;
     } write;
   };
 };
@@ -70,26 +72,39 @@ dex_uring_future_init (DexUringFuture *uring_future)
 {
 }
 
-void
-dex_uring_future_complete (DexUringFuture      *uring_future,
-                           struct io_uring_cqe *cqe)
+static GError *
+create_error (int error_code)
 {
-  if (cqe->res < 0)
-    {
-      dex_future_complete (DEX_FUTURE (uring_future),
-                           NULL,
-                           g_error_new_literal (G_IO_ERROR,
-                                                g_io_error_from_errno (-cqe->res),
-                                                g_strerror (-cqe->res)));
-      return;
-    }
+  return g_error_new_literal (G_IO_ERROR,
+                              g_io_error_from_errno (-error_code),
+                              g_strerror (-error_code));
+}
 
+static void
+complete_ssize (DexUringFuture *uring_future,
+                gssize          value)
+{
+  if (value < 0)
+    dex_future_complete (DEX_FUTURE (uring_future),
+                         NULL,
+                         create_error (-value));
+  else
+    dex_future_complete (DEX_FUTURE (uring_future),
+                         &(GValue) { G_TYPE_INT64, {{.v_int64 = value}}},
+                         NULL);
+}
+
+void
+dex_uring_future_complete (DexUringFuture *uring_future)
+{
   switch (uring_future->type)
     {
     case DEX_URING_TYPE_READ:
+      complete_ssize (uring_future, uring_future->read.result);
+      break;
+
     case DEX_URING_TYPE_WRITE:
-      GValue value = {G_TYPE_INT64, {{.v_int64 = cqe->res}}};
-      dex_future_complete (DEX_FUTURE (uring_future), &value, NULL);
+      complete_ssize (uring_future, uring_future->write.result);
       break;
 
     default:
@@ -98,8 +113,27 @@ dex_uring_future_complete (DexUringFuture      *uring_future,
 }
 
 void
-dex_uring_future_prepare (DexUringFuture      *uring_future,
-                          struct io_uring_sqe *sqe)
+dex_uring_future_cqe (DexUringFuture      *uring_future,
+                      struct io_uring_cqe *cqe)
+{
+  switch (uring_future->type)
+    {
+    case DEX_URING_TYPE_READ:
+      uring_future->read.result = cqe->res;
+      break;
+
+    case DEX_URING_TYPE_WRITE:
+      uring_future->write.result = cqe->res;
+      break;
+
+    default:
+      g_assert_not_reached ();
+    }
+}
+
+void
+dex_uring_future_sqe (DexUringFuture      *uring_future,
+                      struct io_uring_sqe *sqe)
 {
   switch (uring_future->type)
     {
