@@ -1029,6 +1029,28 @@ DexFuture *
 }
 
 /**
+ * dex_future_new_for_pointer: (constructor)
+ * @pointer: the resolved future value as a pointer
+ *
+ * Creates a new #DexFuture that is resolved with @pointer as a %G_TYPE_POINTER.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_pointer) (gpointer pointer)
+{
+  GValue gvalue = G_VALUE_INIT;
+  DexFuture *ret;
+
+  g_value_init (&gvalue, G_TYPE_POINTER);
+  g_value_set_pointer (&gvalue, pointer);
+  ret = dex_future_new_for_value (&gvalue);
+  g_value_unset (&gvalue);
+
+  return ret;
+}
+
+/**
  * dex_future_new_for_object: (constructor)
  * @value: (type GObject): the value
  *

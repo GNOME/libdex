@@ -77,6 +77,8 @@ DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_take_boxed  (GType               type,
                                              gpointer            value);
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_pointer (gpointer            pointer);
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_for_object  (gpointer            instance);
 DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_take_object (gpointer            instance);
@@ -174,6 +176,7 @@ void             dex_future_set_static_name (DexFuture          *future,
 # define dex_future_new_take_boxed(...) _DEX_FUTURE_NEW(new_take_boxed, __VA_ARGS__)
 # define dex_future_new_for_object(...) _DEX_FUTURE_NEW(new_for_object, __VA_ARGS__)
 # define dex_future_new_take_object(...) _DEX_FUTURE_NEW(new_take_object, __VA_ARGS__)
+# define dex_future_new_for_pointer(...) _DEX_FUTURE_NEW(new_for_pointer, __VA_ARGS__)
 #endif
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFuture, dex_unref)
