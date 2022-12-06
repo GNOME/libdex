@@ -59,7 +59,6 @@ dex_uring_aio_context_dispatch (GSource     *source,
 {
   DexUringAioContext *aio_context = (DexUringAioContext *)source;
   DexUringFuture *handledstack[32];
-  GPtrArray *handled;
   struct io_uring_cqe *cqe;
   gint64 counter;
   guint n_handled = 0;
@@ -67,6 +66,7 @@ dex_uring_aio_context_dispatch (GSource     *source,
   if (g_source_query_unix_fd (source, aio_context->eventfdtag) & G_IO_IN)
     read (aio_context->eventfd, &counter, sizeof counter);
 
+again:
   while (io_uring_peek_cqe (&aio_context->ring, &cqe) == 0)
     {
       DexUringFuture *future = io_uring_cqe_get_data (cqe);
@@ -75,7 +75,7 @@ dex_uring_aio_context_dispatch (GSource     *source,
       handledstack[n_handled++] = future;
 
       if G_UNLIKELY (n_handled == G_N_ELEMENTS (handledstack))
-        goto continue_with_ptr_array;
+        break;
     }
 
   for (guint i = 0; i < n_handled; i++)
@@ -85,29 +85,8 @@ dex_uring_aio_context_dispatch (GSource     *source,
       dex_unref (future);
     }
 
-  return G_SOURCE_CONTINUE;
-
-continue_with_ptr_array:
-  handled = g_ptr_array_new_full (G_N_ELEMENTS (handledstack), NULL);
-  g_ptr_array_set_size (handled, G_N_ELEMENTS (handledstack));
-  memcpy (handled->pdata, handledstack, sizeof (gpointer) * handled->len);
-
-  while (io_uring_peek_cqe (&aio_context->ring, &cqe) == 0)
-    {
-      DexUringFuture *future = io_uring_cqe_get_data (cqe);
-      dex_uring_future_cqe (future, cqe);
-      io_uring_cqe_seen (&aio_context->ring, cqe);
-      g_ptr_array_add (handled, g_steal_pointer (&future));
-    }
-
-  for (guint i = 0; i < handled->len; i++)
-    {
-      DexUringFuture *future = g_ptr_array_index (handled, i);
-      dex_uring_future_complete (future);
-      dex_unref (future);
-    }
-
-  g_ptr_array_unref (handled);
+  if G_UNLIKELY (n_handled == G_N_ELEMENTS (handledstack))
+    goto again;
 
   return G_SOURCE_CONTINUE;
 }
