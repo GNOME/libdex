@@ -29,6 +29,7 @@
 #include "dex-future-set-private.h"
 #include "dex-promise.h"
 #include "dex-scheduler.h"
+#include "dex-static-future-private.h"
 
 static void dex_future_propagate (DexFuture *future,
                                   DexFuture *completed);
@@ -769,4 +770,336 @@ dex_future_get_name (DexFuture *future)
   dex_object_unlock (future);
 
   return name;
+}
+
+/**
+ * dex_future_new_for_value:
+ * @value: the resolved #GValue
+ *
+ * Creates a read-only #DexFuture that has resolved.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_value) (const GValue *value)
+{
+  g_return_val_if_fail (G_IS_VALUE (value), NULL);
+
+  return dex_static_future_new_resolved (value);
+}
+
+/**
+ * dex_future_new_for_error:
+ * @error: (transfer full): a #GError
+ *
+ * Creates a read-only #DexFuture that has rejected.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_error) (GError *error)
+{
+  g_return_val_if_fail (error != NULL, NULL);
+
+  return dex_static_future_new_rejected (error);
+}
+
+/**
+ * dex_future_new_for_boolean: (constructor)
+ * @v_bool: the resolved value for the future
+ *
+ * Creates a new #DexFuture and resolves it with @v_bool.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_boolean) (gboolean v_bool)
+{
+  GValue value = G_VALUE_INIT;
+  DexFuture *future;
+
+  g_value_init (&value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&value, v_bool);
+  future = (dex_future_new_for_value) (&value);
+  g_value_unset (&value);
+
+  return future;
+}
+
+/**
+ * dex_future_new_for_int: (constructor)
+ * @v_int: the resolved value for the future
+ *
+ * Creates a new #DexFuture and resolves it with @v_int.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_int) (int v_int)
+{
+  GValue value = G_VALUE_INIT;
+  DexFuture *future;
+
+  g_value_init (&value, G_TYPE_INT);
+  g_value_set_int (&value, v_int);
+  future = (dex_future_new_for_value) (&value);
+  g_value_unset (&value);
+
+  return future;
+}
+
+/**
+ * dex_future_new_for_int64: (constructor)
+ * @v_int64: the resolved value for the future
+ *
+ * Creates a new #DexFuture and resolves it with @v_int64.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_int64) (gint64 v_int64)
+{
+  GValue value = G_VALUE_INIT;
+  DexFuture *future;
+
+  g_value_init (&value, G_TYPE_INT64);
+  g_value_set_int64 (&value, v_int64);
+  future = (dex_future_new_for_value) (&value);
+  g_value_unset (&value);
+
+  return future;
+}
+
+/**
+ * dex_future_new_for_uint64: (constructor)
+ * @v_uint64: the resolved value for the future
+ *
+ * Creates a new #DexFuture and resolves it with @v_uint64.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_uint64) (guint64 v_uint64)
+{
+  GValue value = G_VALUE_INIT;
+  DexFuture *future;
+
+  g_value_init (&value, G_TYPE_UINT64);
+  g_value_set_uint64 (&value, v_uint64);
+  future = (dex_future_new_for_value) (&value);
+  g_value_unset (&value);
+
+  return future;
+}
+
+/**
+ * dex_future_new_for_float: (constructor)
+ * @v_float: the resolved value for the future
+ *
+ * Creates a new #DexFuture and resolves it with @v_float.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_float) (gfloat v_float)
+{
+  GValue value = G_VALUE_INIT;
+  DexFuture *future;
+
+  g_value_init (&value, G_TYPE_FLOAT);
+  g_value_set_float (&value, v_float);
+  future = (dex_future_new_for_value) (&value);
+  g_value_unset (&value);
+
+  return future;
+}
+
+/**
+ * dex_future_new_for_double: (constructor)
+ * @v_double: the resolved value for the future
+ *
+ * Creates a new #DexFuture and resolves it with @v_double.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_double) (gdouble v_double)
+{
+  GValue value = G_VALUE_INIT;
+  DexFuture *future;
+
+  g_value_init (&value, G_TYPE_DOUBLE);
+  g_value_set_double (&value, v_double);
+  future = (dex_future_new_for_value) (&value);
+  g_value_unset (&value);
+
+  return future;
+}
+
+/**
+ * dex_future_new_for_uint: (constructor)
+ * @v_uint: the resolved value for the future
+ *
+ * Creates a new #DexFuture and resolves it with @v_uint.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_uint) (guint v_uint)
+{
+  GValue value = G_VALUE_INIT;
+  DexFuture *future;
+
+  g_value_init (&value, G_TYPE_UINT);
+  g_value_set_uint (&value, v_uint);
+  future = (dex_future_new_for_value) (&value);
+  g_value_unset (&value);
+
+  return future;
+}
+
+/**
+ * dex_future_new_for_string: (constructor)
+ * @string: the resolved value for the future
+ *
+ * Creates a new #DexFuture and resolves it with @string.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_string) (const char *string)
+{
+  GValue value = G_VALUE_INIT;
+  DexFuture *future;
+
+  g_value_init (&value, G_TYPE_STRING);
+  g_value_set_static_string (&value, string);
+  future = (dex_future_new_for_value) (&value);
+  g_value_unset (&value);
+
+  return future;
+}
+
+/**
+ * dex_future_new_take_string: (constructor)
+ * @string: (transfer full): the resolved value for the future
+ *
+ * Creates a new #DexFuture and resolves it with @string.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_take_string) (char *string)
+{
+  GValue value = G_VALUE_INIT;
+  DexFuture *future;
+
+  g_value_init (&value, G_TYPE_STRING);
+  g_value_take_string (&value, string);
+  future = (dex_future_new_for_value) (&value);
+  g_value_unset (&value);
+
+  return future;
+}
+
+/**
+ * dex_future_new_take_boxed: (constructor) (skip)
+ * @boxed_type: the GBoxed-based type
+ * @value: (transfer full): the value for the boxed type
+ *
+ * Creates a new #DexFuture that is resolved with @value.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_take_boxed) (GType    boxed_type,
+                             gpointer value)
+{
+  GValue gvalue = G_VALUE_INIT;
+  DexFuture *ret;
+
+  g_return_val_if_fail (G_TYPE_FUNDAMENTAL (boxed_type) == G_TYPE_BOXED, NULL);
+
+  g_value_init (&gvalue, boxed_type);
+  g_value_take_boxed (&gvalue, value);
+  ret = dex_future_new_for_value (&gvalue);
+  g_value_unset (&gvalue);
+
+  return ret;
+}
+
+/**
+ * dex_future_new_for_object: (constructor)
+ * @value: (type GObject): the value
+ *
+ * Creates a new #DexFuture that is resolved with @value.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_object) (gpointer value)
+{
+  GValue gvalue = G_VALUE_INIT;
+  DexFuture *ret;
+
+  g_return_val_if_fail (G_IS_OBJECT (value), NULL);
+
+  g_value_init (&gvalue, G_OBJECT_TYPE (value));
+  g_value_set_object (&gvalue, value);
+  ret = dex_future_new_for_value (&gvalue);
+  g_value_unset (&gvalue);
+
+  return ret;
+}
+
+/**
+ * dex_future_new_take_object: (constructor)
+ * @value: (transfer full) (type GObject): the value
+ *
+ * Creates a new #DexFuture that is resolved with @value.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_take_object) (gpointer value)
+{
+  GValue gvalue = G_VALUE_INIT;
+  DexFuture *ret;
+
+  g_return_val_if_fail (G_IS_OBJECT (value), NULL);
+
+  g_value_init (&gvalue, G_OBJECT_TYPE (value));
+  g_value_take_object (&gvalue, value);
+  ret = dex_future_new_for_value (&gvalue);
+  g_value_unset (&gvalue);
+
+  return ret;
+}
+
+/**
+ * dex_future_new_reject: (constructor)
+ * @domain: the error domain
+ * @code: the error code
+ * @format: a printf-style format string
+ *
+ * Creates a new #DexFuture that is rejeced.
+ *
+ * Returns: (transfer full) (type DexStaticFuture): a new #DexFuture
+ */
+DexFuture *
+(dex_future_new_reject) (GQuark      domain,
+                         int         code,
+                         const char *format,
+                         ...)
+{
+  GError *error;
+  va_list args;
+
+  va_start (args, format);
+  error = g_error_new_valist (domain, code, format, args);
+  va_end (args);
+
+  g_return_val_if_fail (error != NULL, NULL);
+
+  return dex_future_new_for_error (error);
 }

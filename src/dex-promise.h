@@ -39,26 +39,6 @@ GType       dex_promise_get_type        (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
 DexPromise *dex_promise_new             (void);
 DEX_AVAILABLE_IN_ALL
-DexPromise *dex_promise_new_for_error   (GError       *error);
-DEX_AVAILABLE_IN_ALL
-DexPromise *dex_promise_new_reject      (GQuark        domain,
-                                         int           code,
-                                         const char   *format,
-                                         ...) G_GNUC_PRINTF (3, 4);
-DEX_AVAILABLE_IN_ALL
-DexPromise *dex_promise_new_for_value   (const GValue *value);
-DEX_AVAILABLE_IN_ALL
-DexPromise *dex_promise_new_for_string  (const char   *string);
-DEX_AVAILABLE_IN_ALL
-DexPromise *dex_promise_new_for_int     (int           v_int);
-DEX_AVAILABLE_IN_ALL
-DexPromise *dex_promise_new_for_uint    (guint         v_uint);
-DEX_AVAILABLE_IN_ALL
-DexPromise *dex_promise_new_for_boolean (gboolean      v_bool);
-DEX_AVAILABLE_IN_ALL
-DexPromise *dex_promise_new_take_boxed  (GType         boxed_type,
-                                         gpointer      value);
-DEX_AVAILABLE_IN_ALL
 void        dex_promise_resolve         (DexPromise   *promise,
                                          const GValue *value);
 DEX_AVAILABLE_IN_ALL
@@ -100,19 +80,12 @@ void        dex_promise_reject          (DexPromise   *promise,
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexPromise, dex_unref)
 
-#if G_GNUC_CHECK_VERSION(3,0)
+#if G_GNUC_CHECK_VERSION(3,0) && defined(DEX_ENABLE_DEBUG)
 # define _DEX_PROMISE_NEW(func, ...) \
   ({ DexPromise *__p = G_PASTE (dex_promise_, func) (__VA_ARGS__); \
      dex_future_set_static_name (DEX_FUTURE (__p), G_STRLOC); \
      __p; })
 # define dex_promise_new() _DEX_PROMISE_NEW(new)
-# define dex_promise_new_for_error(...) _DEX_PROMISE_NEW(new_for_error, __VA_ARGS__)
-# define dex_promise_new_reject(...) _DEX_PROMISE_NEW(new_reject, __VA_ARGS__)
-# define dex_promise_new_for_value(...) _DEX_PROMISE_NEW(new_for_value, __VA_ARGS__)
-# define dex_promise_new_for_string(...) _DEX_PROMISE_NEW(new_for_string, __VA_ARGS__)
-# define dex_promise_new_for_int(...) _DEX_PROMISE_NEW(new_for_int, __VA_ARGS__)
-# define dex_promise_new_for_uint(...) _DEX_PROMISE_NEW(new_for_uint, __VA_ARGS__)
-# define dex_promise_new_for_boolean(...) _DEX_PROMISE_NEW(new_for_boolean, __VA_ARGS__)
 #endif
 
 G_END_DECLS

@@ -118,9 +118,9 @@ dex_semaphore_wait (DexSemaphore *semaphore)
   g_return_val_if_fail (DEX_IS_SEMAPHORE (semaphore), NULL);
 
   if (semaphore->eventfd < 0)
-    return DEX_FUTURE (dex_promise_new_reject (G_IO_ERROR,
-                                               G_IO_ERROR_CLOSED,
-                                               "The semaphore has already been closed"));
+    return DEX_FUTURE (dex_future_new_reject (G_IO_ERROR,
+                                              G_IO_ERROR_CLOSED,
+                                              "The semaphore has already been closed"));
 
   return dex_aio_read (NULL,
                        semaphore->eventfd,

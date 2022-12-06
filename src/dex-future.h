@@ -47,6 +47,40 @@ DEX_AVAILABLE_IN_ALL
 const GValue    *dex_future_get_value       (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_value   (const GValue       *value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_error   (GError             *error);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_reject      (GQuark              domain,
+                                             int                 error_code,
+                                             const char         *format,
+                                             ...) G_GNUC_PRINTF (3, 4);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_string  (const char         *value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_take_string (char               *value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_int     (int                 value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_uint    (guint               value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_int64   (gint64              value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_uint64  (guint64             value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_boolean (gboolean            value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_double  (double              value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_float   (float               value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_take_boxed  (GType               type,
+                                             gpointer            value);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_object  (gpointer            instance);
+DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_take_object (gpointer            instance);
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_then            (DexFuture          *future,
                                              DexFutureCallback   callback,
                                              gpointer            callback_data,
@@ -106,7 +140,7 @@ DEX_AVAILABLE_IN_ALL
 void             dex_future_set_static_name (DexFuture          *future,
                                              const char         *name);
 
-#if G_GNUC_CHECK_VERSION(3,0)
+#if G_GNUC_CHECK_VERSION(3,0) && defined(DEX_ENABLE_DEBUG)
 # define _DEX_FUTURE_NEW_(func, counter, ...) \
   ({ DexFuture *G_PASTE(__f, counter) = G_PASTE (dex_future_, func) (__VA_ARGS__); \
      dex_future_set_static_name (DEX_FUTURE (G_PASTE (__f, counter)), G_STRLOC); \
@@ -126,6 +160,20 @@ void             dex_future_set_static_name (DexFuture          *future,
 # define dex_future_anyv(...) _DEX_FUTURE_NEW(anyv, __VA_ARGS__)
 # define dex_future_first(...) _DEX_FUTURE_NEW(first, __VA_ARGS__)
 # define dex_future_firstv(...) _DEX_FUTURE_NEW(firstv, __VA_ARGS__)
+# define dex_future_new_for_value(...) _DEX_FUTURE_NEW(new_for_value, __VA_ARGS__)
+# define dex_future_new_for_error(...) _DEX_FUTURE_NEW(new_for_error, __VA_ARGS__)
+# define dex_future_new_for_string(...) _DEX_FUTURE_NEW(new_for_string, __VA_ARGS__)
+# define dex_future_new_take_string(...) _DEX_FUTURE_NEW(new_take_string, __VA_ARGS__)
+# define dex_future_new_for_int(...) _DEX_FUTURE_NEW(new_for_int, __VA_ARGS__)
+# define dex_future_new_for_uint(...) _DEX_FUTURE_NEW(new_for_uint, __VA_ARGS__)
+# define dex_future_new_for_int64(...) _DEX_FUTURE_NEW(new_for_int64, __VA_ARGS__)
+# define dex_future_new_for_uint64(...) _DEX_FUTURE_NEW(new_for_uint64, __VA_ARGS__)
+# define dex_future_new_for_boolean(...) _DEX_FUTURE_NEW(new_for_boolean, __VA_ARGS__)
+# define dex_future_new_for_double(...) _DEX_FUTURE_NEW(new_for_double, __VA_ARGS__)
+# define dex_future_new_for_float(...) _DEX_FUTURE_NEW(new_for_float, __VA_ARGS__)
+# define dex_future_new_take_boxed(...) _DEX_FUTURE_NEW(new_take_boxed, __VA_ARGS__)
+# define dex_future_new_for_object(...) _DEX_FUTURE_NEW(new_for_object, __VA_ARGS__)
+# define dex_future_new_take_object(...) _DEX_FUTURE_NEW(new_take_object, __VA_ARGS__)
 #endif
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFuture, dex_unref)

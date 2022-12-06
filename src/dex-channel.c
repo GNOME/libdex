@@ -277,9 +277,9 @@ dex_channel_send (DexChannel *channel,
     {
       dex_object_unlock (channel);
       dex_channel_item_free (item);
-      return DEX_FUTURE (dex_promise_new_reject (DEX_ERROR,
-                                                 DEX_ERROR_CHANNEL_CLOSED,
-                                                 "Channel is closed"));
+      return DEX_FUTURE (dex_future_new_reject (DEX_ERROR,
+                                                DEX_ERROR_CHANNEL_CLOSED,
+                                                "Channel is closed"));
     }
 
   ret = dex_ref (item->send);

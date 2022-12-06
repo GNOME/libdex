@@ -40,9 +40,9 @@ static void
 test_channel_basic (void)
 {
   DexChannel *channel;
-  DexPromise *value1 = NULL;
-  DexPromise *value2 = NULL;
-  DexPromise *value3 = NULL;
+  DexFuture *value1 = NULL;
+  DexFuture *value2 = NULL;
+  DexFuture *value3 = NULL;
   DexFuture *send1 = NULL;
   DexFuture *send2 = NULL;
   DexFuture *send3 = NULL;
@@ -54,9 +54,9 @@ test_channel_basic (void)
   g_assert_true (dex_channel_can_send (channel));
   g_assert_true (dex_channel_can_receive (channel));
 
-  value1 = dex_promise_new_for_int (1);
-  value2 = dex_promise_new_for_int (2);
-  value3 = dex_promise_new_for_int (3);
+  value1 = dex_future_new_for_int (1);
+  value2 = dex_future_new_for_int (2);
+  value3 = dex_future_new_for_int (3);
   ASSERT_CMPINT (value1, ==, 1);
   ASSERT_CMPINT (value2, ==, 2);
   ASSERT_CMPINT (value3, ==, 3);
@@ -121,7 +121,7 @@ test_channel_recv_first (void)
   DexFuture *recv2 = dex_channel_receive (channel);
   DexFuture *recv3 = dex_channel_receive (channel);
   DexFuture *recv4;
-  DexPromise *value1 = dex_promise_new_for_int (123);
+  DexFuture *value1 = dex_future_new_for_int (123);
   DexFuture *send1;
 
   ASSERT_STATUS (recv1, DEX_FUTURE_STATUS_PENDING);

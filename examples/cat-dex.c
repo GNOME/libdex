@@ -93,8 +93,8 @@ read_loop (DexFuture *future,
 
   return dex_future_all (read_next (),
                          dex_channel_send (channel,
-                                           DEX_FUTURE (dex_promise_new_take_boxed (G_TYPE_BYTES,
-                                                                                   g_steal_pointer (&read_bytes)))),
+                                           dex_future_new_take_boxed (G_TYPE_BYTES,
+                                                                      g_steal_pointer (&read_bytes))),
                          NULL);
 }
 

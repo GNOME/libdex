@@ -51,7 +51,7 @@ catch_cb (DexFuture *future,
 {
   TestInfo *info = user_data;
   g_atomic_int_inc (&info->catch);
-  return DEX_FUTURE (dex_promise_new_for_string ("123"));
+  return DEX_FUTURE (dex_future_new_for_string ("123"));
 }
 
 static DexFuture *
@@ -70,7 +70,7 @@ then_cb (DexFuture *future,
   g_assert_true (G_VALUE_HOLDS_STRING (value));
   g_assert_cmpstr (g_value_get_string (value), ==, "123");
 
-  return DEX_FUTURE (dex_promise_new_for_int (123));
+  return DEX_FUTURE (dex_future_new_for_int (123));
 }
 
 static DexFuture *
@@ -202,26 +202,32 @@ test_promise_new (void)
   g_assert_nonnull (promise);
   g_assert_true (DEX_IS_FUTURE (promise));
   dex_clear (&promise);
+}
 
-  promise = dex_promise_new_for_string ("123");
-  g_assert_true (DEX_IS_PROMISE (promise));
-  g_assert_cmpint (dex_future_get_status (DEX_FUTURE (promise)), ==, DEX_FUTURE_STATUS_RESOLVED);
-  dex_clear (&promise);
+static void
+test_static_future_new (void)
+{
+  DexFuture *future;
 
-  promise = dex_promise_new_for_int (123);
-  g_assert_true (DEX_IS_PROMISE (promise));
-  g_assert_cmpint (dex_future_get_status (DEX_FUTURE (promise)), ==, DEX_FUTURE_STATUS_RESOLVED);
-  dex_clear (&promise);
+  future = dex_future_new_for_string ("123");
+  g_assert_true (DEX_IS_STATIC_FUTURE (future));
+  g_assert_cmpint (dex_future_get_status (DEX_FUTURE (future)), ==, DEX_FUTURE_STATUS_RESOLVED);
+  dex_clear (&future);
 
-  promise = dex_promise_new_for_boolean (TRUE);
-  g_assert_true (DEX_IS_PROMISE (promise));
-  g_assert_cmpint (dex_future_get_status (DEX_FUTURE (promise)), ==, DEX_FUTURE_STATUS_RESOLVED);
-  dex_clear (&promise);
+  future = dex_future_new_for_int (123);
+  g_assert_true (DEX_IS_STATIC_FUTURE (future));
+  g_assert_cmpint (dex_future_get_status (DEX_FUTURE (future)), ==, DEX_FUTURE_STATUS_RESOLVED);
+  dex_clear (&future);
 
-  promise = dex_promise_new_for_error (g_error_new_literal (G_IO_ERROR, G_IO_ERROR_PENDING, "pending"));
-  g_assert_true (DEX_IS_PROMISE (promise));
-  g_assert_cmpint (dex_future_get_status (DEX_FUTURE (promise)), ==, DEX_FUTURE_STATUS_REJECTED);
-  dex_clear (&promise);
+  future = dex_future_new_for_boolean (TRUE);
+  g_assert_true (DEX_IS_STATIC_FUTURE (future));
+  g_assert_cmpint (dex_future_get_status (DEX_FUTURE (future)), ==, DEX_FUTURE_STATUS_RESOLVED);
+  dex_clear (&future);
+
+  future = dex_future_new_for_error (g_error_new_literal (G_IO_ERROR, G_IO_ERROR_PENDING, "pending"));
+  g_assert_true (DEX_IS_STATIC_FUTURE (future));
+  g_assert_cmpint (dex_future_get_status (DEX_FUTURE (future)), ==, DEX_FUTURE_STATUS_REJECTED);
+  dex_clear (&future);
 }
 
 static void
@@ -425,8 +431,8 @@ ASYNC_TEST_ERROR (ErrorTest, OBJECT, pointer)
 static void
 test_future_set_first_preresolved (void)
 {
-  DexPromise *promise1 = dex_promise_new_for_int (123);
-  DexPromise *promise2 = dex_promise_new_for_int (321);
+  DexFuture *promise1 = dex_future_new_for_int (123);
+  DexFuture *promise2 = dex_future_new_for_int (321);
   DexFuture *future = dex_future_first (DEX_FUTURE (promise1), promise2, NULL);
   GError *error = NULL;
   const GValue *value = dex_future_get_value (future, &error);
@@ -440,8 +446,8 @@ test_future_set_first_preresolved (void)
 static void
 test_future_set_all_race_preresolved (void)
 {
-  DexPromise *promise1 = dex_promise_new_for_int (123);
-  DexPromise *promise2 = dex_promise_new_for_int (321);
+  DexFuture *promise1 = dex_future_new_for_int (123);
+  DexFuture *promise2 = dex_future_new_for_int (321);
   DexFuture *future = dex_future_all_race (DEX_FUTURE (promise1), promise2, NULL);
   GError *error = NULL;
   const GValue *value = dex_future_get_value (future, &error);
@@ -455,8 +461,8 @@ test_future_set_all_race_preresolved (void)
 static void
 test_future_set_any_preresolved (void)
 {
-  DexPromise *promise1 = dex_promise_new_for_int (123);
-  DexPromise *promise2 = dex_promise_new_for_int (321);
+  DexFuture *promise1 = dex_future_new_for_int (123);
+  DexFuture *promise2 = dex_future_new_for_int (321);
   DexFuture *future = dex_future_any (DEX_FUTURE (promise1), promise2, NULL);
   GError *error = NULL;
   const GValue *value = dex_future_get_value (future, &error);
@@ -470,8 +476,8 @@ test_future_set_any_preresolved (void)
 static void
 test_future_set_all_preresolved (void)
 {
-  DexPromise *promise1 = dex_promise_new_for_int (123);
-  DexPromise *promise2 = dex_promise_new_for_int (321);
+  DexFuture *promise1 = dex_future_new_for_int (123);
+  DexFuture *promise2 = dex_future_new_for_int (321);
   DexFuture *future = dex_future_all (DEX_FUTURE (promise1), promise2, NULL);
   GError *error = NULL;
   const GValue *value = dex_future_get_value (future, &error);
@@ -485,7 +491,7 @@ test_future_set_all_preresolved (void)
 static void
 test_future_set_all_preresolved_error (void)
 {
-  DexPromise *promise1 = dex_promise_new_for_int (123);
+  DexFuture *promise1 = dex_future_new_for_int (123);
   DexCancellable *cancel1 = dex_cancellable_new ();
   DexFuture *future;
   GError *error = NULL;
@@ -864,7 +870,7 @@ test_unix_signal_sigusr2 (void)
 static void
 test_delayed_simple (void)
 {
-  DexPromise *result = dex_promise_new_for_int (123);
+  DexFuture *result = dex_future_new_for_int (123);
   DexFuture *delayed = dex_delayed_new (dex_ref (result));
 
   ASSERT_STATUS (result, DEX_FUTURE_STATUS_RESOLVED);
@@ -895,6 +901,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Future/name", test_future_name);
   g_test_add_func ("/Dex/TestSuite/Block/then", test_future_then);
   g_test_add_func ("/Dex/TestSuite/Cancellable/cancel", test_cancellable_cancel);
+  g_test_add_func ("/Dex/TestSuite/StaticFuture/new", test_static_future_new);
   g_test_add_func ("/Dex/TestSuite/Promise/type", test_promise_type);
   g_test_add_func ("/Dex/TestSuite/Promise/autoptr", test_promise_autoptr);
   g_test_add_func ("/Dex/TestSuite/Promise/new", test_promise_new);

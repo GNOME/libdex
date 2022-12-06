@@ -41,7 +41,7 @@ read_next (void)
   g_assert (G_IS_INPUT_STREAM (input));
 
   if (size == 0)
-    return DEX_FUTURE (dex_promise_new_take_boxed (G_TYPE_BYTES, g_bytes_new_static ("", 0)));
+    return dex_future_new_take_boxed (G_TYPE_BYTES, g_bytes_new_static ("", 0));
 
   return dex_input_stream_read_bytes (input, MIN (BUFSIZE, size), 0);
 }

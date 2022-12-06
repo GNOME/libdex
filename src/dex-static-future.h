@@ -25,8 +25,8 @@
 G_BEGIN_DECLS
 
 #define DEX_TYPE_STATIC_FUTURE    (dex_static_future_get_type())
-#define DEX_STATIC_FUTURE(obj)    (DEX_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_STATIC_FUTURE, DexStaticFuture))
-#define DEX_IS_STATIC_FUTURE(obj) (DEX_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_STATIC_FUTURE))
+#define DEX_STATIC_FUTURE(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_STATIC_FUTURE, DexStaticFuture))
+#define DEX_IS_STATIC_FUTURE(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_STATIC_FUTURE))
 
 typedef struct _DexStaticFuture DexStaticFuture;
 
