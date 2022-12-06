@@ -9,7 +9,7 @@ libgio_unix_dep = dependency('gio-unix-2.0', required: false)
 if libgio_unix_dep.found()
   example_sources += [
     ['cat', [libgio_unix_dep]],
-    ['cat-dex'],
+    ['cat-aio'],
   ]
 endif
 
