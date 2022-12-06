@@ -226,6 +226,47 @@ dex_future_set_new (DexFuture * const *futures,
   return future_set;
 }
 
+DexFutureSet *
+dex_future_set_new_va (DexFuture         *first_future,
+                       va_list           *args,
+                       DexFutureSetFlags  flags)
+{
+  DexFutureSet *future_set;
+  DexFuture *future = first_future;
+  guint capacity = 8;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (first_future), NULL);
+  g_return_val_if_fail ((flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST) == 0 ||
+                        (flags & (DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE|DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)) != 0,
+                        NULL);
+
+  future_set = (DexFutureSet *)g_type_create_instance (DEX_TYPE_FUTURE_SET);
+  future_set->flags = flags;
+  future_set->futures = g_new (DexFuture *, capacity);
+
+  while (future != NULL)
+    {
+      dex_ref (future);
+
+      if (future_set->n_futures + 1 > capacity)
+        {
+          capacity *= 2;
+          future_set->futures = g_realloc (future_set->futures, capacity);
+        }
+
+      future_set->futures[future_set->n_futures++] = future;
+      future = va_arg (*args, DexFuture *);
+    }
+
+  /* Now start chaining futures, even if we progress from pending while
+   * we iterate this list (as we're safe against multiple resolves).
+   */
+  for (guint i = 0; i < future_set->n_futures; i++)
+    dex_future_chain (future_set->futures[i], DEX_FUTURE (future_set));
+
+  return future_set;
+}
+
 /**
  * dex_future_set_get_size:
  * @future_set: a #DexFutureSet
