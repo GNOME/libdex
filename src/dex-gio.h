@@ -31,7 +31,17 @@ DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_read                 (GFile         *file,
                                           int            priority);
 DEX_AVAILABLE_IN_ALL
+DexFuture *dex_input_stream_read         (GInputStream  *self,
+                                          gpointer       buffer,
+                                          gsize          count,
+                                          int            priority);
+DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_read_bytes   (GInputStream  *self,
+                                          gsize          count,
+                                          int            priority);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_output_stream_write       (GOutputStream *self,
+                                          gconstpointer  buffer,
                                           gsize          count,
                                           int            priority);
 DEX_AVAILABLE_IN_ALL

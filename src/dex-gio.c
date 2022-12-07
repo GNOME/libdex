@@ -56,7 +56,7 @@ dex_input_stream_read_bytes (GInputStream *stream,
 {
   DexAsyncPair *async_pair;
 
-  g_return_val_if_fail (G_IS_INPUT_STREAM (stream), NULL);
+  g_return_val_if_fail (G_IS_OUTPUT_STREAM (stream), NULL);
 
   async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
 
@@ -152,6 +152,90 @@ dex_file_read (GFile *file,
                      async_pair->cancellable,
                      dex_file_read_cb,
                      dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_input_stream_read_cb (GObject      *object,
+                          GAsyncResult *result,
+                          gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+  gssize len;
+
+  len = g_input_stream_read_finish (G_INPUT_STREAM (object), result, &error);
+
+  if (error == NULL)
+    dex_future_complete (DEX_FUTURE (async_pair), &(GValue) { G_TYPE_INT64, {{.v_int64 = len}}}, NULL);
+  else
+    dex_future_complete (DEX_FUTURE (async_pair), NULL, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_input_stream_read (GInputStream *self,
+                       gpointer      buffer,
+                       gsize         count,
+                       int           priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_INPUT_STREAM (self), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_input_stream_read_async (self,
+                             buffer,
+                             count,
+                             priority,
+                             async_pair->cancellable,
+                             dex_input_stream_read_cb,
+                             dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_output_stream_write_cb (GObject      *object,
+                            GAsyncResult *result,
+                            gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+  gssize len;
+
+  len = g_output_stream_write_finish (G_OUTPUT_STREAM (object), result, &error);
+
+  if (error == NULL)
+    dex_future_complete (DEX_FUTURE (async_pair), &(GValue) { G_TYPE_INT64, {{.v_int64 = len}}}, NULL);
+  else
+    dex_future_complete (DEX_FUTURE (async_pair), NULL, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_output_stream_write (GOutputStream *self,
+                         gconstpointer  buffer,
+                         gsize          count,
+                         int            priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_OUTPUT_STREAM (self), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_output_stream_write_async (self,
+                               buffer,
+                               count,
+                               priority,
+                               async_pair->cancellable,
+                               dex_output_stream_write_cb,
+                               dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
 }
