@@ -27,11 +27,19 @@
 
 G_BEGIN_DECLS
 
-typedef void (*DexFiberFunc) (gpointer data);
+typedef void (*DexFiberFunc) (DexFiber *fiber,
+                              gpointer  data);
+
+typedef struct _DexStack
+{
+  gsize    size;
+  gpointer base;
+} DexStack;
 
 struct _DexFiber
 {
   DexObject    parent_instance;
+  DexStack     stack;
   ucontext_t   context;
   DexFiberFunc func;
   gpointer     func_data;
@@ -39,7 +47,6 @@ struct _DexFiber
 
 DexFiber *dex_fiber_new     (DexFiberFunc  func,
                              gpointer      func_data,
-                             gpointer      stack,
                              gsize         stack_size);
 void      dex_fiber_swap_to (DexFiber     *fiber,
                              DexFiber     *to);

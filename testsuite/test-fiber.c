@@ -28,29 +28,32 @@
 #include "dex-fiber-private.h"
 
 static int test_arg = 123;
-static ucontext_t context;
+static ucontext_t g_context;
 
 static void
-fiber_func (gpointer data)
+fiber_func (DexFiber *fiber,
+            gpointer  user_data)
 {
-  g_assert_true (data == &test_arg);
+  int *arg = user_data;
 
-  g_printerr ("fiber func\n");
+  g_assert_true (user_data == &test_arg);
+  g_assert_cmpint (*arg, ==, 123);
+  *arg = 321;
+  swapcontext (&fiber->context, &g_context);
 }
 
 static void
 test_fiber_basic (void)
 {
   DexFiber *fiber;
-  gsize stack_size = 4096*4;
-  gpointer stack = g_aligned_alloc (1, stack_size, getpagesize ());
 
   /* TODO: stack creation helper w/ guard page */
 
-  fiber = dex_fiber_new (fiber_func, &test_arg, stack, stack_size);
-  swapcontext (&context, &fiber->context);
+  fiber = dex_fiber_new (fiber_func, &test_arg, 4096);
+  swapcontext (&g_context, &fiber->context);
+  g_assert_cmpint (test_arg, ==, 321);
 
-  g_assert_not_reached ();
+  dex_unref (fiber);
 }
 
 int

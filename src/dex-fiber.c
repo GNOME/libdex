@@ -20,12 +20,16 @@
 
 #include "config.h"
 
+#include <glib.h>
+
 #include <stdarg.h>
 #include <setjmp.h>
 #include <ucontext.h>
+#include <unistd.h>
 
 #include "dex-fiber-private.h"
 #include "dex-object-private.h"
+#include "dex-platform.h"
 
 typedef struct _DexFiberClass
 {
@@ -35,8 +39,37 @@ typedef struct _DexFiberClass
 DEX_DEFINE_FINAL_TYPE (DexFiber, dex_fiber, DEX_TYPE_OBJECT)
 
 static void
+dex_stack_init (DexStack *stack,
+                gsize     size)
+{
+  stack->size = size;
+  stack->base = g_aligned_alloc (1, size, dex_get_page_size ());
+}
+
+static void
+dex_stack_destroy (DexStack *stack)
+{
+  stack->size = 0;
+  g_clear_pointer (&stack->base, g_aligned_free);
+}
+
+static void
+dex_fiber_finalize (DexObject *object)
+{
+  DexFiber *fiber = DEX_FIBER (object);
+
+  /* TODO: return stack to a stack pool */
+  dex_stack_destroy (&fiber->stack);
+
+  DEX_OBJECT_CLASS (dex_fiber_parent_class)->finalize (object);
+}
+
+static void
 dex_fiber_class_init (DexFiberClass *fiber_class)
 {
+  DexObjectClass *object_class = DEX_OBJECT_CLASS (fiber_class);
+
+  object_class->finalize = dex_fiber_finalize;
 }
 
 static void
@@ -47,7 +80,7 @@ dex_fiber_init (DexFiber *fiber)
 static void
 dex_fiber_start (DexFiber *fiber)
 {
-  fiber->func (fiber->func_data);
+  fiber->func (fiber, fiber->func_data);
 }
 
 
@@ -83,7 +116,6 @@ dex_fiber_start_ (int arg1, ...)
 DexFiber *
 dex_fiber_new (DexFiberFunc func,
                gpointer     func_data,
-               gpointer     stack,
                gsize        stack_size)
 {
   DexFiber *fiber;
@@ -93,17 +125,18 @@ dex_fiber_new (DexFiberFunc func,
 #endif
 
   g_return_val_if_fail (func != NULL, NULL);
-  g_return_val_if_fail (stack != NULL, NULL);
   g_return_val_if_fail (stack_size > 0, NULL);
 
   fiber = (DexFiber *)g_type_create_instance (DEX_TYPE_FIBER);
   fiber->func = func;
   fiber->func_data = func_data;
 
+  dex_stack_init (&fiber->stack, stack_size);
+
   getcontext (&fiber->context);
 
-  fiber->context.uc_stack.ss_size = stack_size;
-  fiber->context.uc_stack.ss_sp = stack;
+  fiber->context.uc_stack.ss_size = fiber->stack.size;
+  fiber->context.uc_stack.ss_sp = fiber->stack.base;
   fiber->context.uc_link = 0;
 
 #if GLIB_SIZEOF_VOID_P == 8
