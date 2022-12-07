@@ -67,11 +67,6 @@ dex_fiber_start (DexFiber *fiber)
   fiber->func (fiber, fiber->func_data);
 }
 
-
-#ifdef _FORTIFY_SOURCE
-# undef _FORTIFY_SOURCE
-#endif
-
 static void
 dex_fiber_start_ (int arg1, ...)
 {
