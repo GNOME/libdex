@@ -56,7 +56,7 @@ dex_input_stream_read_bytes (GInputStream *stream,
 {
   DexAsyncPair *async_pair;
 
-  g_return_val_if_fail (G_IS_OUTPUT_STREAM (stream), NULL);
+  g_return_val_if_fail (G_IS_INPUT_STREAM (stream), NULL);
 
   async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
 
