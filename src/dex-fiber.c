@@ -104,7 +104,6 @@ dex_fiber_new (DexFiberFunc func,
 #endif
 
   g_return_val_if_fail (func != NULL, NULL);
-  g_return_val_if_fail (stack_size > 0, NULL);
 
   fiber = (DexFiber *)g_type_create_instance (DEX_TYPE_FIBER);
   fiber->func = func;
