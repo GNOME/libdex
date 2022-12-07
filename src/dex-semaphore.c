@@ -24,7 +24,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-#if HAVE_EVENTFD
+#ifdef HAVE_EVENTFD
 # include <sys/eventfd.h>
 #endif
 
@@ -83,7 +83,11 @@ dex_semaphore_class_init (DexSemaphoreClass *semaphore_class)
 static void
 dex_semaphore_init (DexSemaphore *semaphore)
 {
+#ifdef HAVE_EVENTFD
   semaphore->eventfd = eventfd (0, EFD_SEMAPHORE);
+#else
+# error "DexSemaphore is not yet supported on your platform"
+#endif
 }
 
 void
