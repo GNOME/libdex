@@ -158,6 +158,24 @@ deprecated_c_args = [
 
 add_project_arguments(['-I' + meson.project_build_root()], language: 'c')
 
+functions = [
+  'eventfd',
+  'kqueue',
+  'kevent',
+  'posix_fadvise',
+]
+
+foreach f : functions
+  if cc.has_function(f)
+    define = 'HAVE_' + f.underscorify().to_upper()
+    config_h.set10(define, true)
+    set_variable('have_func_' + f, true)
+  else
+    set_variable('have_func_' + f, false)
+  endif
+endforeach
+
+
 subdir('src')
 subdir('testsuite')
 subdir('examples')
