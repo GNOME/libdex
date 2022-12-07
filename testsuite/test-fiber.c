@@ -29,6 +29,7 @@
 
 static int test_arg = 123;
 static ucontext_t g_context;
+static GRecMutex rmutex;
 
 static void
 fiber_func (DexFiber *fiber,
@@ -54,6 +55,34 @@ test_fiber_basic (void)
   dex_unref (fiber);
 }
 
+static void
+fiber_rec_func (DexFiber *fiber,
+                gpointer  user_data)
+{
+  g_rec_mutex_lock (&rmutex);
+  g_rec_mutex_lock (&rmutex);
+  g_rec_mutex_unlock (&rmutex);
+  g_rec_mutex_unlock (&rmutex);
+
+  swapcontext (&fiber->context, &g_context);
+}
+
+static void
+test_fiber_rec_mutex (void)
+{
+  DexFiber *fiber;
+
+  g_rec_mutex_init (&rmutex);
+  g_rec_mutex_lock (&rmutex);
+
+  fiber = dex_fiber_new (fiber_rec_func, NULL, 0);
+  swapcontext (&g_context, &fiber->context);
+  dex_unref (fiber);
+
+  g_rec_mutex_unlock (&rmutex);
+  g_rec_mutex_clear (&rmutex);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -61,5 +90,6 @@ main (int argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Fiber/basic", test_fiber_basic);
+  g_test_add_func ("/Dex/TestSuite/Fiber/rec-mutex", test_fiber_rec_mutex);
   return g_test_run ();
 }
