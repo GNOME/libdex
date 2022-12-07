@@ -19,6 +19,7 @@ testsuite_sources = [
   ['test-async-result'],
   ['test-channel'],
   ['test-object'],
+  ['test-fiber'],
   ['test-future'],
   ['test-scheduler'],
   ['test-semaphore'],

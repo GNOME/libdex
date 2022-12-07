@@ -36,6 +36,7 @@ G_BEGIN_DECLS
 # include "dex-delayed.h"
 # include "dex-enums.h"
 # include "dex-error.h"
+# include "dex-fiber.h"
 # include "dex-function.h"
 # include "dex-future.h"
 # include "dex-future-set.h"
