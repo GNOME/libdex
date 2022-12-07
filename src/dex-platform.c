@@ -46,3 +46,22 @@ dex_get_page_size (void)
 
   return page_size;
 }
+
+gsize
+dex_get_min_stack_size (void)
+{
+  static gsize min_stack_size;
+  if G_UNLIKELY (min_stack_size == 0)
+    {
+#ifdef G_OS_WIN32
+      /* Probably need to base this on granularity or something,
+       * because the default stack size of 1MB is likely too much.
+       */
+      min_stack_size = 4096*16;
+#else
+      min_stack_size = sysconf (_SC_THREAD_STACK_MIN);
+#endif
+    }
+
+  return min_stack_size;
+}
