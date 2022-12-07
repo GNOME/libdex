@@ -100,6 +100,7 @@ cat_init (Cat      *cat,
   gboolean ret = FALSE;
   int buffer_size = (1024*256 - 2*sizeof(gpointer)); /* 256k minus malloc overhead */
   int queue_size = 32;
+  gssize len;
   const GOptionEntry entries[] = {
     { "output", 'o', 0, G_OPTION_ARG_FILENAME, &output, "Cat contents into OUTPUT", "OUTPUT" },
     { "buffer-size", 'b', 0, G_OPTION_ARG_INT, &buffer_size, "Read/Write buffer size", "BYTES" },
@@ -144,6 +145,16 @@ cat_init (Cat      *cat,
   else
     {
       cat->read_fd = STDIN_FILENO;
+    }
+
+  len = lseek (cat->read_fd, 0, SEEK_END);
+
+  if (len > 0)
+    {
+      posix_fadvise (cat->read_fd, 0, len, POSIX_FADV_SEQUENTIAL);
+      posix_fadvise (cat->write_fd, 0, len, POSIX_FADV_SEQUENTIAL);
+
+      lseek (cat->read_fd, 0, SEEK_SET);
     }
 
   ret = TRUE;
