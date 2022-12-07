@@ -24,25 +24,20 @@
 
 #include "dex-object-private.h"
 #include "dex-fiber.h"
+#include "dex-stack-private.h"
 
 G_BEGIN_DECLS
 
 typedef void (*DexFiberFunc) (DexFiber *fiber,
                               gpointer  data);
 
-typedef struct _DexStack
-{
-  gsize    size;
-  gpointer base;
-} DexStack;
-
 struct _DexFiber
 {
-  DexObject    parent_instance;
-  DexStack     stack;
-  ucontext_t   context;
-  DexFiberFunc func;
-  gpointer     func_data;
+  DexObject     parent_instance;
+  DexStack     *stack;
+  ucontext_t    context;
+  DexFiberFunc  func;
+  gpointer      func_data;
 };
 
 DexFiber *dex_fiber_new     (DexFiberFunc  func,
