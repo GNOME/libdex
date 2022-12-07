@@ -23,6 +23,7 @@ libdex_sources = [
   'dex-routine.c',
   'dex-scheduler.c',
   'dex-semaphore.c',
+  'dex-stack.c',
   'dex-static-future.c',
   'dex-tasklet.c',
   'dex-thread-pool-scheduler.c',
