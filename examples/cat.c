@@ -27,6 +27,16 @@
 
 #include "cat-util.h"
 
+/* NOTE:
+ *
+ * `cat` from coreutils is certainly faster than this, especially if you're
+ * doing things like `./examples/cat foo > bar` as it will use
+ * copy_file_range() to avoid reading into userspace.
+ *
+ * `gio cat` is likely faster than this doing synchronous IO on the calling
+ * thread because it doesn't have to coordinate across thread pools.
+ */
+
 static DexFuture *
 release_buffer (DexFuture *future,
                 gpointer user_data)
