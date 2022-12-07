@@ -47,8 +47,6 @@ test_fiber_basic (void)
 {
   DexFiber *fiber;
 
-  /* TODO: stack creation helper w/ guard page */
-
   fiber = dex_fiber_new (fiber_func, &test_arg, 4096);
   swapcontext (&g_context, &fiber->context);
   g_assert_cmpint (test_arg, ==, 321);
