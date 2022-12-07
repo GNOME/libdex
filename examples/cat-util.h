@@ -98,11 +98,11 @@ cat_init (Cat      *cat,
   GOptionContext *context;
   char *output = NULL;
   gboolean ret = FALSE;
-  int buffer_size = 4096*4;
+  int buffer_size = (1024*256 - 2*sizeof(gpointer)); /* 256k minus malloc overhead */
   int queue_size = 32;
   const GOptionEntry entries[] = {
     { "output", 'o', 0, G_OPTION_ARG_FILENAME, &output, "Cat contents into OUTPUT", "OUTPUT" },
-    { "buffer-size", 'b', 0, G_OPTION_ARG_INT, &buffer_size, "Read/Write buffer size (default 16kB)", "BYTES" },
+    { "buffer-size", 'b', 0, G_OPTION_ARG_INT, &buffer_size, "Read/Write buffer size", "BYTES" },
     { "queue-size", 'q', 0, G_OPTION_ARG_INT, &queue_size, "Amount of reads that can advance ahead of writes (default 32)", "COUNT" },
     { 0 }
   };
