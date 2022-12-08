@@ -21,19 +21,23 @@
 
 #pragma once
 
-#include "dex-aio-private.h"
-#include "dex-scheduler.h"
-#include "dex-thread-pool-worker-private.h"
+#include <glib.h>
 
 G_BEGIN_DECLS
 
 #define DEX_THREAD_POOL_WORKER_CURRENT (dex_thread_storage_get()->worker)
+
+typedef struct _DexAioContext DexAioContext;
+typedef struct _DexFiberScheduler DexFiberScheduler;
+typedef struct _DexScheduler DexScheduler;
+typedef struct _DexThreadPoolWorker DexThreadPoolWorker;
 
 typedef struct _DexThreadStorage
 {
   DexScheduler        *scheduler;
   DexThreadPoolWorker *worker;
   DexAioContext       *aio_context;
+  DexFiberScheduler   *fiber_scheduler;
 } DexThreadStorage;
 
 DexThreadStorage *dex_thread_storage_get (void);
