@@ -57,6 +57,7 @@ struct _DexFiber
   /* Origin function/data for the fiber */
   DexFiberFunc func;
   gpointer func_data;
+  GDestroyNotify func_data_destroy;
 
   /* Context for the fiber */
   ucontext_t context;
@@ -88,6 +89,7 @@ struct _DexFiberScheduler
 DexFiberScheduler *dex_fiber_scheduler_new (void);
 DexFiber          *dex_fiber_new           (DexFiberFunc       func,
                                             gpointer           func_data,
+                                            GDestroyNotify     func_data_destroy,
                                             gsize              stack_size);
 void               dex_fiber_migrate_to    (DexFiber          *fiber,
                                             DexFiberScheduler *fiber_scheduler);

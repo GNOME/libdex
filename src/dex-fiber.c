@@ -140,15 +140,30 @@ dex_fiber_start (DexFiber *fiber)
                                                 "The fiber exited without a result"));
     }
 
+  /* Mark fiber as exited */
   fiber->status = DEX_FIBER_STATUS_EXITED;
 
+  /* Remove the fiber from the scheduler ready queue */
   fiber_scheduler = fiber->fiber_scheduler;
-
   g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
   g_queue_unlink (&fiber_scheduler->ready, &fiber->link);
   dex_fiber_migrate_to (fiber, NULL);
   g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
 
+  /* Free func data if necessary */
+  if (fiber->func_data_destroy)
+    {
+      GDestroyNotify func_data_destroy = fiber->func_data_destroy;
+      gpointer func_data = fiber->func_data;
+
+      fiber->func = NULL;
+      fiber->func_data = NULL;
+      fiber->func_data_destroy = NULL;
+
+      func_data_destroy (func_data);
+    }
+
+  /* Now suspend, resuming the scheduler */
   swapcontext (&fiber->context, &fiber_scheduler->context);
 }
 
@@ -180,9 +195,10 @@ dex_fiber_start_ (int arg1, ...)
 }
 
 DexFiber *
-dex_fiber_new (DexFiberFunc func,
-               gpointer     func_data,
-               gsize        stack_size)
+dex_fiber_new (DexFiberFunc   func,
+               gpointer       func_data,
+               GDestroyNotify func_data_destroy,
+               gsize          stack_size)
 {
   DexFiber *fiber;
 #if GLIB_SIZEOF_VOID_P == 8
@@ -195,6 +211,7 @@ dex_fiber_new (DexFiberFunc func,
   fiber = (DexFiber *)g_type_create_instance (DEX_TYPE_FIBER);
   fiber->func = func;
   fiber->func_data = func_data;
+  fiber->func_data_destroy = func_data_destroy;
 
   fiber->stack = dex_stack_new (stack_size);
 

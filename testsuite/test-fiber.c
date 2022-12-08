@@ -65,7 +65,7 @@ test_fiber_rec_mutex (void)
   g_rec_mutex_init (&rmutex);
   g_rec_mutex_lock (&rmutex);
 
-  fiber = dex_fiber_new (fiber_rec_func, &fiber, 0);
+  fiber = dex_fiber_new (fiber_rec_func, &fiber, NULL, 0);
   swapcontext (&g_context, &fiber->context);
   ASSERT_STATUS (fiber, DEX_FUTURE_STATUS_PENDING);
   dex_unref (fiber);
@@ -91,7 +91,7 @@ static void
 test_fiber_scheduler_basic (void)
 {
   DexFiberScheduler *fiber_scheduler = dex_fiber_scheduler_new ();
-  DexFiber *fiber = dex_fiber_new (scheduler_fiber_func, NULL, 0);
+  DexFiber *fiber = dex_fiber_new (scheduler_fiber_func, NULL, NULL, 0);
   const GValue *value;
 
   g_source_attach ((GSource *)fiber_scheduler, NULL);
@@ -108,7 +108,7 @@ test_fiber_scheduler_basic (void)
   g_assert_cmpint (99, ==, g_value_get_int (value));
   dex_clear (&fiber);
 
-  fiber = dex_fiber_new (scheduler_fiber_error, NULL, 0);
+  fiber = dex_fiber_new (scheduler_fiber_error, NULL, NULL, 0);
   dex_future_set_static_name (DEX_FUTURE (fiber), "fiber_error");
   dex_fiber_migrate_to (fiber, fiber_scheduler);
   while (g_main_context_pending (NULL))
@@ -139,8 +139,6 @@ test_await_send (gpointer user_data)
       dex_unref (send);
     }
 
-  dex_unref (channel);
-
   return dex_future_new_for_boolean (TRUE);
 }
 
@@ -164,8 +162,6 @@ test_await_recv (gpointer user_data)
       dex_unref (recv);
     }
 
-  dex_unref (channel);
-
   return dex_future_new_for_boolean (TRUE);
 }
 
@@ -174,8 +170,8 @@ test_fiber_scheduler_await (void)
 {
   DexFiberScheduler *fiber_scheduler = dex_fiber_scheduler_new ();
   DexChannel *channel = dex_channel_new (0);
-  DexFiber *fiber1 = dex_fiber_new (test_await_send, dex_ref (channel), 0);
-  DexFiber *fiber2 = dex_fiber_new (test_await_recv, dex_ref (channel), 0);
+  DexFiber *fiber1 = dex_fiber_new (test_await_send, dex_ref (channel), dex_unref, 0);
+  DexFiber *fiber2 = dex_fiber_new (test_await_recv, dex_ref (channel), dex_unref, 0);
 
   dex_future_set_static_name (DEX_FUTURE (fiber1), "fiber1");
   dex_future_set_static_name (DEX_FUTURE (fiber2), "fiber2");
