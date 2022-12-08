@@ -216,6 +216,7 @@ dex_fiber_scheduler_new (void)
   };
 
   fiber_scheduler = (DexFiberScheduler *)g_source_new (&funcs, sizeof *fiber_scheduler);
+  g_source_set_static_name ((GSource *)fiber_scheduler, "[dex-fiber-scheduler]");
   g_rec_mutex_init (&fiber_scheduler->rec_mutex);
 
   return fiber_scheduler;
