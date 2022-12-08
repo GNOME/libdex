@@ -23,16 +23,14 @@
 #include <ucontext.h>
 #include <unistd.h>
 
-#include "dex-object-private.h"
 #include "dex-fiber.h"
+#include "dex-future-private.h"
+#include "dex-scheduler.h"
 #include "dex-stack-private.h"
 
 G_BEGIN_DECLS
 
 typedef struct _DexFiberScheduler DexFiberScheduler;
-
-typedef void (*DexFiberFunc) (DexFiber *fiber,
-                              gpointer  data);
 
 typedef enum _DexFiberState
 {
@@ -43,7 +41,7 @@ typedef enum _DexFiberState
 
 struct _DexFiber
 {
-  DexObject parent_instance;
+  DexFuture parent_instance;
 
   /* Augmented link placed in either runnable or waiting queue
    * of the DexFiberScheduler.

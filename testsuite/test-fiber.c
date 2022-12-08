@@ -27,44 +27,25 @@
 
 #include "dex-fiber-private.h"
 
+#define ASSERT_STATUS(f,status) g_assert_cmpint(status, ==, dex_future_get_status(DEX_FUTURE(f)))
+
 static int test_arg = 123;
 static ucontext_t g_context;
 static GRecMutex rmutex;
 
-static void
-fiber_func (DexFiber *fiber,
-            gpointer  user_data)
+static DexFuture *
+fiber_rec_func (gpointer user_data)
 {
-  int *arg = user_data;
+  DexFiber **fiber = user_data;
 
-  g_assert_true (user_data == &test_arg);
-  g_assert_cmpint (*arg, ==, 123);
-  *arg = 321;
-  swapcontext (&fiber->context, &g_context);
-}
-
-static void
-test_fiber_basic (void)
-{
-  DexFiber *fiber;
-
-  fiber = dex_fiber_new (fiber_func, &test_arg, 4096);
-  swapcontext (&g_context, &fiber->context);
-  g_assert_cmpint (test_arg, ==, 321);
-
-  dex_unref (fiber);
-}
-
-static void
-fiber_rec_func (DexFiber *fiber,
-                gpointer  user_data)
-{
   g_rec_mutex_lock (&rmutex);
   g_rec_mutex_lock (&rmutex);
   g_rec_mutex_unlock (&rmutex);
   g_rec_mutex_unlock (&rmutex);
 
-  swapcontext (&fiber->context, &g_context);
+  swapcontext (&(*fiber)->context, &g_context);
+
+  return NULL;
 }
 
 static void
@@ -75,19 +56,20 @@ test_fiber_rec_mutex (void)
   g_rec_mutex_init (&rmutex);
   g_rec_mutex_lock (&rmutex);
 
-  fiber = dex_fiber_new (fiber_rec_func, NULL, 0);
+  fiber = dex_fiber_new (fiber_rec_func, &fiber, 0);
   swapcontext (&g_context, &fiber->context);
+  ASSERT_STATUS (fiber, DEX_FUTURE_STATUS_PENDING);
   dex_unref (fiber);
 
   g_rec_mutex_unlock (&rmutex);
   g_rec_mutex_clear (&rmutex);
 }
 
-static void
-scheduler_fiber_func (DexFiber *fiber,
-                      gpointer  user_data)
+static DexFuture *
+scheduler_fiber_func (gpointer user_data)
 {
   test_arg = 99;
+  return NULL;
 }
 
 static void
@@ -102,6 +84,12 @@ test_fiber_scheduler_basic (void)
   dex_fiber_migrate_to (fiber, fiber_scheduler);
   g_main_context_iteration (NULL, FALSE);
   g_assert_cmpint (test_arg, ==, 99);
+
+  ASSERT_STATUS (fiber, DEX_FUTURE_STATUS_REJECTED);
+  dex_unref (fiber);
+
+  g_source_destroy ((GSource *)fiber_scheduler);
+  g_source_unref ((GSource *)fiber_scheduler);
 }
 
 int
@@ -110,7 +98,6 @@ main (int argc,
 {
   dex_init ();
   g_test_init (&argc, &argv, NULL);
-  g_test_add_func ("/Dex/TestSuite/Fiber/basic", test_fiber_basic);
   g_test_add_func ("/Dex/TestSuite/Fiber/rec-mutex", test_fiber_rec_mutex);
   g_test_add_func ("/Dex/TestSuite/FiberScheduler/basic", test_fiber_scheduler_basic);
   return g_test_run ();

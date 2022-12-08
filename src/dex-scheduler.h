@@ -37,6 +37,7 @@ typedef struct _DexScheduler DexScheduler;
 
 typedef void       (*DexSchedulerFunc) (gpointer func_data);
 typedef DexFuture *(*DexRoutineFunc)   (gpointer func_data);
+typedef DexFuture *(*DexFiberFunc)     (gpointer func_data);
 
 DEX_AVAILABLE_IN_ALL
 GType         dex_scheduler_get_type           (void) G_GNUC_CONST;

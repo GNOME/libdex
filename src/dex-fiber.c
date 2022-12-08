@@ -27,16 +27,54 @@
 #include <ucontext.h>
 #include <unistd.h>
 
+#include "dex-error.h"
 #include "dex-fiber-private.h"
 #include "dex-object-private.h"
 #include "dex-platform.h"
 
 typedef struct _DexFiberClass
 {
-  DexObjectClass parent_class;
+  DexFutureClass parent_class;
 } DexFiberClass;
 
-DEX_DEFINE_FINAL_TYPE (DexFiber, dex_fiber, DEX_TYPE_OBJECT)
+DEX_DEFINE_FINAL_TYPE (DexFiber, dex_fiber, DEX_TYPE_FUTURE)
+
+static gboolean
+dex_fiber_propagate (DexFuture *future,
+                     DexFuture *completed)
+{
+  DexFiber *fiber = DEX_FIBER (future);
+  gboolean ret = FALSE;
+
+  g_assert (DEX_IS_FIBER (fiber));
+  g_assert (DEX_IS_FUTURE (completed));
+
+  dex_object_lock (fiber);
+
+  if (fiber->state == DEX_FIBER_STATE_WAITING)
+    {
+      /* TODO: We need to migrate this fiber to the ready queue */
+
+      fiber->state = DEX_FIBER_STATE_READY;
+      ret = TRUE;
+    }
+  else if (fiber->state == DEX_FIBER_STATE_EXITED)
+    {
+      /* This is the final value for the fiber, pass it along */
+    }
+  else if (fiber->state == DEX_FIBER_STATE_WAITING)
+    {
+      g_warn_if_reached ();
+    }
+  else
+    {
+      g_assert_not_reached ();
+    }
+
+  dex_object_unlock (fiber);
+
+  return ret;
+}
 
 static void
 dex_fiber_finalize (DexObject *object)
@@ -55,8 +93,11 @@ static void
 dex_fiber_class_init (DexFiberClass *fiber_class)
 {
   DexObjectClass *object_class = DEX_OBJECT_CLASS (fiber_class);
+  DexFutureClass *future_class = DEX_FUTURE_CLASS (fiber_class);
 
   object_class->finalize = dex_fiber_finalize;
+
+  future_class->propagate = dex_fiber_propagate;
 }
 
 static void
@@ -68,8 +109,17 @@ dex_fiber_init (DexFiber *fiber)
 static void
 dex_fiber_start (DexFiber *fiber)
 {
-  fiber->func (fiber, fiber->func_data);
+  DexFuture *future;
+
+  future = fiber->func (fiber->func_data);
   fiber->state = DEX_FIBER_STATE_EXITED;
+
+  if (future == NULL)
+    future = dex_future_new_reject (DEX_ERROR,
+                                    DEX_ERROR_FIBER_EXITED,
+                                    "The fiber exited without a result");
+
+  dex_future_chain (future, DEX_FUTURE (fiber));
 
   if (fiber->fiber_scheduler)
     {
