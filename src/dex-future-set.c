@@ -244,7 +244,6 @@ dex_future_set_new_va (DexFuture         *first_future,
   DexFutureSet *future_set;
   DexFuture *future = first_future;
   guint capacity = 8;
-  guint i = 0;
 
   g_return_val_if_fail (DEX_IS_FUTURE (first_future), NULL);
   g_return_val_if_fail ((flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST) == 0 ||
@@ -253,24 +252,22 @@ dex_future_set_new_va (DexFuture         *first_future,
 
   future_set = (DexFutureSet *)g_type_create_instance (DEX_TYPE_FUTURE_SET);
   future_set->flags = flags;
-  future_set->futures = g_new (DexFuture *, capacity);
+  future_set->futures = future_set->embedded;
 
   g_assert (capacity > G_N_ELEMENTS (future_set->embedded));
 
   while (future != NULL)
     {
-      dex_ref (future);
-
-      if (i == G_N_ELEMENTS (future_set->embedded))
+      if G_UNLIKELY (future_set->n_futures == G_N_ELEMENTS (future_set->embedded))
         {
           future_set->futures = g_new0 (DexFuture *, capacity);
-          memcpy (future_set->futures, future_set->embedded, sizeof (DexFuture *) * i);
+          for (guint j = 0; j < G_N_ELEMENTS (future_set->embedded); j++)
+            future_set->futures[j] = future_set->embedded[j];
         }
-
-      if (future_set->n_futures + 1 > capacity)
+      else if G_UNLIKELY (future_set->n_futures + 1 > capacity)
         {
           capacity *= 2;
-          future_set->futures = g_realloc (future_set->futures, capacity);
+          future_set->futures = g_realloc_n (future_set->futures, capacity, sizeof (DexFuture *));
         }
 
       future_set->futures[future_set->n_futures++] = future;
@@ -280,7 +277,7 @@ dex_future_set_new_va (DexFuture         *first_future,
   /* Now start chaining futures, even if we progress from pending while
    * we iterate this list (as we're safe against multiple resolves).
    */
-  for (i = 0; i < future_set->n_futures; i++)
+  for (guint i = 0; i < future_set->n_futures; i++)
     dex_future_chain (future_set->futures[i], DEX_FUTURE (future_set));
 
   return future_set;
