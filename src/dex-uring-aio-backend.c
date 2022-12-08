@@ -221,6 +221,7 @@ dex_uring_aio_backend_create_context (DexAioBackend *aio_backend)
   aio_context = (DexUringAioContext *)
     g_source_new (&dex_uring_aio_context_source_funcs,
                   sizeof *aio_context);
+  g_source_set_can_recurse ((GSource *)aio_context, TRUE);
   aio_context->parent.aio_backend = dex_ref (aio_backend);
   g_mutex_init (&aio_context->mutex);
 
