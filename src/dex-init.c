@@ -52,12 +52,20 @@ dex_init_once (void)
   /* Future types */
   g_type_ensure (DEX_TYPE_FUTURE);
   g_type_ensure (DEX_TYPE_ASYNC_PAIR);
+  g_type_ensure (DEX_TYPE_FIBER);
   g_type_ensure (DEX_TYPE_FUTURE_SET);
   g_type_ensure (DEX_TYPE_BLOCK);
   g_type_ensure (DEX_TYPE_CANCELLABLE);
   g_type_ensure (DEX_TYPE_PROMISE);
+  g_type_ensure (DEX_TYPE_STATIC_FUTURE);
   g_type_ensure (DEX_TYPE_TASKLET);
   g_type_ensure (DEX_TYPE_TIMEOUT);
+#ifdef G_OS_UNIX
+  g_type_ensure (DEX_TYPE_UNIX_SIGNAL);
+#endif
+
+  /* Integration types */
+  g_type_ensure (DEX_TYPE_ASYNC_RESULT);
 
   /* Setup default scheduler for application */
   main_scheduler = dex_main_scheduler_new (NULL);
