@@ -25,6 +25,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <glib/gstdio.h>
 #include <glib-unix.h>
 
 #include <libdex.h>
@@ -125,7 +126,9 @@ cat_init (Cat      *cat,
 
   if (output != NULL)
     {
-      if (-1 == (cat->write_fd = open (output, O_WRONLY)))
+      g_unlink (output);
+
+      if (-1 == (cat->write_fd = open (output, O_WRONLY|O_CREAT)))
         goto cleanup;
     }
 
@@ -164,18 +167,16 @@ cat_init (Cat      *cat,
 cleanup:
   if (ret == FALSE)
     {
+      int errsv = errno;
       char *help = g_option_context_get_help (context, TRUE, NULL);
       g_printerr ("%s\n", help);
       g_free (help);
 
       if (error && !*error)
-        {
-          int errsv = errno;
-          g_set_error_literal (error,
-                               G_IO_ERROR,
-                               g_io_error_from_errno (errsv),
-                               g_strerror (errsv));
-        }
+        g_set_error_literal (error,
+                             G_IO_ERROR,
+                             g_io_error_from_errno (errsv),
+                             g_strerror (errsv));
     }
 
   g_option_context_free (context);
