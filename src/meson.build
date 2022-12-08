@@ -93,7 +93,7 @@ configure_file(
          output: 'dex-version.h',
   configuration: version_conf,
         install: true,
-    install_dir: join_paths(get_option('includedir'), 'libdex')
+    install_dir: join_paths(get_option('includedir'), 'libdex-@0@'.format(api_version))
 )
 
 libdex_deps = [
@@ -132,7 +132,7 @@ libdex = shared_library('dex-@0@'.format(api_version),
 
 libdex_dep_sources = []
 
-install_headers(libdex_headers, subdir: 'libdex')
+install_headers(libdex_headers, subdir: 'libdex-@0@'.format(api_version))
 
 pkg.generate(
   description: 'A shared library for deferred execution',
@@ -140,7 +140,7 @@ pkg.generate(
          name: 'libdex',
      filebase: 'libdex-' + api_version,
       version: meson.project_version(),
-      subdirs: 'libdex',
+      subdirs: 'libdex-@0@'.format(api_version),
      requires: ['gio-2.0'],
   install_dir: join_paths(get_option('libdir'), 'pkgconfig')
 )
