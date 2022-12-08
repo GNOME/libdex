@@ -23,7 +23,6 @@
 
 #include "dex-aio-backend-private.h"
 #include "dex-fiber-private.h"
-#include "dex-routine-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-thread-storage-private.h"
 
@@ -32,32 +31,8 @@ static DexScheduler *default_scheduler;
 DEX_DEFINE_ABSTRACT_TYPE (DexScheduler, dex_scheduler, DEX_TYPE_OBJECT)
 
 static void
-dex_scheduler_spawn_work_item_func (gpointer user_data)
-{
-  DexRoutine *routine = user_data;
-
-  g_assert (DEX_IS_ROUTINE (routine));
-
-  dex_routine_spawn (routine);
-  dex_unref (routine);
-}
-
-static void
-dex_scheduler_real_spawn (DexScheduler *scheduler,
-                          DexRoutine   *routine)
-{
-  g_assert (DEX_IS_SCHEDULER (scheduler));
-  g_assert (DEX_IS_ROUTINE (routine));
-
-  dex_scheduler_push (scheduler,
-                      dex_scheduler_spawn_work_item_func,
-                      dex_ref (routine));
-}
-
-static void
 dex_scheduler_class_init (DexSchedulerClass *scheduler_class)
 {
-  scheduler_class->spawn = dex_scheduler_real_spawn;
 }
 
 static void
@@ -183,36 +158,6 @@ DexAioContext *
 dex_scheduler_get_aio_context (DexScheduler *scheduler)
 {
   return DEX_SCHEDULER_GET_CLASS (scheduler)->get_aio_context (scheduler);
-}
-
-/**
- * dex_scheduler_spawn:
- * @scheduler: (nullable): a #DexScheduler
- * @func: (scope async): a #DexRoutineFunc
- * @func_data: closure data for @func
- * @func_data_destroy: closure notify for @func_data
- *
- * Request @scheduler to spawn a #DexRoutine.
- *
- * Returns: (transfer full): a #DexFuture that will resolve or reject when
- *   @func completes (or it's resulting #DexFuture completes).
- */
-DexFuture *
-dex_scheduler_spawn (DexScheduler   *scheduler,
-                     DexRoutineFunc  func,
-                     gpointer        func_data,
-                     GDestroyNotify  func_data_destroy)
-{
-  DexRoutine *routine;
-
-  g_return_val_if_fail (!scheduler || DEX_IS_SCHEDULER (scheduler), NULL);
-
-  if (scheduler == NULL)
-    scheduler = dex_scheduler_get_default ();
-
-  routine = dex_routine_new (func, func_data, func_data_destroy);
-  DEX_SCHEDULER_GET_CLASS (scheduler)->spawn (scheduler, routine);
-  return DEX_FUTURE (routine);
 }
 
 /**

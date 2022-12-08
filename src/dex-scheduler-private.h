@@ -24,7 +24,6 @@
 #include "dex-aio-backend-private.h"
 #include "dex-fiber.h"
 #include "dex-object-private.h"
-#include "dex-routine.h"
 #include "dex-scheduler.h"
 
 G_BEGIN_DECLS
@@ -49,8 +48,6 @@ typedef struct _DexSchedulerClass
 
   void           (*push)             (DexScheduler *scheduler,
                                       DexWorkItem   work_item);
-  void           (*spawn)            (DexScheduler *scheduler,
-                                      DexRoutine   *routine);
   void           (*spawn_fiber)      (DexScheduler *scheduler,
                                       DexFiber     *fiber);
   GMainContext  *(*get_main_context) (DexScheduler *scheduler);
