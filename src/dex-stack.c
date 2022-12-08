@@ -136,7 +136,7 @@ dex_stack_new (gsize size)
 
   stack = g_new0 (DexStack, 1);
   stack->link.data = stack;
-  stack->size = size + page_size;
+  stack->size = size;
   stack->base = map;
   stack->guard = guard;
 
@@ -147,12 +147,14 @@ dex_stack_new (gsize size)
 void
 dex_stack_free (DexStack *stack)
 {
+  guint page_size = dex_get_page_size ();
+
   g_assert (stack->link.data == stack);
   g_assert (stack->link.prev == NULL);
   g_assert (stack->link.next == NULL);
 
   if (stack->base != MAP_FAILED)
-    munmap (stack->base, stack->size);
+    munmap (stack->base, stack->size + page_size);
 
   stack->base = MAP_FAILED;
   stack->guard = MAP_FAILED;
