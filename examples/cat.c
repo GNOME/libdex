@@ -38,15 +38,6 @@
  */
 
 static DexFuture *
-release_buffer (DexFuture *future,
-                gpointer user_data)
-{
-  Buffer *buffer = user_data;
-  cat_push_buffer (buffer->cat, buffer);
-  return NULL;
-}
-
-static DexFuture *
 cat_read_fiber (gpointer user_data)
 {
   Cat *cat = user_data;
@@ -102,45 +93,38 @@ cat_read_fiber (gpointer user_data)
 }
 
 static DexFuture *
-cat_write_cb (DexFuture *completed,
-              gpointer   user_data)
-{
-  Cat *cat = user_data;
-  DexFuture *buffer_future = dex_future_set_get_future_at (DEX_FUTURE_SET (completed), 0);
-  const GValue *value = dex_future_get_value (buffer_future, NULL);
-  Buffer *buffer;
-
-  if (value == NULL)
-    return NULL;
-
-  buffer = g_value_get_pointer (value);
-  return dex_future_all (dex_channel_receive (cat->channel),
-                         dex_future_finally (dex_output_stream_write (cat->output,
-                                                                      buffer->data,
-                                                                      buffer->length,
-                                                                      G_PRIORITY_DEFAULT),
-                                             release_buffer, buffer, NULL),
-                         NULL);
-}
-
-static DexFuture *
-cat_write (Cat *cat)
-{
-  DexFuture *future;
-
-  future = dex_channel_receive (cat->channel);
-  future = dex_future_all (future, NULL);
-  future = dex_future_finally_loop (future, cat_write_cb, cat, NULL);
-
-  return future;
-}
-
-static DexFuture *
 cat_write_fiber (gpointer user_data)
 {
   Cat *cat = user_data;
-  cat->output = G_OUTPUT_STREAM (g_unix_output_stream_new (cat->write_fd, FALSE));
-  return cat_write (cat);
+  GOutputStream *stream;
+
+  stream = G_OUTPUT_STREAM (g_unix_output_stream_new (cat->write_fd, FALSE));
+
+  for (;;)
+    {
+      g_autoptr(DexFuture) recv = dex_channel_receive (cat->channel);
+      g_autoptr(DexFuture) wr = NULL;
+      Buffer *buffer;
+      gssize len;
+
+      if (!(buffer = dex_future_await_pointer (recv, NULL)))
+        break;
+
+      wr = dex_output_stream_write (stream,
+                                    buffer->data,
+                                    buffer->length,
+                                    G_PRIORITY_DEFAULT);
+
+      len = dex_future_await_int64 (wr, NULL);
+      cat_push_buffer (cat, buffer);
+
+      if (len <= 0)
+        break;
+    }
+
+  g_clear_object (&stream);
+
+  return dex_future_new_for_boolean (TRUE);
 }
 
 int
@@ -156,7 +140,7 @@ main (int   argc,
   if (!cat_init (&cat, &argc, &argv, &error) ||
       !cat_run (&cat,
                 dex_scheduler_spawn_fiber (NULL, cat_read_fiber, &cat, NULL),
-                dex_scheduler_spawn (NULL, cat_write_fiber, &cat, NULL),
+                dex_scheduler_spawn_fiber (NULL, cat_write_fiber, &cat, NULL),
                 &error))
     {
       g_printerr ("cat: %s\n", error->message);
