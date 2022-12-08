@@ -150,6 +150,9 @@ gpointer         dex_future_await_pointer   (DexFuture          *future,
 DEX_AVAILABLE_IN_ALL
 gint64           dex_future_await_int64     (DexFuture          *future,
                                              GError            **error);
+DEX_AVAILABLE_IN_ALL
+gpointer         dex_future_await_boxed     (DexFuture          *future,
+                                             GError            **error);
 
 #if G_GNUC_CHECK_VERSION(3,0) && defined(DEX_ENABLE_DEBUG)
 # define _DEX_FUTURE_NEW_(func, counter, ...) \

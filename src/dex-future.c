@@ -1200,3 +1200,26 @@ dex_future_await_int64 (DexFuture  *future,
 
   return 0;
 }
+
+/**
+ * dex_future_await_boxed: (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the %G_TYPE_BOXED based result.
+ *
+ * Returns: (transfer full): the boxed result, or %NULL and @error is set.
+ */
+gpointer
+dex_future_await_boxed (DexFuture *future,
+                        GError **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_future_await_check (future, G_TYPE_BOXED, error)))
+    return g_value_dup_boxed (value);
+
+  return NULL;
+}
