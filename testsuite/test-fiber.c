@@ -28,6 +28,15 @@
 #include "dex-fiber-private.h"
 
 #define ASSERT_STATUS(f,status) g_assert_cmpint(status, ==, dex_future_get_status(DEX_FUTURE(f)))
+#define ASSERT_ERROR(f,d,c) \
+  G_STMT_START { \
+    GError *_error = NULL; \
+    ASSERT_STATUS (f, DEX_FUTURE_STATUS_REJECTED); \
+    g_assert_null (dex_future_get_value (DEX_FUTURE (f), &_error)); \
+    g_assert_cmpint (_error->domain, ==, d); \
+    g_assert_cmpint (_error->code, ==, c); \
+    g_clear_error (&_error); \
+  } G_STMT_END
 
 static int test_arg = 123;
 static ucontext_t g_context;
@@ -72,6 +81,12 @@ scheduler_fiber_func (gpointer user_data)
   return dex_future_new_for_int (99);
 }
 
+static DexFuture *
+scheduler_fiber_error (gpointer user_data)
+{
+  return NULL;
+}
+
 static void
 test_fiber_scheduler_basic (void)
 {
@@ -89,7 +104,13 @@ test_fiber_scheduler_basic (void)
   ASSERT_STATUS (fiber, DEX_FUTURE_STATUS_RESOLVED);
   value = dex_future_get_value (DEX_FUTURE (fiber), NULL);
   g_assert_cmpint (99, ==, g_value_get_int (value));
-  dex_unref (fiber);
+  dex_clear (&fiber);
+
+  fiber = dex_fiber_new (scheduler_fiber_error, NULL, 0);
+  dex_fiber_migrate_to (fiber, fiber_scheduler);
+  g_main_context_iteration (NULL, FALSE);
+  ASSERT_ERROR (fiber, DEX_ERROR, DEX_ERROR_FIBER_EXITED);
+  dex_clear (&fiber);
 
   g_source_destroy ((GSource *)fiber_scheduler);
   g_source_unref ((GSource *)fiber_scheduler);
