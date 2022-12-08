@@ -50,6 +50,7 @@ struct _DexFiber
 
   /* The assigned stack */
   DexStack *stack;
+  gsize stack_size;
 
   /* The scheduler affinity */
   DexFiberScheduler *fiber_scheduler;
@@ -72,6 +73,9 @@ struct _DexFiberScheduler
 
   /* Mutex held while running */
   GRecMutex rec_mutex;
+
+  /* Pooling of unused thread stacks */
+  DexStackPool *stack_pool;
 
   /* The running fiber */
   DexFiber *current;

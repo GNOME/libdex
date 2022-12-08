@@ -191,10 +191,6 @@ dex_fiber_new (DexFiberFunc   func,
                gsize          stack_size)
 {
   DexFiber *fiber;
-#if GLIB_SIZEOF_VOID_P == 8
-  int lo;
-  int hi;
-#endif
 
   g_return_val_if_fail (func != NULL, NULL);
 
@@ -202,28 +198,7 @@ dex_fiber_new (DexFiberFunc   func,
   fiber->func = func;
   fiber->func_data = func_data;
   fiber->func_data_destroy = func_data_destroy;
-
-  fiber->stack = dex_stack_new (stack_size);
-
-  getcontext (&fiber->context);
-
-  fiber->context.uc_stack.ss_size = fiber->stack->size;
-  fiber->context.uc_stack.ss_sp = fiber->stack->base;
-  fiber->context.uc_link = 0;
-
-#if GLIB_SIZEOF_VOID_P == 8
-  lo = GPOINTER_TO_SIZE (fiber) & 0xFFFFFFFFF;
-  hi = (GPOINTER_TO_SIZE (fiber) >> 32) & 0xFFFFFFFFF;
-#endif
-
-  makecontext (&fiber->context,
-               G_CALLBACK (dex_fiber_start_),
-#if GLIB_SIZEOF_VOID_P == 4
-               1, (gsize)fiber,
-#else
-               2, hi, lo
-#endif
-              );
+  fiber->stack_size = stack_size;
 
   return fiber;
 }
@@ -279,6 +254,12 @@ dex_fiber_scheduler_dispatch (GSource     *source,
         {
           g_queue_unlink (&fiber->fiber_scheduler->ready, &fiber->link);
           fiber->fiber_scheduler = NULL;
+
+          if (fiber->stack->size == fiber_scheduler->stack_pool->stack_size)
+            dex_stack_pool_release (fiber_scheduler->stack_pool,
+                                    g_steal_pointer (&fiber->stack));
+          else
+            g_clear_pointer (&fiber->stack, dex_stack_free);
         }
 
       dex_unref (fiber);
@@ -297,6 +278,7 @@ dex_fiber_scheduler_finalize (GSource *source)
   DexFiberScheduler *fiber_scheduler = (DexFiberScheduler *)source;
 
   g_rec_mutex_clear (&fiber_scheduler->rec_mutex);
+  g_clear_pointer (&fiber_scheduler->stack_pool, dex_stack_pool_free);
 }
 
 /**
@@ -326,8 +308,52 @@ dex_fiber_scheduler_new (void)
   fiber_scheduler = (DexFiberScheduler *)g_source_new (&funcs, sizeof *fiber_scheduler);
   g_source_set_static_name ((GSource *)fiber_scheduler, "[dex-fiber-scheduler]");
   g_rec_mutex_init (&fiber_scheduler->rec_mutex);
+  fiber_scheduler->stack_pool = dex_stack_pool_new (0, 0, 0);
 
   return fiber_scheduler;
+}
+
+static void
+dex_fiber_ensure_stack (DexFiber          *fiber,
+                        DexFiberScheduler *fiber_scheduler)
+{
+  g_assert (DEX_IS_FIBER (fiber));
+  g_assert (fiber_scheduler != NULL);
+
+  if (fiber->stack == NULL)
+    {
+#if GLIB_SIZEOF_VOID_P == 8
+      int lo;
+      int hi;
+#endif
+
+      if (fiber->stack_size == 0 ||
+          fiber->stack_size == fiber_scheduler->stack_pool->stack_size)
+        fiber->stack = dex_stack_pool_acquire (fiber_scheduler->stack_pool);
+      else
+        fiber->stack = dex_stack_new (fiber->stack_size);
+
+      getcontext (&fiber->context);
+
+      fiber->context.uc_stack.ss_size = fiber->stack->size;
+      fiber->context.uc_stack.ss_sp = fiber->stack->base;
+      fiber->context.uc_link = 0;
+
+#if GLIB_SIZEOF_VOID_P == 8
+      lo = GPOINTER_TO_SIZE (fiber) & 0xFFFFFFFFF;
+      hi = (GPOINTER_TO_SIZE (fiber) >> 32) & 0xFFFFFFFFF;
+#endif
+
+      makecontext (&fiber->context,
+                   G_CALLBACK (dex_fiber_start_),
+#if GLIB_SIZEOF_VOID_P == 4
+                   1, (gsize)fiber,
+#else
+                   2, hi, lo
+#endif
+                  );
+
+    }
 }
 
 void
@@ -354,6 +380,8 @@ dex_fiber_migrate_to (DexFiber          *fiber,
 
   if (fiber->status != DEX_FIBER_STATUS_EXITED && fiber_scheduler != NULL)
     {
+      dex_fiber_ensure_stack (fiber, fiber_scheduler);
+
       g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
       if (fiber->status == DEX_FIBER_STATUS_READY)
         g_queue_push_tail_link (&fiber_scheduler->ready, &fiber->link);
