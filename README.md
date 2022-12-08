@@ -43,13 +43,6 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
    provided an error which can be read by the consumer.
  * **Promise** is a **Future** that allows user code to set the resolved
    or rejected value once.
- * **Tasklet** is a **Future** that allows specifying a function to be
-   called once future parameters have been resolved. It is run by a
-   scheduler and eventually resolves or rejects based on the attached
-   callable.
- * **Callable** is an abstraction on a C function/closure or some other
-   trampolined code that can be invoked and provided arguments along with
-   a return value.
  * **Parameter** contain type information and position to a **Callable**
  * **Arguments** are the values for **Parameters**
 
@@ -70,9 +63,8 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
      * DexMainScheduler (Final)
      * DexThreadPoolScheduler (Final)
      * DexThreadPoolWorker (Final)
-   * DexCallbale (Abstract)
-     * DexFunction (Final)
    * DexChannel (Final)
+ * DexAsyncResult (Final)
 
 ## Internal Types
 
@@ -83,6 +75,9 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
     * DexUringAioBackend
   * GSource
     * DexAioContext
+  * DexStackPool
+  * DexStack
+  * DexChannelReceiver
 
 Currently, libdex is not trying to abstract the AIO models and it is used
 internally only for some features. However, that could be expanded in the

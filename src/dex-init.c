@@ -50,10 +50,6 @@ dex_init_once (void)
   g_type_ensure (DEX_TYPE_THREAD_POOL_SCHEDULER);
   g_type_ensure (DEX_TYPE_THREAD_POOL_WORKER);
 
-  /* Callables */
-  g_type_ensure (DEX_TYPE_CALLABLE);
-  g_type_ensure (DEX_TYPE_FUNCTION);
-
   /* Future types */
   g_type_ensure (DEX_TYPE_FUTURE);
   g_type_ensure (DEX_TYPE_ASYNC_PAIR);
@@ -63,7 +59,6 @@ dex_init_once (void)
   g_type_ensure (DEX_TYPE_CANCELLABLE);
   g_type_ensure (DEX_TYPE_PROMISE);
   g_type_ensure (DEX_TYPE_STATIC_FUTURE);
-  g_type_ensure (DEX_TYPE_TASKLET);
   g_type_ensure (DEX_TYPE_TIMEOUT);
 #ifdef G_OS_UNIX
   g_type_ensure (DEX_TYPE_UNIX_SIGNAL);
