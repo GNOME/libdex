@@ -94,7 +94,7 @@ dex_channel_item_new (DexFuture *future)
 
   item = g_new0 (DexChannelItem, 1);
   item->link.data = item;
-  item->future = dex_ref (future);
+  item->future = future;
   item->send = dex_promise_new ();
 
   return item;
@@ -243,7 +243,7 @@ dex_channel_one_receive_and_unlock (DexChannel *channel)
 /**
  * dex_channel_send:
  * @channel: a #DexChannel
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  *
  * Queues @future into the channel.
  *
@@ -269,7 +269,7 @@ dex_channel_send (DexChannel *channel,
   g_return_val_if_fail (DEX_IS_CHANNEL (channel), NULL);
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
-  item = dex_channel_item_new (future);
+  item = dex_channel_item_new (g_steal_pointer (&future));
 
   dex_object_lock (channel);
 
