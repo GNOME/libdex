@@ -219,7 +219,7 @@ dex_channel_one_receive_and_unlock (DexChannel *channel)
         {
           DexChannelItem *sendq_item = g_queue_peek_head (&channel->sendq);
           g_queue_unlink (&channel->sendq, &sendq_item->link);
-          g_queue_push_tail (&channel->queue, &sendq_item->link);
+          g_queue_push_tail_link (&channel->queue, &sendq_item->link);
           qlen = channel->queue.length;
           to_resolve = dex_ref (sendq_item->send);
         }
