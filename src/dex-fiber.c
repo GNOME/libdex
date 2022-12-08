@@ -120,7 +120,6 @@ dex_fiber_init (DexFiber *fiber)
 static void
 dex_fiber_start (DexFiber *fiber)
 {
-  DexFiberScheduler *fiber_scheduler;
   DexFuture *future;
 
   future = fiber->func (fiber->func_data);
@@ -143,13 +142,6 @@ dex_fiber_start (DexFiber *fiber)
   /* Mark fiber as exited */
   fiber->status = DEX_FIBER_STATUS_EXITED;
 
-  /* Remove the fiber from the scheduler ready queue */
-  fiber_scheduler = fiber->fiber_scheduler;
-  g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
-  g_queue_unlink (&fiber_scheduler->ready, &fiber->link);
-  dex_fiber_migrate_to (fiber, NULL);
-  g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
-
   /* Free func data if necessary */
   if (fiber->func_data_destroy)
     {
@@ -162,9 +154,6 @@ dex_fiber_start (DexFiber *fiber)
 
       func_data_destroy (func_data);
     }
-
-  /* Now suspend, resuming the scheduler */
-  swapcontext (&fiber->context, &fiber_scheduler->context);
 }
 
 static void
@@ -189,9 +178,10 @@ dex_fiber_start_ (int arg1, ...)
 
   g_assert (DEX_IS_FIBER (fiber));
 
-  dex_ref (fiber);
   dex_fiber_start (fiber);
-  dex_unref (fiber);
+
+  /* Now suspend, resuming the scheduler */
+  swapcontext (&fiber->context, &fiber->fiber_scheduler->context);
 }
 
 DexFiber *
@@ -276,11 +266,22 @@ dex_fiber_scheduler_dispatch (GSource     *source,
 
       g_assert (DEX_IS_FIBER (fiber));
 
+      dex_ref (fiber);
+
       g_queue_push_tail_link (&fiber_scheduler->ready, &fiber->link);
 
       fiber_scheduler->current = fiber;
       swapcontext (&fiber_scheduler->context, &fiber->context);
       fiber_scheduler->current = NULL;
+
+      if (fiber->status == DEX_FIBER_STATUS_EXITED &&
+          fiber->fiber_scheduler == fiber_scheduler)
+        {
+          g_queue_unlink (&fiber->fiber_scheduler->ready, &fiber->link);
+          fiber->fiber_scheduler = NULL;
+        }
+
+      dex_unref (fiber);
     }
 
   dex_thread_storage_get ()->fiber_scheduler = NULL;
