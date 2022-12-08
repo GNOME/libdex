@@ -236,12 +236,12 @@ dex_fiber_migrate_to (DexFiber          *fiber,
 
   if (fiber->fiber_scheduler != NULL)
     {
-      g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
+      g_rec_mutex_lock (&fiber->fiber_scheduler->rec_mutex);
       if (fiber->state == DEX_FIBER_STATE_READY)
-        g_queue_unlink (&fiber_scheduler->ready, &fiber->link);
+        g_queue_unlink (&fiber->fiber_scheduler->ready, &fiber->link);
       else if (fiber->state == DEX_FIBER_STATE_WAITING)
-        g_queue_unlink (&fiber_scheduler->waiting, &fiber->link);
-      g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
+        g_queue_unlink (&fiber->fiber_scheduler->waiting, &fiber->link);
+      g_rec_mutex_unlock (&fiber->fiber_scheduler->rec_mutex);
 
       fiber->fiber_scheduler = NULL;
       dex_unref (fiber);
