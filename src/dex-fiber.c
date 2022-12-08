@@ -72,7 +72,12 @@ dex_fiber_start (DexFiber *fiber)
   fiber->state = DEX_FIBER_STATE_EXITED;
 
   if (fiber->fiber_scheduler)
-    swapcontext (&fiber->context, &fiber->fiber_scheduler->context);
+    {
+      DexFiberScheduler *fiber_scheduler = fiber->fiber_scheduler;
+
+      dex_fiber_migrate_to (fiber, NULL);
+      swapcontext (&fiber->context, &fiber_scheduler->context);
+    }
 }
 
 static void
@@ -97,7 +102,9 @@ dex_fiber_start_ (int arg1, ...)
 
   g_assert (DEX_IS_FIBER (fiber));
 
+  dex_ref (fiber);
   dex_fiber_start (fiber);
+  dex_unref (fiber);
 }
 
 DexFiber *
