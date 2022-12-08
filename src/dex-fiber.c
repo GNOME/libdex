@@ -43,6 +43,9 @@ dex_fiber_finalize (DexObject *object)
 {
   DexFiber *fiber = DEX_FIBER (object);
 
+  if (fiber->fiber_scheduler != NULL)
+    dex_fiber_migrate_to (fiber, NULL);
+
   g_clear_pointer (&fiber->stack, dex_stack_free);
 
   DEX_OBJECT_CLASS (dex_fiber_parent_class)->finalize (object);
