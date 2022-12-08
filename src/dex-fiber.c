@@ -51,18 +51,18 @@ dex_fiber_propagate (DexFuture *future,
 
   dex_object_lock (fiber);
 
-  if (fiber->state == DEX_FIBER_STATE_WAITING)
+  if (fiber->status == DEX_FIBER_STATUS_WAITING)
     {
       /* TODO: We need to migrate this fiber to the ready queue */
 
-      fiber->state = DEX_FIBER_STATE_READY;
+      fiber->status = DEX_FIBER_STATUS_READY;
       ret = TRUE;
     }
-  else if (fiber->state == DEX_FIBER_STATE_EXITED)
+  else if (fiber->status == DEX_FIBER_STATUS_EXITED)
     {
       /* This is the final value for the fiber, pass it along */
     }
-  else if (fiber->state == DEX_FIBER_STATE_WAITING)
+  else if (fiber->status == DEX_FIBER_STATUS_WAITING)
     {
       g_warn_if_reached ();
     }
@@ -112,7 +112,7 @@ dex_fiber_start (DexFiber *fiber)
   DexFuture *future;
 
   future = fiber->func (fiber->func_data);
-  fiber->state = DEX_FIBER_STATE_EXITED;
+  fiber->status = DEX_FIBER_STATUS_EXITED;
 
   if (future == NULL)
     future = dex_future_new_reject (DEX_ERROR,
@@ -294,9 +294,9 @@ dex_fiber_migrate_to (DexFiber          *fiber,
   if (fiber->fiber_scheduler != NULL)
     {
       g_rec_mutex_lock (&fiber->fiber_scheduler->rec_mutex);
-      if (fiber->state == DEX_FIBER_STATE_READY)
+      if (fiber->status == DEX_FIBER_STATUS_READY)
         g_queue_unlink (&fiber->fiber_scheduler->ready, &fiber->link);
-      else if (fiber->state == DEX_FIBER_STATE_WAITING)
+      else if (fiber->status == DEX_FIBER_STATUS_WAITING)
         g_queue_unlink (&fiber->fiber_scheduler->waiting, &fiber->link);
       g_rec_mutex_unlock (&fiber->fiber_scheduler->rec_mutex);
 
@@ -304,12 +304,12 @@ dex_fiber_migrate_to (DexFiber          *fiber,
       dex_unref (fiber);
     }
 
-  if (fiber->state != DEX_FIBER_STATE_EXITED && fiber_scheduler != NULL)
+  if (fiber->status != DEX_FIBER_STATUS_EXITED && fiber_scheduler != NULL)
     {
       g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
-      if (fiber->state == DEX_FIBER_STATE_READY)
+      if (fiber->status == DEX_FIBER_STATUS_READY)
         g_queue_push_tail_link (&fiber_scheduler->ready, &fiber->link);
-      else if (fiber->state == DEX_FIBER_STATE_WAITING)
+      else if (fiber->status == DEX_FIBER_STATUS_WAITING)
         g_queue_push_tail_link (&fiber_scheduler->waiting, &fiber->link);
       g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
 

@@ -34,9 +34,9 @@ typedef struct _DexFiberScheduler DexFiberScheduler;
 
 typedef enum _DexFiberState
 {
-  DEX_FIBER_STATE_READY,
-  DEX_FIBER_STATE_WAITING,
-  DEX_FIBER_STATE_EXITED,
+  DEX_FIBER_STATUS_READY,
+  DEX_FIBER_STATUS_WAITING,
+  DEX_FIBER_STATUS_EXITED,
 } DexFiberState;
 
 struct _DexFiber
@@ -62,7 +62,7 @@ struct _DexFiber
   ucontext_t context;
 
   /* If the fiber is runnable */
-  DexFiberState state : 2;
+  DexFiberState status : 2;
 };
 
 struct _DexFiberScheduler
