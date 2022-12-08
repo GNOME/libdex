@@ -97,8 +97,10 @@ test_fiber_scheduler_basic (void)
   g_source_attach ((GSource *)fiber_scheduler, NULL);
 
   test_arg = 0;
+  dex_future_set_static_name (DEX_FUTURE (fiber), "fiber_func");
   dex_fiber_migrate_to (fiber, fiber_scheduler);
-  g_main_context_iteration (NULL, FALSE);
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
   g_assert_cmpint (test_arg, ==, 99);
 
   ASSERT_STATUS (fiber, DEX_FUTURE_STATUS_RESOLVED);
@@ -107,10 +109,91 @@ test_fiber_scheduler_basic (void)
   dex_clear (&fiber);
 
   fiber = dex_fiber_new (scheduler_fiber_error, NULL, 0);
+  dex_future_set_static_name (DEX_FUTURE (fiber), "fiber_error");
   dex_fiber_migrate_to (fiber, fiber_scheduler);
-  g_main_context_iteration (NULL, FALSE);
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
   ASSERT_ERROR (fiber, DEX_ERROR, DEX_ERROR_FIBER_EXITED);
   dex_clear (&fiber);
+
+  g_source_destroy ((GSource *)fiber_scheduler);
+  g_source_unref ((GSource *)fiber_scheduler);
+}
+
+static DexFuture *
+test_await_send (gpointer user_data)
+{
+  DexChannel *channel = user_data;
+
+  for (guint i = 0; i < 4; i++)
+    {
+      DexFuture *send;
+      const GValue *value;
+      GError *error = NULL;
+
+      send = dex_channel_send (channel, dex_future_new_for_int (200));
+      value = dex_future_await (send, &error);
+      g_assert_no_error (error);
+      g_assert_nonnull (value);
+      g_assert_true (G_VALUE_HOLDS_UINT (value));
+      dex_unref (send);
+    }
+
+  dex_unref (channel);
+
+  return dex_future_new_for_boolean (TRUE);
+}
+
+static DexFuture *
+test_await_recv (gpointer user_data)
+{
+  DexChannel *channel = user_data;
+
+  for (guint i = 0; i < 4; i++)
+    {
+      DexFuture *recv;
+      GError *error = NULL;
+      const GValue *value;
+
+      recv = dex_channel_receive (channel);
+      value = dex_future_await (recv, &error);
+      g_assert_no_error (error);
+      g_assert_nonnull (value);
+      g_assert_true (G_VALUE_HOLDS_INT (value));
+      g_assert_cmpint (200, ==, g_value_get_int (value));
+      dex_unref (recv);
+    }
+
+  dex_unref (channel);
+
+  return dex_future_new_for_boolean (TRUE);
+}
+
+static void
+test_fiber_scheduler_await (void)
+{
+  DexFiberScheduler *fiber_scheduler = dex_fiber_scheduler_new ();
+  DexChannel *channel = dex_channel_new (0);
+  DexFiber *fiber1 = dex_fiber_new (test_await_send, dex_ref (channel), 0);
+  DexFiber *fiber2 = dex_fiber_new (test_await_recv, dex_ref (channel), 0);
+
+  dex_future_set_static_name (DEX_FUTURE (fiber1), "fiber1");
+  dex_future_set_static_name (DEX_FUTURE (fiber2), "fiber2");
+
+  dex_fiber_migrate_to (fiber2, fiber_scheduler);
+  dex_fiber_migrate_to (fiber1, fiber_scheduler);
+
+  g_source_attach ((GSource *)fiber_scheduler, NULL);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  ASSERT_STATUS (fiber1, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (fiber2, DEX_FUTURE_STATUS_RESOLVED);
+
+  dex_clear (&fiber1);
+  dex_clear (&fiber2);
+  dex_clear (&channel);
 
   g_source_destroy ((GSource *)fiber_scheduler);
   g_source_unref ((GSource *)fiber_scheduler);
@@ -124,5 +207,6 @@ main (int argc,
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Fiber/rec-mutex", test_fiber_rec_mutex);
   g_test_add_func ("/Dex/TestSuite/FiberScheduler/basic", test_fiber_scheduler_basic);
+  g_test_add_func ("/Dex/TestSuite/FiberScheduler/await", test_fiber_scheduler_await);
   return g_test_run ();
 }

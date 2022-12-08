@@ -31,6 +31,7 @@
 #include "dex-fiber-private.h"
 #include "dex-object-private.h"
 #include "dex-platform.h"
+#include "dex-thread-storage-private.h"
 
 typedef struct _DexFiberClass
 {
@@ -53,16 +54,26 @@ dex_fiber_propagate (DexFuture *future,
 
   if (fiber->status == DEX_FIBER_STATUS_WAITING)
     {
-      /* TODO: We need to migrate this fiber to the ready queue */
-
       fiber->status = DEX_FIBER_STATUS_READY;
+
+      if (fiber->fiber_scheduler != NULL)
+        {
+          g_rec_mutex_lock (&fiber->fiber_scheduler->rec_mutex);
+          g_queue_unlink (&fiber->fiber_scheduler->waiting, &fiber->link);
+          g_queue_push_head_link (&fiber->fiber_scheduler->ready, &fiber->link);
+          g_rec_mutex_unlock (&fiber->fiber_scheduler->rec_mutex);
+        }
+
+      if (fiber->fiber_scheduler != dex_thread_storage_get ()->fiber_scheduler)
+        g_main_context_wakeup (g_source_get_context ((GSource *)fiber->fiber_scheduler));
+
       ret = TRUE;
     }
   else if (fiber->status == DEX_FIBER_STATUS_EXITED)
     {
-      /* This is the final value for the fiber, pass it along */
+      g_warn_if_reached ();
     }
-  else if (fiber->status == DEX_FIBER_STATUS_WAITING)
+  else if (fiber->status == DEX_FIBER_STATUS_READY)
     {
       g_warn_if_reached ();
     }
@@ -109,25 +120,36 @@ dex_fiber_init (DexFiber *fiber)
 static void
 dex_fiber_start (DexFiber *fiber)
 {
+  DexFiberScheduler *fiber_scheduler;
   DexFuture *future;
 
   future = fiber->func (fiber->func_data);
+
+  if (future != NULL)
+    {
+      dex_future_await (future, NULL);
+      dex_future_complete_from (DEX_FUTURE (fiber), future);
+      dex_unref (future);
+    }
+  else
+    {
+      dex_future_complete (DEX_FUTURE (fiber),
+                           NULL,
+                           g_error_new_literal (DEX_ERROR,
+                                                DEX_ERROR_FIBER_EXITED,
+                                                "The fiber exited without a result"));
+    }
+
   fiber->status = DEX_FIBER_STATUS_EXITED;
 
-  if (future == NULL)
-    future = dex_future_new_reject (DEX_ERROR,
-                                    DEX_ERROR_FIBER_EXITED,
-                                    "The fiber exited without a result");
+  fiber_scheduler = fiber->fiber_scheduler;
 
-  dex_future_chain (future, DEX_FUTURE (fiber));
+  g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
+  g_queue_unlink (&fiber_scheduler->ready, &fiber->link);
+  dex_fiber_migrate_to (fiber, NULL);
+  g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
 
-  if (fiber->fiber_scheduler)
-    {
-      DexFiberScheduler *fiber_scheduler = fiber->fiber_scheduler;
-
-      dex_fiber_migrate_to (fiber, NULL);
-      swapcontext (&fiber->context, &fiber_scheduler->context);
-    }
+  swapcontext (&fiber->context, &fiber_scheduler->context);
 }
 
 static void
@@ -229,14 +251,22 @@ dex_fiber_scheduler_dispatch (GSource     *source,
 
   g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
 
+  dex_thread_storage_get ()->fiber_scheduler = fiber_scheduler;
+
   while (fiber_scheduler->ready.length > 0)
     {
       DexFiber *fiber = g_queue_pop_head_link (&fiber_scheduler->ready)->data;
+
+      g_assert (DEX_IS_FIBER (fiber));
+
+      g_queue_push_tail_link (&fiber_scheduler->ready, &fiber->link);
 
       fiber_scheduler->current = fiber;
       swapcontext (&fiber_scheduler->context, &fiber->context);
       fiber_scheduler->current = NULL;
     }
+
+  dex_thread_storage_get ()->fiber_scheduler = NULL;
 
   g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
 
@@ -319,4 +349,61 @@ dex_fiber_migrate_to (DexFiber          *fiber,
 
   dex_object_unlock (fiber);
   dex_unref (fiber);
+}
+
+static DexFiber *
+dex_fiber_current (void)
+{
+  DexFiberScheduler *fiber_scheduler = dex_thread_storage_get ()->fiber_scheduler;
+  return fiber_scheduler ? fiber_scheduler->current : NULL;
+}
+
+static inline void
+dex_fiber_await (DexFiber  *fiber,
+                 DexFuture *future)
+{
+  DexFiberScheduler *fiber_scheduler = fiber->fiber_scheduler;
+
+  g_assert (DEX_IS_FIBER (fiber));
+
+  /* If future is already resolved or rejected, then there is nothing to do */
+  if (dex_future_get_status (future) != DEX_FUTURE_STATUS_PENDING)
+    return;
+
+  /* Move from ready to waiting queue and update status */
+  dex_object_lock (fiber);
+  g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
+  fiber->status = DEX_FIBER_STATUS_WAITING;
+  g_queue_unlink (&fiber_scheduler->ready, &fiber->link);
+  g_queue_push_tail_link (&fiber_scheduler->waiting, &fiber->link);
+  g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
+  dex_object_unlock (fiber);
+
+  /* Now request the future notify us of completion */
+  dex_future_chain (future, DEX_FUTURE (fiber));
+
+  /* Swap to the scheduler to continue processing fibers */
+  swapcontext (&fiber->context, &fiber_scheduler->context);
+}
+
+const GValue *
+dex_future_await (DexFuture  *future,
+                  GError    **error)
+{
+  DexFiber *fiber;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  if G_UNLIKELY (!(fiber = dex_fiber_current ()))
+    {
+      g_set_error_literal (error,
+                           DEX_ERROR,
+                           DEX_ERROR_NO_FIBER,
+                           "Not running on a fiber, cannot await");
+      return NULL;
+    }
+
+  dex_fiber_await (fiber, future);
+
+  return dex_future_get_value (future, error);
 }
