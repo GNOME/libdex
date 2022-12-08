@@ -48,7 +48,6 @@ struct _DexThreadPoolWorker
   DexWorkQueue              *global_work_queue;
   DexWorkStealingQueue      *work_stealing_queue;
   GSource                   *set_source;
-  GSource                   *global_source;
   GSource                   *local_source;
   DexThreadPoolWorkerStatus  status : 2;
 };
@@ -130,7 +129,6 @@ dex_thread_pool_worker_finalize (DexObject *object)
 
   /* These are all destroyed during thread shutdown */
   g_clear_pointer (&thread_pool_worker->set_source, g_source_unref);
-  g_clear_pointer (&thread_pool_worker->global_source, g_source_unref);
   g_clear_pointer (&thread_pool_worker->local_source, g_source_unref);
 
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
@@ -208,7 +206,6 @@ dex_thread_pool_worker_thread_func (gpointer data)
 
   /* Ensure our sources will not continue on */
   g_source_destroy (thread_pool_worker->set_source);
-  g_source_destroy (thread_pool_worker->global_source);
   g_source_destroy (thread_pool_worker->local_source);
 
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_FINISHED;
