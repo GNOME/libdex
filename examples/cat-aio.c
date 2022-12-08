@@ -19,109 +19,90 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+/* A variant of cat.c which uses the internal/private AIO for testing
+ * performance compared to GIO async/finish pairs.
+ */
+
 #include <unistd.h>
 
 #include <gio/gio.h>
 
 #include <libdex.h>
+
 #include "dex-aio-private.h"
 
 #include "cat-util.h"
 
 static DexFuture *
-release_buffer (DexFuture *future,
-                gpointer user_data)
-{
-  Buffer *buffer = user_data;
-  cat_push_buffer (buffer->cat, buffer);
-  return NULL;
-}
-
-static DexFuture *
-cat_read_cb (DexFuture *future,
-             gpointer   user_data)
-{
-  DexFuture *read_future = dex_future_set_get_future_at (DEX_FUTURE_SET (future), 0);
-  const GValue *value = dex_future_get_value (read_future, NULL);
-  Cat *cat = user_data;
-  Buffer *buffer = g_steal_pointer (&cat->current);
-
-  if (!(buffer->length = g_value_get_int64 (value)))
-    return NULL;
-
-  cat->current = cat_pop_buffer (cat);
-
-  return dex_future_all (dex_aio_read (NULL,
-                                       cat->read_fd,
-                                       cat->current->data,
-                                       cat->current->capacity,
-                                       -1),
-                         dex_channel_send (cat->channel,
-                                           dex_future_new_for_pointer (buffer)),
-                         NULL);
-}
-
-static DexFuture *
-cat_read (Cat *cat)
-{
-  cat->current = cat_pop_buffer (cat);
-
-  return dex_future_then_loop (dex_future_all (dex_aio_read (NULL,
-                                                             cat->read_fd,
-                                                             cat->current->data,
-                                                             cat->current->capacity,
-                                                             -1),
-                                               NULL),
-                               cat_read_cb, cat, NULL);
-}
-
-static DexFuture *
-cat_read_routine (gpointer user_data)
+cat_read_fiber (gpointer user_data)
 {
   Cat *cat = user_data;
-  return cat_read (cat);
+  Buffer *buffer = NULL;
+
+  for (;;)
+    {
+      g_autoptr(DexFuture) all = NULL;
+      DexFuture *send_future = NULL;
+      DexFuture *read_future;
+      Buffer *next = cat_pop_buffer (cat);
+
+      if (buffer != NULL)
+        send_future = dex_channel_send (cat->channel,
+                                        dex_future_new_for_pointer (g_steal_pointer (&buffer)));
+
+      read_future = dex_aio_read (NULL,
+                                  cat->read_fd,
+                                  next->data,
+                                  next->capacity,
+                                  -1);
+
+      all = dex_future_all (read_future, send_future, NULL);
+      dex_future_await (all, NULL);
+
+      next->length = dex_future_await_int64 (read_future, NULL);
+
+      if (next->length <= 0)
+        {
+          dex_channel_close_send (cat->channel);
+          cat_push_buffer (cat, next);
+          break;
+        }
+
+      buffer = next;
+    }
+
+  return dex_future_new_for_boolean (TRUE);
 }
 
 static DexFuture *
-cat_write_cb (DexFuture *completed,
-              gpointer   user_data)
+cat_write_fiber (gpointer user_data)
 {
   Cat *cat = user_data;
-  DexFuture *buffer_future = dex_future_set_get_future_at (DEX_FUTURE_SET (completed), 0);
-  const GValue *value = dex_future_get_value (buffer_future, NULL);
-  Buffer *buffer;
 
-  if (value == NULL)
-    return NULL;
+  for (;;)
+    {
+      g_autoptr(DexFuture) recv = dex_channel_receive (cat->channel);
+      g_autoptr(DexFuture) wr = NULL;
+      Buffer *buffer;
+      gssize len;
 
-  buffer = g_value_get_pointer (value);
-  return dex_future_all (dex_channel_receive (cat->channel),
-                         dex_future_finally (dex_aio_write (NULL,
-                                                            cat->write_fd,
-                                                            buffer->data,
-                                                            buffer->length,
-                                                            -1),
-                                             release_buffer, buffer, NULL),
-                         NULL);
-}
+      if (!(buffer = dex_future_await_pointer (recv, NULL)))
+        break;
 
-static DexFuture *
-cat_write (Cat *cat)
-{
-  DexFuture *future;
+      wr = dex_aio_write (NULL,
+                          cat->write_fd,
+                          buffer->data,
+                          buffer->length,
+                          -1);
 
-  future = dex_channel_receive (cat->channel);
-  future = dex_future_all (future, NULL);
-  future = dex_future_finally_loop (future, cat_write_cb, cat, NULL);
+      len = dex_future_await_int64 (wr, NULL);
+      cat_push_buffer (cat, buffer);
 
-  return future;
-}
+      if (len <= 0)
+        break;
+    }
 
-static DexFuture *
-cat_write_routine (gpointer user_data)
-{
-  Cat *cat = user_data;
-  return cat_write (cat);
+  return dex_future_new_for_boolean (TRUE);
 }
 
 int
@@ -136,8 +117,8 @@ main (int   argc,
 
   if (!cat_init (&cat, &argc, &argv, &error) ||
       !cat_run (&cat,
-                dex_scheduler_spawn (NULL, cat_read_routine, &cat, NULL),
-                dex_scheduler_spawn (NULL, cat_write_routine, &cat, NULL),
+                dex_scheduler_spawn_fiber (NULL, cat_read_fiber, &cat, NULL),
+                dex_scheduler_spawn_fiber (NULL, cat_write_fiber, &cat, NULL),
                 &error))
     {
       g_printerr ("cat: %s\n", error->message);
