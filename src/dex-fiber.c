@@ -40,6 +40,9 @@ typedef struct _DexFiberClass
 
 DEX_DEFINE_FINAL_TYPE (DexFiber, dex_fiber, DEX_TYPE_FUTURE)
 
+#undef DEX_TYPE_FIBER
+#define DEX_TYPE_FIBER dex_fiber_type
+
 static gboolean
 dex_fiber_propagate (DexFuture *future,
                      DexFuture *completed)

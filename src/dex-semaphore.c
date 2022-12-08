@@ -52,6 +52,9 @@ typedef struct _DexSemaphoreClass
 
 DEX_DEFINE_FINAL_TYPE (DexSemaphore, dex_semaphore, DEX_TYPE_OBJECT)
 
+#undef DEX_TYPE_SEMAPHORE
+#define DEX_TYPE_SEMAPHORE dex_semaphore_type
+
 DexSemaphore *
 dex_semaphore_new (void)
 {

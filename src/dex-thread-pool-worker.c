@@ -61,6 +61,9 @@ typedef struct _DexThreadPoolWorkerClass
 
 DEX_DEFINE_FINAL_TYPE (DexThreadPoolWorker, dex_thread_pool_worker, DEX_TYPE_SCHEDULER)
 
+#undef DEX_TYPE_THREAD_POOL_WORKER
+#define DEX_TYPE_THREAD_POOL_WORKER dex_thread_pool_worker_type
+
 static void dex_thread_pool_worker_set_add    (DexThreadPoolWorkerSet *set,
                                                DexThreadPoolWorker    *thread_pool_worker);
 static void dex_thread_pool_worker_set_remove (DexThreadPoolWorkerSet *set,

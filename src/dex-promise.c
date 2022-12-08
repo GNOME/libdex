@@ -36,6 +36,9 @@ typedef struct _DexPromiseClass
 
 DEX_DEFINE_FINAL_TYPE (DexPromise, dex_promise, DEX_TYPE_FUTURE)
 
+#undef DEX_TYPE_PROMISE
+#define DEX_TYPE_PROMISE dex_promise_type
+
 static void
 dex_promise_class_init (DexPromiseClass *promise_class)
 {

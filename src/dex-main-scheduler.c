@@ -45,6 +45,9 @@ typedef struct _DexMainSchedulerClass
 
 DEX_DEFINE_FINAL_TYPE (DexMainScheduler, dex_main_scheduler, DEX_TYPE_SCHEDULER)
 
+#undef DEX_TYPE_MAIN_SCHEDULER
+#define DEX_TYPE_MAIN_SCHEDULER dex_main_scheduler_type
+
 static void
 dex_main_scheduler_push (DexScheduler *scheduler,
                          DexWorkItem   work_item)

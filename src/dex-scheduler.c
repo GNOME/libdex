@@ -30,6 +30,9 @@ static DexScheduler *default_scheduler;
 
 DEX_DEFINE_ABSTRACT_TYPE (DexScheduler, dex_scheduler, DEX_TYPE_OBJECT)
 
+#undef DEX_TYPE_SCHEDULER
+#define DEX_TYPE_SCHEDULER dex_scheduler_type
+
 static void
 dex_scheduler_class_init (DexSchedulerClass *scheduler_class)
 {

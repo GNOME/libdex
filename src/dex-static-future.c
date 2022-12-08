@@ -35,6 +35,9 @@ typedef struct _DexStaticFutureClass
 
 DEX_DEFINE_FINAL_TYPE (DexStaticFuture, dex_static_future, DEX_TYPE_FUTURE)
 
+#undef DEX_TYPE_STATIC_FUTURE
+#define DEX_TYPE_STATIC_FUTURE dex_static_future_type
+
 static void
 dex_static_future_class_init (DexStaticFutureClass *static_future_class)
 {

@@ -28,6 +28,11 @@
 #include "dex-object-private.h"
 #include "dex-profiler.h"
 
+static GType dex_object_type = G_TYPE_INVALID;
+
+#undef DEX_TYPE_OBJECT
+#define DEX_TYPE_OBJECT dex_object_type
+
 static void
 dex_object_finalize (DexObject *object)
 {
@@ -471,9 +476,7 @@ value_lcopy_value (const GValue *value,
 GType
 dex_object_get_type (void)
 {
-  static GType object__type = G_TYPE_INVALID;
-
-  if (g_once_init_enter (&object__type))
+  if (g_once_init_enter (&dex_object_type))
     {
       GType gtype =
         g_type_register_fundamental (g_type_fundamental_next (),
@@ -510,8 +513,8 @@ dex_object_get_type (void)
                                      },
                                      G_TYPE_FLAG_ABSTRACT);
       g_assert (gtype != G_TYPE_INVALID);
-      g_once_init_leave (&object__type, gtype);
+      g_once_init_leave (&dex_object_type, gtype);
     }
 
-  return object__type;
+  return dex_object_type;
 }

@@ -62,6 +62,9 @@ typedef struct _DexUringFutureClass
 
 DEX_DEFINE_FINAL_TYPE (DexUringFuture, dex_uring_future, DEX_TYPE_FUTURE)
 
+#undef DEX_TYPE_URING_FUTURE
+#define DEX_TYPE_URING_FUTURE dex_uring_future_type
+
 static void
 dex_uring_future_class_init (DexUringFutureClass *uring_future_class)
 {

@@ -80,6 +80,9 @@ typedef struct _DexChannelItem
 
 DEX_DEFINE_FINAL_TYPE (DexChannel, dex_channel, DEX_TYPE_OBJECT)
 
+#undef DEX_TYPE_CHANNEL
+#define DEX_TYPE_CHANNEL dex_channel_type
+
 static void dex_channel_unset_state_flags (DexChannel           *channel,
                                            DexChannelStateFlags  flags);
 

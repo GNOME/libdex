@@ -47,6 +47,9 @@ G_DEFINE_ENUM_TYPE (DexBlockKind, dex_block_kind,
                     G_DEFINE_ENUM_VALUE (DEX_BLOCK_KIND_CATCH, "catch"),
                     G_DEFINE_ENUM_VALUE (DEX_BLOCK_KIND_FINALLY, "finally"))
 
+#undef DEX_TYPE_BLOCK
+#define DEX_TYPE_BLOCK dex_block_type
+
 static gboolean
 dex_block_handles (DexBlock  *block,
                    DexFuture *future)

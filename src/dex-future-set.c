@@ -49,6 +49,9 @@ typedef struct _DexFutureSetClass
 
 DEX_DEFINE_FINAL_TYPE (DexFutureSet, dex_future_set, DEX_TYPE_FUTURE)
 
+#undef DEX_TYPE_FUTURE_SET
+#define DEX_TYPE_FUTURE_SET dex_future_set_type
+
 static GValue success_value = G_VALUE_INIT;
 
 static gboolean

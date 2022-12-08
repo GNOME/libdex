@@ -28,6 +28,9 @@
 
 DEX_DEFINE_FINAL_TYPE (DexAsyncPair, dex_async_pair, DEX_TYPE_FUTURE)
 
+#undef DEX_TYPE_ASYNC_PAIR
+#define DEX_TYPE_ASYNC_PAIR dex_async_pair_type
+
 static void
 dex_async_pair_discard (DexFuture *future)
 {

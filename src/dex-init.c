@@ -25,7 +25,12 @@
 
 #include "dex-main-scheduler-private.h"
 #include "dex-scheduler-private.h"
+#include "dex-semaphore-private.h"
 #include "dex-thread-pool-worker-private.h"
+
+#ifdef HAVE_LIBURING
+# include "dex-uring-future-private.h"
+#endif
 
 #include "gconstructor.h"
 
@@ -36,7 +41,7 @@ dex_init_once (void)
 
   (void)dex_error_quark ();
 
-  /* Base object */
+  /* Base object, always register first */
   g_type_ensure (DEX_TYPE_OBJECT);
 
   /* Scheduler type */
@@ -63,9 +68,14 @@ dex_init_once (void)
 #ifdef G_OS_UNIX
   g_type_ensure (DEX_TYPE_UNIX_SIGNAL);
 #endif
+#ifdef HAVE_LIBURING
+  g_type_ensure (DEX_TYPE_URING_FUTURE);
+#endif
 
-  /* Integration types */
+  /* Misc types */
   g_type_ensure (DEX_TYPE_ASYNC_RESULT);
+  g_type_ensure (DEX_TYPE_CHANNEL);
+  g_type_ensure (DEX_TYPE_SEMAPHORE);
 
   /* Setup default scheduler for application */
   main_scheduler = dex_main_scheduler_new (NULL);

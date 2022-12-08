@@ -36,6 +36,9 @@ static void dex_future_propagate (DexFuture *future,
 
 DEX_DEFINE_ABSTRACT_TYPE (DexFuture, dex_future, DEX_TYPE_OBJECT)
 
+#undef DEX_TYPE_FUTURE
+#define DEX_TYPE_FUTURE dex_future_type
+
 typedef struct _DexChainedFuture
 {
   GList      link;
