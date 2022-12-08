@@ -48,7 +48,7 @@ typedef struct _DexSchedulerClass
 
   void           (*push)             (DexScheduler *scheduler,
                                       DexWorkItem   work_item);
-  void           (*spawn_fiber)      (DexScheduler *scheduler,
+  void           (*spawn)            (DexScheduler *scheduler,
                                       DexFiber     *fiber);
   GMainContext  *(*get_main_context) (DexScheduler *scheduler);
   DexAioContext *(*get_aio_context)  (DexScheduler *scheduler);

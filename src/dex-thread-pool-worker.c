@@ -157,6 +157,17 @@ dex_thread_pool_worker_get_main_context (DexScheduler *scheduler)
 }
 
 static void
+dex_thread_pool_worker_spawn (DexScheduler *scheduler,
+                              DexFiber     *fiber)
+{
+  DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (scheduler);
+
+  g_assert (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
+
+  dex_fiber_migrate_to (fiber, (DexFiberScheduler *)thread_pool_worker->fiber_scheduler);
+}
+
+static void
 dex_thread_pool_worker_class_init (DexThreadPoolWorkerClass *thread_pool_worker_class)
 {
   DexObjectClass *object_class = DEX_OBJECT_CLASS (thread_pool_worker_class);
@@ -166,6 +177,7 @@ dex_thread_pool_worker_class_init (DexThreadPoolWorkerClass *thread_pool_worker_
 
   scheduler_class->push = dex_thread_pool_worker_push;
   scheduler_class->get_main_context = dex_thread_pool_worker_get_main_context;
+  scheduler_class->spawn = dex_thread_pool_worker_spawn;
 }
 
 static void

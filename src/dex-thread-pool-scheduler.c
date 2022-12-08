@@ -83,8 +83,8 @@ dex_thread_pool_scheduler_get_aio_context (DexScheduler *scheduler)
 }
 
 static void
-dex_thread_pool_scheduler_spawn_fiber (DexScheduler *scheduler,
-                                       DexFiber     *fiber)
+dex_thread_pool_scheduler_spawn (DexScheduler *scheduler,
+                                 DexFiber     *fiber)
 {
   DexThreadPoolScheduler *thread_pool_scheduler = (DexThreadPoolScheduler *)scheduler;
   guint worker_index = g_atomic_int_add (&thread_pool_scheduler->fiber_rrobin, 1) % thread_pool_scheduler->workers->len;
@@ -96,7 +96,7 @@ dex_thread_pool_scheduler_spawn_fiber (DexScheduler *scheduler,
    * number of them until latency reaches some threshold.
    */
 
-  DEX_SCHEDULER_GET_CLASS (worker)->spawn_fiber (DEX_SCHEDULER (worker), fiber);
+  DEX_SCHEDULER_GET_CLASS (worker)->spawn (DEX_SCHEDULER (worker), fiber);
 }
 
 static void
@@ -123,7 +123,7 @@ dex_thread_pool_scheduler_class_init (DexThreadPoolSchedulerClass *thread_pool_s
   scheduler_class->get_main_context = dex_thread_pool_scheduler_get_main_context;
   scheduler_class->get_aio_context = dex_thread_pool_scheduler_get_aio_context;
   scheduler_class->push = dex_thread_pool_scheduler_push;
-  scheduler_class->spawn_fiber = dex_thread_pool_scheduler_spawn_fiber;
+  scheduler_class->spawn = dex_thread_pool_scheduler_spawn;
 }
 
 static void

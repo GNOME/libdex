@@ -36,7 +36,6 @@ G_BEGIN_DECLS
 typedef struct _DexScheduler DexScheduler;
 
 typedef void       (*DexSchedulerFunc) (gpointer func_data);
-typedef DexFuture *(*DexRoutineFunc)   (gpointer func_data);
 typedef DexFuture *(*DexFiberFunc)     (gpointer func_data);
 
 DEX_AVAILABLE_IN_ALL
@@ -55,11 +54,6 @@ void          dex_scheduler_push               (DexScheduler     *scheduler,
                                                 gpointer          func_data);
 DEX_AVAILABLE_IN_ALL
 DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
-                                                DexRoutineFunc    func,
-                                                gpointer          func_data,
-                                                GDestroyNotify    func_data_destroy);
-DEX_AVAILABLE_IN_ALL
-DexFuture    *dex_scheduler_spawn_fiber        (DexScheduler     *scheduler,
                                                 DexFiberFunc      func,
                                                 gpointer          func_data,
                                                 GDestroyNotify    func_data_destroy);

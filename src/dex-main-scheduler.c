@@ -77,8 +77,8 @@ dex_main_scheduler_get_aio_context (DexScheduler *scheduler)
 }
 
 static void
-dex_main_scheduler_spawn_fiber (DexScheduler *scheduler,
-                                DexFiber     *fiber)
+dex_main_scheduler_spawn (DexScheduler *scheduler,
+                          DexFiber     *fiber)
 {
   DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (scheduler);
 
@@ -119,7 +119,7 @@ dex_main_scheduler_class_init (DexMainSchedulerClass *main_scheduler_class)
   scheduler_class->get_aio_context = dex_main_scheduler_get_aio_context;
   scheduler_class->get_main_context = dex_main_scheduler_get_main_context;
   scheduler_class->push = dex_main_scheduler_push;
-  scheduler_class->spawn_fiber = dex_main_scheduler_spawn_fiber;
+  scheduler_class->spawn = dex_main_scheduler_spawn;
 }
 
 static void

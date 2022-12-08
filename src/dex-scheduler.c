@@ -161,7 +161,7 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
 }
 
 /**
- * dex_scheduler_spawn_fiber:
+ * dex_scheduler_spawn:
  * @scheduler: (nullable): a #DexScheduler
  * @func: (scope async): a #DexFiberFunc
  * @func_data: closure data for @func
@@ -176,10 +176,10 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
  *   @func completes (or it's resulting #DexFuture completes).
  */
 DexFuture *
-dex_scheduler_spawn_fiber (DexScheduler   *scheduler,
-                           DexFiberFunc    func,
-                           gpointer        func_data,
-                           GDestroyNotify  func_data_destroy)
+dex_scheduler_spawn (DexScheduler   *scheduler,
+                     DexFiberFunc    func,
+                     gpointer        func_data,
+                     GDestroyNotify  func_data_destroy)
 {
   DexFiber *fiber;
 
@@ -190,6 +190,6 @@ dex_scheduler_spawn_fiber (DexScheduler   *scheduler,
     scheduler = dex_scheduler_get_default ();
 
   fiber = dex_fiber_new (func, func_data, func_data_destroy, 0);
-  DEX_SCHEDULER_GET_CLASS (scheduler)->spawn_fiber (scheduler, fiber);
+  DEX_SCHEDULER_GET_CLASS (scheduler)->spawn (scheduler, fiber);
   return DEX_FUTURE (fiber);
 }
