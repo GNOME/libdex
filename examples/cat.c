@@ -47,47 +47,58 @@ release_buffer (DexFuture *future,
 }
 
 static DexFuture *
-cat_read_cb (DexFuture *future,
-             gpointer   user_data)
+cat_read_fiber (gpointer user_data)
 {
-  DexFuture *read_future = dex_future_set_get_future_at (DEX_FUTURE_SET (future), 0);
-  const GValue *value = dex_future_get_value (read_future, NULL);
   Cat *cat = user_data;
-  Buffer *buffer = g_steal_pointer (&cat->current);
+  GInputStream *stream;
+  const GValue *value;
+  DexFuture *future;
+  Buffer *buffer;
 
-  if (!(buffer->length = g_value_get_int64 (value)))
+  stream = G_INPUT_STREAM (g_unix_input_stream_new (cat->read_fd, FALSE));
+  buffer = cat_pop_buffer (cat);
+  future = dex_input_stream_read (stream,
+                                  buffer->data,
+                                  buffer->capacity,
+                                  G_PRIORITY_DEFAULT);
+  if (!(value = dex_future_await (future, NULL)))
     return NULL;
+  buffer->length = g_value_get_int64 (value);
+  dex_unref (future);
 
-  cat->current = cat_pop_buffer (cat);
+  for (;;)
+    {
+      DexFuture *read_future;
+      Buffer *next = cat_pop_buffer (cat);
 
-  return dex_future_all (dex_input_stream_read (cat->input,
-                                                cat->current->data,
-                                                cat->current->capacity,
-                                                G_PRIORITY_DEFAULT),
-                         dex_channel_send (cat->channel,
-                                           dex_future_new_for_pointer (buffer)),
-                         NULL);
-}
+      future = dex_future_all (dex_input_stream_read (stream,
+                                                      next->data,
+                                                      next->capacity,
+                                                      G_PRIORITY_DEFAULT),
+                               dex_channel_send (cat->channel,
+                                                 dex_future_new_for_pointer (g_steal_pointer (&buffer))),
+                               NULL);
 
-static DexFuture *
-cat_read (Cat *cat)
-{
-  cat->current = cat_pop_buffer (cat);
+      dex_future_await (future, NULL);
 
-  return dex_future_then_loop (dex_future_all (dex_input_stream_read (cat->input,
-                                                                      cat->current->data,
-                                                                      cat->current->capacity,
-                                                                      G_PRIORITY_DEFAULT),
-                                               NULL),
-                               cat_read_cb, cat, NULL);
-}
+      read_future = dex_future_set_get_future_at (DEX_FUTURE_SET (future), 0);
+      value = dex_future_get_value (read_future, NULL);
 
-static DexFuture *
-cat_read_routine (gpointer user_data)
-{
-  Cat *cat = user_data;
-  cat->input = G_INPUT_STREAM (g_unix_input_stream_new (cat->read_fd, FALSE));
-  return cat_read (cat);
+      if (value == NULL || !(next->length = g_value_get_int64 (value)))
+        {
+          dex_channel_close_send (cat->channel);
+          cat_push_buffer (cat, next);
+          dex_unref (future);
+          break;
+        }
+
+      buffer = next;
+      dex_unref (future);
+    }
+
+  g_clear_object (&stream);
+
+  return dex_future_new_for_boolean (TRUE);
 }
 
 static DexFuture *
@@ -125,7 +136,7 @@ cat_write (Cat *cat)
 }
 
 static DexFuture *
-cat_write_routine (gpointer user_data)
+cat_write_fiber (gpointer user_data)
 {
   Cat *cat = user_data;
   cat->output = G_OUTPUT_STREAM (g_unix_output_stream_new (cat->write_fd, FALSE));
@@ -144,8 +155,8 @@ main (int   argc,
 
   if (!cat_init (&cat, &argc, &argv, &error) ||
       !cat_run (&cat,
-                dex_scheduler_spawn (NULL, cat_read_routine, &cat, NULL),
-                dex_scheduler_spawn (NULL, cat_write_routine, &cat, NULL),
+                dex_scheduler_spawn_fiber (NULL, cat_read_fiber, &cat, NULL),
+                dex_scheduler_spawn (NULL, cat_write_fiber, &cat, NULL),
                 &error))
     {
       g_printerr ("cat: %s\n", error->message);

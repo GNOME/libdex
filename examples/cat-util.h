@@ -43,7 +43,6 @@ struct _Cat
   DexChannel *channel;
   GMainLoop *main_loop;
   GError *error;
-  GInputStream *input;
   GOutputStream *output;
   Buffer *current;
 };
@@ -205,7 +204,6 @@ cat_clear (Cat *cat)
   dex_clear (&cat->channel);
   g_clear_pointer (&cat->current, buffer_free);
   g_clear_pointer (&cat->main_loop, g_main_loop_unref);
-  g_clear_object (&cat->input);
   g_clear_object (&cat->output);
 }
 
