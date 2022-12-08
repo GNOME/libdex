@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include "dex-aio-backend-private.h"
+#include "dex-fiber-private.h"
 #include "dex-routine-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-thread-storage-private.h"
@@ -212,4 +213,38 @@ dex_scheduler_spawn (DexScheduler   *scheduler,
   routine = dex_routine_new (func, func_data, func_data_destroy);
   DEX_SCHEDULER_GET_CLASS (scheduler)->spawn (scheduler, routine);
   return DEX_FUTURE (routine);
+}
+
+/**
+ * dex_scheduler_spawn_fiber:
+ * @scheduler: (nullable): a #DexScheduler
+ * @func: (scope async): a #DexFiberFunc
+ * @func_data: closure data for @func
+ * @func_data_destroy: closure notify for @func_data
+ *
+ * Request @scheduler to spawn a #DexFiber.
+ *
+ * The fiber will have it's own stack and cooperatively schedules among other
+ * fibers sharing the schaeduler.
+ *
+ * Returns: (transfer full): a #DexFuture that will resolve or reject when
+ *   @func completes (or it's resulting #DexFuture completes).
+ */
+DexFuture *
+dex_scheduler_spawn_fiber (DexScheduler   *scheduler,
+                           DexFiberFunc    func,
+                           gpointer        func_data,
+                           GDestroyNotify  func_data_destroy)
+{
+  DexFiber *fiber;
+
+  g_return_val_if_fail (!scheduler || DEX_IS_SCHEDULER (scheduler), NULL);
+  g_return_val_if_fail (func != NULL, NULL);
+
+  if (scheduler == NULL)
+    scheduler = dex_scheduler_get_default ();
+
+  fiber = dex_fiber_new (func, func_data, func_data_destroy, 0);
+  DEX_SCHEDULER_GET_CLASS (scheduler)->spawn_fiber (scheduler, fiber);
+  return DEX_FUTURE (fiber);
 }

@@ -58,6 +58,11 @@ DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
                                                 DexRoutineFunc    func,
                                                 gpointer          func_data,
                                                 GDestroyNotify    func_data_destroy);
+DEX_AVAILABLE_IN_ALL
+DexFuture    *dex_scheduler_spawn_fiber        (DexScheduler     *scheduler,
+                                                DexFiberFunc      func,
+                                                gpointer          func_data,
+                                                GDestroyNotify    func_data_destroy);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexScheduler, dex_unref)
 
