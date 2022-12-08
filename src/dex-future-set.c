@@ -28,12 +28,18 @@
 
 typedef struct _DexFutureSet
 {
-  DexFuture parent_instance;
-  DexFuture **futures;
-  guint n_futures;
-  guint n_resolved;
-  guint n_rejected;
-  DexFutureSetFlags flags;
+  DexFuture           parent_instance;
+  DexFuture         **futures;
+  guint               n_futures;
+  guint               n_resolved;
+  guint               n_rejected;
+  DexFutureSetFlags   flags : 4;
+  guint               padding : 28;
+  /* If n_futures <= 2, we use this instead of mallocing. We could
+   * potentially get a 3rd without breaking 2-cachelines (128 bytes)
+   * if we used a bit above to manage a union of futures/embedded.
+   */
+  DexFuture          *embedded[2];
 } DexFutureSet;
 
 typedef struct _DexFutureSetClass
@@ -149,7 +155,9 @@ dex_future_set_finalize (DexObject *object)
 
   for (guint i = 0; i < future_set->n_futures; i++)
     dex_unref (future_set->futures[i]);
-  g_free (future_set->futures);
+
+  if (future_set->futures != future_set->embedded)
+    g_free (future_set->futures);
 
   future_set->futures = NULL;
   future_set->n_futures = 0;
@@ -205,17 +213,19 @@ dex_future_set_new (DexFuture * const *futures,
                         (flags & (DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE|DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)) != 0,
                         NULL);
 
-  /* Ref all the futures before we get into a situation that can start
-   * having callbacks applied.
-   */
-  for (guint i = 0; i < n_futures; i++)
-    dex_ref (futures[i]);
-
   /* Setup our new DexFuture to contain the results */
   future_set = (DexFutureSet *)g_type_create_instance (DEX_TYPE_FUTURE_SET);
-  future_set->futures = g_memdup2 (futures, sizeof (DexFuture *) * n_futures);
   future_set->n_futures = n_futures;
   future_set->flags = flags;
+
+  if (n_futures <= G_N_ELEMENTS (future_set->embedded))
+    future_set->futures = future_set->embedded;
+  else
+    future_set->futures = g_new0 (DexFuture *, n_futures);
+
+  /* Ref all futures before potentially calling out to chain them */
+  for (guint i = 0; i < n_futures; i++)
+    future_set->futures[i] = dex_ref (futures[i]);
 
   /* Now start chaining futures, even if we progress from pending while
    * we iterate this list (as we're safe against multiple resolves).
@@ -234,6 +244,7 @@ dex_future_set_new_va (DexFuture         *first_future,
   DexFutureSet *future_set;
   DexFuture *future = first_future;
   guint capacity = 8;
+  guint i = 0;
 
   g_return_val_if_fail (DEX_IS_FUTURE (first_future), NULL);
   g_return_val_if_fail ((flags & DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST) == 0 ||
@@ -244,9 +255,17 @@ dex_future_set_new_va (DexFuture         *first_future,
   future_set->flags = flags;
   future_set->futures = g_new (DexFuture *, capacity);
 
+  g_assert (capacity > G_N_ELEMENTS (future_set->embedded));
+
   while (future != NULL)
     {
       dex_ref (future);
+
+      if (i == G_N_ELEMENTS (future_set->embedded))
+        {
+          future_set->futures = g_new0 (DexFuture *, capacity);
+          memcpy (future_set->futures, future_set->embedded, sizeof (DexFuture *) * i);
+        }
 
       if (future_set->n_futures + 1 > capacity)
         {
@@ -261,7 +280,7 @@ dex_future_set_new_va (DexFuture         *first_future,
   /* Now start chaining futures, even if we progress from pending while
    * we iterate this list (as we're safe against multiple resolves).
    */
-  for (guint i = 0; i < future_set->n_futures; i++)
+  for (i = 0; i < future_set->n_futures; i++)
     dex_future_chain (future_set->futures[i], DEX_FUTURE (future_set));
 
   return future_set;
