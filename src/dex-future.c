@@ -1125,3 +1125,78 @@ DexFuture *
 
   return dex_future_new_for_error (error);
 }
+
+static const GValue *
+dex_future_await_check (DexFuture  *future,
+                        GType       type,
+                        GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  if ((value = dex_future_await (future, error)))
+    {
+      if (!G_VALUE_HOLDS (value, type))
+        {
+          g_set_error (error,
+                       DEX_ERROR,
+                       DEX_ERROR_TYPE_MISMATCH,
+                       "Got type %s, expected %s",
+                       G_VALUE_TYPE_NAME (value),
+                       g_type_name (type));
+          return NULL;
+        }
+    }
+
+  return value;
+}
+
+/**
+ * dex_future_await_pointer: (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Calls dex_future_await() and returns the value of g_value_get_pointer(),
+ * otherwise @error is set if the future rejected.
+ *
+ * Returns: (nullable): a pointer or %NULL
+ */
+gpointer
+dex_future_await_pointer (DexFuture  *future,
+                          GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  if ((value = dex_future_await_check (future, G_TYPE_POINTER, error)))
+    return g_value_get_pointer (value);
+
+  return NULL;
+}
+
+/**
+ * dex_future_await_int64:
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the result as an int64.
+ *
+ * The resolved value must be of type %G_TYPE_INT64 or @error is set.
+ *
+ * Returns: an int64, or 0 in case of failure and @error is set.
+ */
+gint64
+dex_future_await_int64 (DexFuture  *future,
+                        GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_future_await_check (future, G_TYPE_INT64, error)))
+    return g_value_get_int64 (value);
+
+  return 0;
+}
