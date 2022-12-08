@@ -27,11 +27,58 @@
 #include "dex-object-private.h"
 #include "dex-promise.h"
 
+static GError channel_closed_error;
+static GValue success_value;
+
 typedef enum _DexChannelStateFlags
 {
   DEX_CHANNEL_STATE_CAN_SEND    = 1 << 0,
   DEX_CHANNEL_STATE_CAN_RECEIVE = 1 << 1,
 } DexChannelStateFlags;
+
+typedef struct _DexChannelReceiver
+{
+  DexFuture parent_instance;
+  GList link;
+} DexChannelReceiver;
+
+typedef struct _DexChannelReceiverClass
+{
+  DexFutureClass parent_class;
+} DexChannelReceiverClass;
+
+#define DEX_IS_CHANNEL_RECEIVER(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, dex_channel_receiver_type))
+
+GType dex_channel_receiver_get_type (void) G_GNUC_CONST;
+
+DEX_DEFINE_FINAL_TYPE (DexChannelReceiver, dex_channel_receiver, DEX_TYPE_FUTURE)
+
+static void
+dex_channel_receiver_class_init (DexChannelReceiverClass *channel_receiver_class)
+{
+  success_value = (GValue) {G_TYPE_BOOLEAN, {{.v_int = TRUE}}};
+}
+
+static void
+dex_channel_receiver_init (DexChannelReceiver *channel_receiver)
+{
+  channel_receiver->link.data = channel_receiver;
+}
+
+static inline void
+dex_channel_receiver_complete (DexChannelReceiver *channel_receiver,
+                               gboolean            success)
+{
+  dex_future_complete ((DexFuture *)channel_receiver,
+                       success ? &success_value : NULL,
+                       success ? NULL : g_error_copy (&channel_closed_error));
+}
+
+static inline DexChannelReceiver *
+dex_channel_receiver_new (void)
+{
+  return (DexChannelReceiver *)g_type_create_instance (dex_channel_receiver_type);
+}
 
 struct _DexChannel
 {
@@ -85,8 +132,6 @@ DEX_DEFINE_FINAL_TYPE (DexChannel, dex_channel, DEX_TYPE_OBJECT)
 
 static void dex_channel_unset_state_flags (DexChannel           *channel,
                                            DexChannelStateFlags  flags);
-
-static GError channel_closed_error;
 
 static DexChannelItem *
 dex_channel_item_new (DexFuture *future)
@@ -142,6 +187,8 @@ dex_channel_class_init (DexChannelClass *channel_class)
 
   object_class->finalize = dex_channel_finalize;
 
+  g_type_ensure (dex_channel_receiver_get_type ());
+
   channel_closed_error = (GError) {
     .domain = DEX_ERROR,
     .code = DEX_ERROR_CHANNEL_CLOSED,
@@ -193,14 +240,14 @@ static void
 dex_channel_one_receive_and_unlock (DexChannel *channel)
 {
   DexChannelItem *item = NULL;
-  DexPromise *promise = NULL;
+  DexChannelReceiver *recv = NULL;
   DexPromise *to_resolve = NULL;
   guint qlen = 0;
 
   g_assert (DEX_IS_CHANNEL (channel));
 
   /* This function removes a single item from the head of the queue and
-   * pairs it with a promise that was delivered to a caller of
+   * pairs it with a future that was delivered to a caller of
    * dex_channel_receive(). The #DexPromise they were returned is
    * completed using the future that was provided to dex_channel_send()
    * (which itself still may not be ready, but we must preserve ordering).
@@ -208,10 +255,10 @@ dex_channel_one_receive_and_unlock (DexChannel *channel)
 
   if (channel->queue.length > 0 && channel->recvq.length > 0)
     {
-      promise = g_queue_pop_head (&channel->recvq);
+      recv = g_queue_pop_head_link (&channel->recvq)->data;
       item = g_queue_pop_head_link (&channel->queue)->data;
 
-      g_assert (DEX_IS_PROMISE (promise));
+      g_assert (DEX_IS_CHANNEL_RECEIVER (recv));
       g_assert (item != NULL);
 
       /* Try to advance a @sendq item into @queue */
@@ -227,13 +274,13 @@ dex_channel_one_receive_and_unlock (DexChannel *channel)
 
   dex_object_unlock (channel);
 
-  g_assert (item == NULL || promise != NULL);
+  g_assert (item == NULL || recv != NULL);
 
   if (item != NULL)
     {
-      dex_future_chain (item->future, DEX_FUTURE (promise));
+      dex_future_chain (item->future, DEX_FUTURE (recv));
       dex_channel_item_free (item);
-      dex_unref (promise);
+      dex_unref (recv);
     }
 
   if (to_resolve != NULL)
@@ -308,11 +355,11 @@ dex_channel_send (DexChannel *channel,
 DexFuture *
 dex_channel_receive (DexChannel *channel)
 {
-  DexPromise *recv;
+  DexChannelReceiver *recv;
 
   g_return_val_if_fail (DEX_IS_CHANNEL (channel), NULL);
 
-  recv = dex_promise_new ();
+  recv = dex_channel_receiver_new ();
 
   dex_object_lock (channel);
 
@@ -330,17 +377,16 @@ dex_channel_receive (DexChannel *channel)
     }
 
   /* Enqueue this receiver and then flush a queued operation if possible */
-  g_queue_push_tail (&channel->recvq, dex_ref (recv));
+  dex_ref (recv);
+  g_queue_push_tail_link (&channel->recvq, &recv->link);
   dex_channel_one_receive_and_unlock (channel);
 
   return DEX_FUTURE (recv);
 
 reject_receive:
   dex_object_unlock (channel);
-  dex_promise_reject (recv,
-                      g_error_new (DEX_ERROR,
-                                   DEX_ERROR_CHANNEL_CLOSED,
-                                   "Channel is closed"));
+  dex_channel_receiver_complete (recv, FALSE);
+
   return DEX_FUTURE (recv);
 }
 
@@ -383,7 +429,7 @@ dex_channel_unset_state_flags (DexChannel           *channel,
       channel->flags &= ~DEX_CHANNEL_STATE_CAN_SEND;
 
       while (channel->recvq.length > pending)
-        g_queue_push_head (&trunc, g_queue_pop_tail (&channel->recvq));
+        g_queue_push_head_link (&trunc, g_queue_pop_tail_link (&channel->recvq));
     }
 
   /* If we need to close the receive-side, do so now and steal
@@ -402,29 +448,27 @@ dex_channel_unset_state_flags (DexChannel           *channel,
 
   while (recvq.length > 0)
     {
-      DexPromise *promise = g_queue_pop_head (&recvq);
-      dex_promise_reject (promise, g_error_copy (&channel_closed_error));
-      dex_unref (promise);
+      DexChannelReceiver *recv = g_queue_pop_head_link (&recvq)->data;
+      dex_channel_receiver_complete (recv, FALSE);
+      dex_unref (recv);
     }
 
   while (trunc.length > 0)
     {
-      DexPromise *promise = g_queue_pop_head (&trunc);
-      dex_promise_reject (promise, g_error_copy (&channel_closed_error));
-      dex_unref (promise);
+      DexChannelReceiver *recv = g_queue_pop_head_link (&trunc)->data;
+      dex_channel_receiver_complete (recv, FALSE);
+      dex_unref (recv);
     }
 
   while (queue.length > 0)
     {
-      DexChannelItem *item = g_queue_peek_head (&queue);
-      g_queue_unlink (&queue, &item->link);
+      DexChannelItem *item = g_queue_pop_head_link (&queue)->data;
       dex_channel_item_free (item);
     }
 
   while (sendq.length > 0)
     {
-      DexChannelItem *item = g_queue_peek_head (&sendq);
-      g_queue_unlink (&sendq, &item->link);
+      DexChannelItem *item = g_queue_pop_head_link (&sendq)->data;
       dex_promise_reject (item->send, g_error_copy (&channel_closed_error));
       dex_channel_item_free (item);
     }
