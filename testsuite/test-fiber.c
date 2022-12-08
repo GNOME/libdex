@@ -69,7 +69,7 @@ static DexFuture *
 scheduler_fiber_func (gpointer user_data)
 {
   test_arg = 99;
-  return NULL;
+  return dex_future_new_for_int (99);
 }
 
 static void
@@ -77,6 +77,7 @@ test_fiber_scheduler_basic (void)
 {
   DexFiberScheduler *fiber_scheduler = dex_fiber_scheduler_new ();
   DexFiber *fiber = dex_fiber_new (scheduler_fiber_func, NULL, 0);
+  const GValue *value;
 
   g_source_attach ((GSource *)fiber_scheduler, NULL);
 
@@ -85,7 +86,9 @@ test_fiber_scheduler_basic (void)
   g_main_context_iteration (NULL, FALSE);
   g_assert_cmpint (test_arg, ==, 99);
 
-  ASSERT_STATUS (fiber, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (fiber, DEX_FUTURE_STATUS_RESOLVED);
+  value = dex_future_get_value (DEX_FUTURE (fiber), NULL);
+  g_assert_cmpint (99, ==, g_value_get_int (value));
   dex_unref (fiber);
 
   g_source_destroy ((GSource *)fiber_scheduler);
