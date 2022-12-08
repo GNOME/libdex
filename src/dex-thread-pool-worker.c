@@ -24,6 +24,7 @@
 #include <stdatomic.h>
 
 #include "dex-aio-backend-private.h"
+#include "dex-fiber-private.h"
 #include "dex-thread-pool-worker-private.h"
 #include "dex-thread-storage-private.h"
 #include "dex-work-stealing-queue-private.h"
@@ -49,6 +50,7 @@ struct _DexThreadPoolWorker
   DexWorkStealingQueue      *work_stealing_queue;
   GSource                   *set_source;
   GSource                   *local_source;
+  GSource                   *fiber_scheduler;
   DexThreadPoolWorkerStatus  status : 2;
 };
 
@@ -130,6 +132,7 @@ dex_thread_pool_worker_finalize (DexObject *object)
   /* These are all destroyed during thread shutdown */
   g_clear_pointer (&thread_pool_worker->set_source, g_source_unref);
   g_clear_pointer (&thread_pool_worker->local_source, g_source_unref);
+  g_clear_pointer (&thread_pool_worker->fiber_scheduler, g_source_unref);
 
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
   g_clear_pointer (&thread_pool_worker->main_context, g_main_context_unref);
@@ -207,6 +210,7 @@ dex_thread_pool_worker_thread_func (gpointer data)
   /* Ensure our sources will not continue on */
   g_source_destroy (thread_pool_worker->set_source);
   g_source_destroy (thread_pool_worker->local_source);
+  g_source_destroy (thread_pool_worker->fiber_scheduler);
 
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_FINISHED;
   g_main_context_pop_thread_default (thread_pool_worker->main_context);
@@ -290,7 +294,7 @@ dex_thread_pool_worker_set_finalize (gpointer data)
 {
   DexThreadPoolWorkerSet *set = data;
 
-  while (set->queue.length)
+  while (set->queue.length > 0)
     dex_thread_pool_worker_set_remove (set, g_queue_peek_head (&set->queue));
 
   g_rw_lock_clear (&set->rwlock);
@@ -407,6 +411,11 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
   g_source_set_priority (source, G_PRIORITY_DEFAULT_IDLE-1);
   g_source_attach (source, thread_pool_worker->main_context);
   thread_pool_worker->set_source = g_steal_pointer (&source);
+
+  /* Setup fiber scheduler source */
+  source = (GSource *)dex_fiber_scheduler_new ();
+  g_source_attach (source, thread_pool_worker->main_context);
+  thread_pool_worker->fiber_scheduler = g_steal_pointer (&source);
 
   /* Now spawn our thread to process events via GSource */
   thread_pool_worker->thread = g_thread_new ("dex-thread-pool-worker",

@@ -33,6 +33,7 @@ struct _DexThreadPoolScheduler
   DexWorkQueue           *global_work_queue;
   DexThreadPoolWorkerSet *set;
   GPtrArray              *workers;
+  guint                   fiber_rrobin;
 };
 
 typedef struct _DexThreadPoolSchedulerClass
@@ -82,6 +83,23 @@ dex_thread_pool_scheduler_get_aio_context (DexScheduler *scheduler)
 }
 
 static void
+dex_thread_pool_scheduler_spawn_fiber (DexScheduler *scheduler,
+                                       DexFiber     *fiber)
+{
+  DexThreadPoolScheduler *thread_pool_scheduler = (DexThreadPoolScheduler *)scheduler;
+  guint worker_index = g_atomic_int_add (&thread_pool_scheduler->fiber_rrobin, 1) % thread_pool_scheduler->workers->len;
+  DexThreadPoolWorker *worker = thread_pool_scheduler->workers->pdata[worker_index];
+
+  /* TODO: This is just doing a dumb round robin for assigning a fiber to a
+   * specific thread pool worker. We probably want something more interesting
+   * than that so we can have weighted workers or even keep affinity to a small
+   * number of them until latency reaches some threshold.
+   */
+
+  DEX_SCHEDULER_GET_CLASS (worker)->spawn_fiber (DEX_SCHEDULER (worker), fiber);
+}
+
+static void
 dex_thread_pool_scheduler_finalize (DexObject *object)
 {
   DexThreadPoolScheduler *thread_pool_scheduler = (DexThreadPoolScheduler *)object;
@@ -105,6 +123,7 @@ dex_thread_pool_scheduler_class_init (DexThreadPoolSchedulerClass *thread_pool_s
   scheduler_class->get_main_context = dex_thread_pool_scheduler_get_main_context;
   scheduler_class->get_aio_context = dex_thread_pool_scheduler_get_aio_context;
   scheduler_class->push = dex_thread_pool_scheduler_push;
+  scheduler_class->spawn_fiber = dex_thread_pool_scheduler_spawn_fiber;
 }
 
 static void
