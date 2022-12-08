@@ -22,6 +22,7 @@
 #pragma once
 
 #include "dex-aio-backend-private.h"
+#include "dex-fiber.h"
 #include "dex-object-private.h"
 #include "dex-routine.h"
 #include "dex-scheduler.h"
@@ -50,6 +51,8 @@ typedef struct _DexSchedulerClass
                                       DexWorkItem   work_item);
   void           (*spawn)            (DexScheduler *scheduler,
                                       DexRoutine   *routine);
+  void           (*spawn_fiber)      (DexScheduler *scheduler,
+                                      DexFiber     *fiber);
   GMainContext  *(*get_main_context) (DexScheduler *scheduler);
   DexAioContext *(*get_aio_context)  (DexScheduler *scheduler);
 } DexSchedulerClass;

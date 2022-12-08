@@ -83,6 +83,27 @@ test_fiber_rec_mutex (void)
   g_rec_mutex_clear (&rmutex);
 }
 
+static void
+scheduler_fiber_func (DexFiber *fiber,
+                      gpointer  user_data)
+{
+  test_arg = 99;
+}
+
+static void
+test_fiber_scheduler_basic (void)
+{
+  DexFiberScheduler *fiber_scheduler = dex_fiber_scheduler_new ();
+  DexFiber *fiber = dex_fiber_new (scheduler_fiber_func, NULL, 0);
+
+  g_source_attach ((GSource *)fiber_scheduler, NULL);
+
+  test_arg = 0;
+  dex_fiber_migrate_to (fiber, fiber_scheduler);
+  g_main_context_iteration (NULL, FALSE);
+  g_assert_cmpint (test_arg, ==, 99);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -91,5 +112,6 @@ main (int argc,
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Fiber/basic", test_fiber_basic);
   g_test_add_func ("/Dex/TestSuite/Fiber/rec-mutex", test_fiber_rec_mutex);
+  g_test_add_func ("/Dex/TestSuite/FiberScheduler/basic", test_fiber_scheduler_basic);
   return g_test_run ();
 }

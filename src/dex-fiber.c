@@ -59,12 +59,17 @@ dex_fiber_class_init (DexFiberClass *fiber_class)
 static void
 dex_fiber_init (DexFiber *fiber)
 {
+  fiber->link.data = fiber;
 }
 
 static void
 dex_fiber_start (DexFiber *fiber)
 {
   fiber->func (fiber, fiber->func_data);
+  fiber->state = DEX_FIBER_STATE_EXITED;
+
+  if (fiber->fiber_scheduler)
+    swapcontext (&fiber->context, &fiber->fiber_scheduler->context);
 }
 
 static void
@@ -134,12 +139,123 @@ dex_fiber_new (DexFiberFunc func,
   return fiber;
 }
 
-void
-dex_fiber_swap_to (DexFiber *fiber,
-                   DexFiber *to)
+static gboolean
+dex_fiber_scheduler_prepare (GSource *source,
+                             int     *timeout)
 {
-  g_assert (DEX_IS_FIBER (fiber));
-  g_assert (DEX_IS_FIBER (to));
+  DexFiberScheduler *scheduler = (DexFiberScheduler *)source;
 
-  swapcontext (&fiber->context, &to->context);
+  *timeout = -1;
+
+  return scheduler->ready.length > 0;
+}
+
+static gboolean
+dex_fiber_scheduler_check (GSource *source)
+{
+  DexFiberScheduler *scheduler = (DexFiberScheduler *)source;
+
+  return scheduler->ready.length > 0;
+}
+
+static gboolean
+dex_fiber_scheduler_dispatch (GSource     *source,
+                              GSourceFunc  callback,
+                              gpointer     user_data)
+{
+  DexFiberScheduler *fiber_scheduler = (DexFiberScheduler *)source;
+
+  g_assert (fiber_scheduler != NULL);
+
+  g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
+
+  while (fiber_scheduler->ready.length > 0)
+    {
+      DexFiber *fiber = g_queue_pop_head_link (&fiber_scheduler->ready)->data;
+
+      fiber_scheduler->current = fiber;
+      swapcontext (&fiber_scheduler->context, &fiber->context);
+      fiber_scheduler->current = NULL;
+    }
+
+  g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
+
+  return G_SOURCE_CONTINUE;
+}
+
+static void
+dex_fiber_scheduler_finalize (GSource *source)
+{
+  DexFiberScheduler *fiber_scheduler = (DexFiberScheduler *)source;
+
+  g_rec_mutex_clear (&fiber_scheduler->rec_mutex);
+}
+
+/**
+ * dex_fiber_scheduler_new:
+ *
+ * Creates a #DexFiberScheduler.
+ *
+ * #DexFiberScheduler is a sub-scheduler to a #DexScheduler that can swap
+ * into and schedule runnable #DexFiber.
+ *
+ * A #DexScheduler should have one of these #GSource attached to it's
+ * #GMainContext so that fibers can be executed there. When a thread
+ * exits, it's fibers may need to be migrated. Currently that is not
+ * implemented as we do not yet destroy #DexThreadPoolWorker.
+ */
+DexFiberScheduler *
+dex_fiber_scheduler_new (void)
+{
+  DexFiberScheduler *fiber_scheduler;
+  static GSourceFuncs funcs = {
+    .check = dex_fiber_scheduler_check,
+    .prepare = dex_fiber_scheduler_prepare,
+    .dispatch = dex_fiber_scheduler_dispatch,
+    .finalize = dex_fiber_scheduler_finalize,
+  };
+
+  fiber_scheduler = (DexFiberScheduler *)g_source_new (&funcs, sizeof *fiber_scheduler);
+  g_rec_mutex_init (&fiber_scheduler->rec_mutex);
+
+  return fiber_scheduler;
+}
+
+void
+dex_fiber_migrate_to (DexFiber          *fiber,
+                      DexFiberScheduler *fiber_scheduler)
+{
+  g_return_if_fail (DEX_IS_FIBER (fiber));
+
+  dex_ref (fiber);
+  dex_object_lock (fiber);
+
+  if (fiber->fiber_scheduler != NULL)
+    {
+      g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
+      if (fiber->state == DEX_FIBER_STATE_READY)
+        g_queue_unlink (&fiber_scheduler->ready, &fiber->link);
+      else if (fiber->state == DEX_FIBER_STATE_WAITING)
+        g_queue_unlink (&fiber_scheduler->waiting, &fiber->link);
+      g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
+
+      fiber->fiber_scheduler = NULL;
+      dex_unref (fiber);
+    }
+
+  if (fiber->state != DEX_FIBER_STATE_EXITED && fiber_scheduler != NULL)
+    {
+      g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
+      if (fiber->state == DEX_FIBER_STATE_READY)
+        g_queue_push_tail_link (&fiber_scheduler->ready, &fiber->link);
+      else if (fiber->state == DEX_FIBER_STATE_WAITING)
+        g_queue_push_tail_link (&fiber_scheduler->waiting, &fiber->link);
+      g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
+
+      fiber->fiber_scheduler = fiber_scheduler;
+      dex_ref (fiber);
+    }
+
+  dex_object_unlock (fiber);
+  dex_unref (fiber);
 }
