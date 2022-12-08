@@ -40,9 +40,8 @@
 static DexFuture *
 cat_read_fiber (gpointer user_data)
 {
+  g_autoptr(GInputStream) stream = NULL;
   Cat *cat = user_data;
-  GInputStream *stream;
-  const GValue *value;
   DexFuture *future;
   Buffer *buffer;
 
@@ -52,42 +51,40 @@ cat_read_fiber (gpointer user_data)
                                   buffer->data,
                                   buffer->capacity,
                                   G_PRIORITY_DEFAULT);
-  if (!(value = dex_future_await (future, NULL)))
-    return NULL;
-  buffer->length = g_value_get_int64 (value);
+  buffer->length = dex_future_await_int64 (future, NULL);
   dex_unref (future);
+
+  if (buffer->length <= 0)
+    return NULL;
 
   for (;;)
     {
+      g_autoptr(DexFuture) all = NULL;
       DexFuture *read_future;
+      DexFuture *send_future;
       Buffer *next = cat_pop_buffer (cat);
 
-      future = dex_future_all (dex_input_stream_read (stream,
-                                                      next->data,
-                                                      next->capacity,
-                                                      G_PRIORITY_DEFAULT),
-                               dex_channel_send (cat->channel,
-                                                 dex_future_new_for_pointer (g_steal_pointer (&buffer))),
-                               NULL);
+      send_future = dex_channel_send (cat->channel,
+                                      dex_future_new_for_pointer (g_steal_pointer (&buffer)));
+      read_future = dex_input_stream_read (stream,
+                                           next->data,
+                                           next->capacity,
+                                           G_PRIORITY_DEFAULT);
 
-      dex_future_await (future, NULL);
+      all = dex_future_all (read_future, send_future, NULL);
+      dex_future_await (all, NULL);
 
-      read_future = dex_future_set_get_future_at (DEX_FUTURE_SET (future), 0);
-      value = dex_future_get_value (read_future, NULL);
+      next->length = dex_future_await_int64 (read_future, NULL);
 
-      if (value == NULL || !(next->length = g_value_get_int64 (value)))
+      if (next->length <= 0)
         {
           dex_channel_close_send (cat->channel);
           cat_push_buffer (cat, next);
-          dex_unref (future);
           break;
         }
 
       buffer = next;
-      dex_unref (future);
     }
-
-  g_clear_object (&stream);
 
   return dex_future_new_for_boolean (TRUE);
 }
