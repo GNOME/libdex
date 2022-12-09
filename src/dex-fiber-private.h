@@ -88,6 +88,9 @@ struct _DexFiberScheduler
 
   /* Saved context when entering first fiber */
   ucontext_t context;
+
+  /* If the scheduler is currently running */
+  guint running : 1;
 };
 
 DexFiberScheduler *dex_fiber_scheduler_new (void);

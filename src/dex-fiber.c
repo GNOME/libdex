@@ -61,14 +61,17 @@ dex_fiber_propagate (DexFuture *future,
 
       if (fiber->fiber_scheduler != NULL)
         {
+          gboolean do_wakeup;
+
           g_rec_mutex_lock (&fiber->fiber_scheduler->rec_mutex);
           g_queue_unlink (&fiber->fiber_scheduler->waiting, &fiber->link);
+          do_wakeup = !fiber->fiber_scheduler->running;
           g_queue_push_head_link (&fiber->fiber_scheduler->ready, &fiber->link);
           g_rec_mutex_unlock (&fiber->fiber_scheduler->rec_mutex);
-        }
 
-      if (fiber->fiber_scheduler != dex_thread_storage_get ()->fiber_scheduler)
-        g_main_context_wakeup (g_source_get_context ((GSource *)fiber->fiber_scheduler));
+          if (do_wakeup)
+            g_main_context_wakeup (g_source_get_context ((GSource *)fiber->fiber_scheduler));
+        }
 
       ret = TRUE;
     }
@@ -238,6 +241,8 @@ dex_fiber_scheduler_dispatch (GSource     *source,
 
   dex_thread_storage_get ()->fiber_scheduler = fiber_scheduler;
 
+  fiber_scheduler->running = TRUE;
+
   while (fiber_scheduler->ready.length > 0)
     {
       DexFiber *fiber = g_queue_pop_head_link (&fiber_scheduler->ready)->data;
@@ -269,6 +274,8 @@ dex_fiber_scheduler_dispatch (GSource     *source,
     }
 
   dex_thread_storage_get ()->fiber_scheduler = NULL;
+
+  fiber_scheduler->running = FALSE;
 
   g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
 
