@@ -20,6 +20,11 @@
 
 #pragma once
 
+#include <signal.h>
+#include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
+
 /* The following code is from libtask by Russ Cox to emulate the
  * ucontext implementation in a fashion that doesn't necessarily
  * require context switches for implementation.

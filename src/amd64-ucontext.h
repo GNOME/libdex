@@ -1,12 +1,12 @@
-#define	setcontext(u)	setmcontext(&(u)->uc_mcontext)
-#define	getcontext(u)	getmcontext(&(u)->uc_mcontext)
+#define setcontext(u)   setmcontext(&(u)->uc_mcontext)
+#define getcontext(u)   getmcontext(&(u)->uc_mcontext)
 typedef struct mcontext mcontext_t;
 typedef struct ucontext ucontext_t;
 
-extern	int		swapcontext(ucontext_t*, const ucontext_t*);
-extern	void		makecontext(ucontext_t*, void(*)(), int, ...);
-extern	int		getmcontext(mcontext_t*);
-extern	void		setmcontext(const mcontext_t*);
+extern  int   swapcontext(ucontext_t*, const ucontext_t*);
+extern  void  makecontext(ucontext_t*, void(*)(void), int, ...);
+extern  int   getmcontext(mcontext_t*);
+extern  void  setmcontext(const mcontext_t*);
 
 /*-
  * Copyright (c) 1999 Marcel Moolenaar
@@ -16,7 +16,7 @@ extern	void		setmcontext(const mcontext_t*);
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer 
+ *    notice, this list of conditions and the following disclaimer
  *    in this position and unchanged.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
@@ -48,7 +48,7 @@ extern	void		setmcontext(const mcontext_t*);
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer 
+ *    notice, this list of conditions and the following disclaimer
  *    in this position and unchanged.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
