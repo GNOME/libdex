@@ -15,25 +15,22 @@ testsuite_c_args = [
   '-UG_DISABLE_CAST_CHECKS',
 ]
 
-testsuite_sources = [
-  ['test-async-result'],
-  ['test-channel'],
-  ['test-object'],
-  ['test-fiber'],
-  ['test-future'],
-  ['test-scheduler'],
-  ['test-semaphore'],
-  ['test-stream'],
-]
+testsuite = {
+  'test-async-result': {},
+  'test-channel': {},
+  'test-object': {},
+  'test-fiber': {},
+  'test-future': {},
+  'test-scheduler': {},
+  'test-semaphore': {},
+  'test-stream': {},
+}
 
-foreach test: testsuite_sources
-  test_name = test.get(0)
-  test_sources = ['@0@.c'.format(test_name)]
-
-  test_exe = executable(test_name, test_sources,
+foreach test, params: testsuite
+  test_exe = executable(test, '@0@.c'.format(test),
           c_args: testsuite_c_args + deprecated_c_args,
     dependencies: [libdex_static_dep],
   )
 
-  test(test_name, test_exe, suite: package_string, env: test_env)
+  test(test, test_exe, env: test_env)
 endforeach

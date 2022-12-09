@@ -64,12 +64,11 @@ if liburing_dep.found()
   ]
 endif
 
-if have_func_kqueue and have_func_kevent
+if config_h.get('HAVE_KQUEUE', false) and config_h.get('HAVE_KEVENT', false)
   libdex_sources += [
     'dex-kqueue-aio-backend.c',
     'dex-kqueue-future.c',
   ]
-  config_h.set10('HAVE_KQUEUE', true)
 endif
 
 if host_machine.system() != 'windows'
@@ -109,22 +108,21 @@ libdex_c_args = [
   '-DDEX_COMPILATION',
 ]
 
-libdex_static = static_library('dex-@0@'.format(api_version), libdex_sources,
+libdex = library('dex-@0@'.format(api_version), libdex_sources,
   dependencies: libdex_deps,
-        c_args: libdex_c_args,
-)
-
-libdex_static_dep = declare_dependency(
-           link_whole: libdex_static,
-  include_directories: include_directories('.'),
-         dependencies: libdex_deps,
-)
-
-libdex = shared_library('dex-@0@'.format(api_version),
-  dependencies: [libdex_deps, libdex_static_dep],
         c_args: libdex_c_args,
        install: true,
 )
+
+if get_option('default_library') == 'shared'
+  libdex_static = static_library('dex-@0@'.format(api_version),
+    objects: libdex.extract_all_objects(recursive: true),
+  )
+elif get_option('default_library') == 'static'
+  libdex_static = libdex
+elif get_option('default_library') == 'both'
+  libdex_static = libdex.get_static_lib()
+endif
 
 libdex_dep_sources = []
 
@@ -135,10 +133,8 @@ pkg.generate(
     libraries: libdex,
          name: 'libdex',
      filebase: 'libdex-' + api_version,
-      version: meson.project_version(),
       subdirs: 'libdex-@0@'.format(api_version),
      requires: ['gio-2.0'],
-  install_dir: join_paths(get_option('libdir'), 'pkgconfig')
 )
 
 if get_option('introspection').enabled()
@@ -172,3 +168,11 @@ libdex_dep = declare_dependency(
          dependencies: libdex_deps,
               sources: [libdex_dep_sources],
 )
+
+libdex_static_dep = declare_dependency(
+           link_whole: libdex_static,
+  include_directories: include_directories('.'),
+         dependencies: libdex_deps,
+)
+
+meson.override_dependency('libdex-' + api_version, libdex_dep)

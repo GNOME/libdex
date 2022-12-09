@@ -1,7 +1,7 @@
 option('docs',
        type: 'boolean', value: false,
        description: 'Build reference manual (requires gi-doc and gobject-introspection)')
-option('build-examples',
+option('examples',
        type: 'boolean', value: true,
        description: 'Build example programs')
 option('vapi',
@@ -13,3 +13,6 @@ option('introspection',
 option('sysprof',
        type: 'boolean', value: false,
        description: 'Provide anscillary profiling information when run under Sysprof')
+option('tests',
+       type: 'boolean', value: true,
+       description: 'Build and enable tests')
