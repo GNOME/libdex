@@ -20,8 +20,11 @@
 
 #pragma once
 
-#include <ucontext.h>
-#include <unistd.h>
+#include <glib.h>
+
+#ifdef G_OS_UNIX
+# include "dex-ucontext-private.h"
+#endif
 
 #include "dex-fiber.h"
 #include "dex-future-private.h"
@@ -60,8 +63,10 @@ struct _DexFiber
   gpointer func_data;
   GDestroyNotify func_data_destroy;
 
+#ifdef G_OS_UNIX
   /* Context for the fiber */
   ucontext_t context;
+#endif
 
   /* If the fiber is runnable */
   DexFiberState status : 2;
@@ -86,8 +91,10 @@ struct _DexFiberScheduler
   /* Queue of fibers scheduled to run */
   GQueue waiting;
 
+#ifdef G_OS_UNIX
   /* Saved context when entering first fiber */
   ucontext_t context;
+#endif
 
   /* If the scheduler is currently running */
   guint running : 1;

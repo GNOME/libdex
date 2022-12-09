@@ -22,11 +22,6 @@
 
 #include <glib.h>
 
-#include <stdarg.h>
-#include <setjmp.h>
-#include <ucontext.h>
-#include <unistd.h>
-
 #include "dex-error.h"
 #include "dex-fiber-private.h"
 #include "dex-object-private.h"
@@ -323,6 +318,7 @@ dex_fiber_scheduler_new (void)
   return fiber_scheduler;
 }
 
+#ifdef G_OS_UNIX
 static void
 dex_fiber_ensure_stack (DexFiber          *fiber,
                         DexFiberScheduler *fiber_scheduler)
@@ -365,6 +361,9 @@ dex_fiber_ensure_stack (DexFiber          *fiber,
 
     }
 }
+#else /* G_OS_WIN32 */
+# error "Windows is not yet supported"
+#endif
 
 void
 dex_fiber_migrate_to (DexFiber          *fiber,

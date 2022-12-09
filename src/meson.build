@@ -1,4 +1,5 @@
 libdex_sources = [
+  'asm.S',
   'dex-aio.c',
   'dex-aio-backend.c',
   'dex-async-pair.c',
@@ -26,6 +27,7 @@ libdex_sources = [
   'dex-thread-pool-worker.c',
   'dex-thread-storage.c',
   'dex-timeout.c',
+  'dex-ucontext.c',
   'dex-work-queue.c',
   'dex-work-stealing-queue.c',
 ]
