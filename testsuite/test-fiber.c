@@ -20,9 +20,6 @@
 
 #include "config.h"
 
-#include <ucontext.h>
-#include <unistd.h>
-
 #include <libdex.h>
 
 #include "dex-fiber-private.h"
