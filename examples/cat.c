@@ -119,7 +119,7 @@ main (int   argc,
 {
   GError *error = NULL;
   Cat cat;
-  int ret;
+  int ret = EXIT_SUCCESS;
 
   dex_init ();
 
