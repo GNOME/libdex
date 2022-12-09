@@ -130,8 +130,8 @@ test_link_args = [
   '-Wl,-z,relro',
   '-Wl,-z,now',
 ]
-if not get_option('buildtype').startswith('debug')
-  add_global_arguments(['-DG_DISABLE_CAST_CHECKS'], language: 'c')
+if not get_option('debug')
+  add_global_arguments('-DG_DISABLE_CAST_CHECKS', language: 'c')
   release_args += [ '-DG_DISABLE_ASSERT' ]
   test_link_args += [
     '-Wl,-Bsymbolic',
@@ -156,7 +156,7 @@ deprecated_c_args = [
   '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_@0@_@1@'.format(glib_major_version, glib_minor_version),
 ]
 
-add_project_arguments(['-I' + meson.project_build_root()], language: 'c')
+add_project_arguments('-I' + meson.project_build_root(), language: 'c')
 
 functions = [
   'eventfd',
@@ -169,16 +169,18 @@ foreach f : functions
   if cc.has_function(f)
     define = 'HAVE_' + f.underscorify().to_upper()
     config_h.set10(define, true)
-    set_variable('have_func_' + f, true)
-  else
-    set_variable('have_func_' + f, false)
   endif
 endforeach
 
+configure_file(output: 'config.h', configuration: config_h)
 
 subdir('src')
-subdir('testsuite')
-subdir('examples')
-subdir('docs')
-
-configure_file(output: 'config.h', configuration: config_h)
+if get_option('tests')
+  subdir('testsuite')
+endif
+if get_option('examples')
+  subdir('examples')
+endif
+if get_option('docs')
+  subdir('docs')
+endif

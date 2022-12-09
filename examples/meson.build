@@ -1,27 +1,19 @@
-if get_option('build-examples')
+libgio_unix_dep = dependency('gio-unix-2.0', required: false, disabler: true)
 
-example_sources = [
-  ['infinite-loop'],
-]
+examples = {
+  'cat': {
+    'dependencies': libgio_unix_dep,
+  },
+  'cat-aio': {
+    'dependencies': libgio_unix_dep,
+  },
+  'infinite-loop': {},
+}
 
-libgio_unix_dep = dependency('gio-unix-2.0', required: false)
-
-if libgio_unix_dep.found()
-  example_sources += [
-    ['cat', [libgio_unix_dep]],
-    ['cat-aio'],
-  ]
-endif
-
-foreach example: example_sources
-  example_name = example.get(0)
-  example_sources = ['@0@.c'.format(example_name)]
-
-  example_exe = executable(example_name, example_sources,
+foreach example, params: examples
+  example_exe = executable(example, '@0@.c'.format(example),
           c_args: deprecated_c_args,
-    dependencies: [libdex_static_dep] + example.get(1, []),
+    dependencies: [libdex_static_dep, params.get('dependencies', [])],
          install: false,
   )
 endforeach
-
-endif
