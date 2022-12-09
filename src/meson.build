@@ -64,7 +64,7 @@ if liburing_dep.found()
   ]
 endif
 
-if config_h.get('HAVE_KQUEUE', false) and config_h.get('HAVE_KEVENT', false)
+if config_h.get('HAVE_KQUEUE', 0) == 1 and config_h.get('HAVE_KEVENT', 0) == 1
   libdex_sources += [
     'dex-kqueue-aio-backend.c',
     'dex-kqueue-future.c',
