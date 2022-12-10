@@ -212,7 +212,7 @@ dex_kqueue_future_submit (DexKqueueFuture *kqueue_future,
       g_return_val_if_reached (FALSE);
     }
 
-  if (kevent (kqueue_fd, &change, 1, NULL, 0, NULL) == 1)
+  if (kevent (kqueue_fd, &change, 1, NULL, 0, NULL) == 0)
     ret = TRUE;
   else
     dex_unref (kqueue_future);
