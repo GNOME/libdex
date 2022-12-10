@@ -119,9 +119,9 @@ dex_stack_new (gsize size)
   /* Itanium has a "register stack", see
    * itanium-software-runtime-architecture-guide.pdf for details.
    */
-  guard = (gintptr)map + ((size / 2) & ~page_size);
+  guard = (gpointer)((gintptr)map + ((size / 2) & ~page_size));
 #elif G_HAVE_GROWING_STACK
-  guard = (gintptr)map + size;
+  guard = (gpointer)((gintptr)map + size);
 #else
   guard = map;
 #endif
