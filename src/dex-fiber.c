@@ -158,23 +158,18 @@ dex_fiber_start (DexFiber *fiber)
 }
 
 static void
-dex_fiber_start_ (int arg1, ...)
+dex_fiber_start_ (guint lo,
+                  guint hi)
 {
   DexFiber *fiber;
 
 #if GLIB_SIZEOF_VOID_P == 4
-  fiber = GSIZE_TO_POINTER (arg1);
+  fiber = GSIZE_TO_POINTER (lo);
 #else
-  va_list args;
-  gsize hi;
-  gsize lo;
-
-  hi = arg1;
-  va_start (args, arg1);
-  lo = va_arg (args, int);
-  va_end (args);
-
-  fiber = GSIZE_TO_POINTER ((hi << 32) | lo);
+  gintptr ptr = hi;
+  ptr <<= 32;
+  ptr |= lo;
+  fiber = (DexFiber *)ptr;
 #endif
 
   g_assert (DEX_IS_FIBER (fiber));
@@ -329,8 +324,8 @@ dex_fiber_ensure_stack (DexFiber          *fiber,
   if (fiber->stack == NULL)
     {
 #if GLIB_SIZEOF_VOID_P == 8
-      int lo;
-      int hi;
+      guint lo;
+      guint hi;
 #endif
 
       if (fiber->stack_size == 0 ||
@@ -353,9 +348,9 @@ dex_fiber_ensure_stack (DexFiber          *fiber,
       makecontext (&fiber->context,
                    G_CALLBACK (dex_fiber_start_),
 #if GLIB_SIZEOF_VOID_P == 4
-                   1, (gsize)fiber,
+                   2, GPOINTER_TO_UINT (fiber), 0,
 #else
-                   2, hi, lo
+                   2, lo, hi
 #endif
                   );
 
