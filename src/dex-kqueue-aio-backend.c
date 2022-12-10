@@ -73,7 +73,7 @@ dex_kqueue_aio_context_dispatch (GSource     *source,
           DexKqueueFuture *future = events[i].udata;
           g_assert (DEX_IS_KQUEUE_FUTURE (future));
           dex_kqueue_future_complete (future, &events[i]);
-          dex_clear (future);
+          dex_clear (&future);
         }
     }
 
