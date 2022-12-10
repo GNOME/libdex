@@ -45,12 +45,13 @@ struct _DexStackPool
   guint  max_pool_size;
 };
 
-DexStackPool *dex_stack_pool_new  (gsize         stack_size,
-                                   int           min_pool_size,
-                                   int           max_pool_size);
-void          dex_stack_pool_free (DexStackPool *stack_pool);
-DexStack     *dex_stack_new       (gsize         size);
-void          dex_stack_free      (DexStack     *stack);
+DexStackPool *dex_stack_pool_new    (gsize         stack_size,
+                                     int           min_pool_size,
+                                     int           max_pool_size);
+void          dex_stack_pool_free   (DexStackPool *stack_pool);
+DexStack     *dex_stack_new         (gsize         size);
+void          dex_stack_free        (DexStack     *stack);
+void          dex_stack_mark_unused (DexStack     *stack);
 
 static inline DexStack *
 dex_stack_pool_acquire (DexStackPool *stack_pool)
@@ -82,6 +83,8 @@ dex_stack_pool_release (DexStackPool *stack_pool,
   g_assert (stack->link.data == stack);
   g_assert (stack->link.prev == NULL);
   g_assert (stack->link.next == NULL);
+
+  dex_stack_mark_unused (stack);
 
   g_mutex_lock (&stack_pool->mutex);
   if (stack_pool->stacks.length > stack_pool->max_pool_size)
