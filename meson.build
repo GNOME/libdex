@@ -42,6 +42,7 @@ endif
 
 project_c_args = []
 test_c_args = [
+  '-Watomic-alignment',
   '-Wcast-align',
   '-Wdeclaration-after-statement',
   '-Werror=address',
