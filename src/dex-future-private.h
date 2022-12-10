@@ -38,7 +38,7 @@ typedef struct _DexFuture
   DexObject parent_instance;
   GValue resolved;
   GError *rejected;
-  GList *chained;
+  GQueue chained;
   const char *name;
   DexFutureStatus status : 2;
 } DexFuture;

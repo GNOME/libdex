@@ -43,6 +43,7 @@ typedef struct _DexChainedFuture
 {
   GList      link;
   DexWeakRef wr;
+  gpointer   where_future_was;
   guint      awaiting : 1;
 } DexChainedFuture;
 
@@ -54,6 +55,7 @@ dex_chained_future_new (gpointer object)
   cf = g_new0 (DexChainedFuture, 1);
   cf->link.data = cf;
   cf->awaiting = TRUE;
+  cf->where_future_was = object;
   dex_weak_ref_init (&cf->wr, object);
 
   return cf;
@@ -86,7 +88,7 @@ dex_future_complete (DexFuture    *future,
                      const GValue *resolved,
                      GError       *rejected)
 {
-  GList *list;
+  GQueue queue = G_QUEUE_INIT;
 
   g_return_if_fail (DEX_IS_FUTURE (future));
   g_return_if_fail (resolved != NULL || rejected != NULL);
@@ -107,12 +109,14 @@ dex_future_complete (DexFuture    *future,
           future->status = DEX_FUTURE_STATUS_REJECTED;
         }
 
-      list = g_steal_pointer (&future->chained);
+      queue = future->chained;
+      future->chained.head = NULL;
+      future->chained.tail = NULL;
+      future->chained.length = 0;
     }
   else
     {
       g_clear_error (&rejected);
-      list = NULL;
     }
   dex_object_unlock (DEX_OBJECT (future));
 
@@ -120,19 +124,12 @@ dex_future_complete (DexFuture    *future,
    * when chained futures were attached. We've released the lock at this
    * point to avoid any requests back on future from deadlocking.
    */
-  list = g_list_last (list);
-  while (list != NULL)
+  while (queue.tail != NULL)
     {
-      DexChainedFuture *cf = list->data;
+      DexChainedFuture *cf = queue.tail->data;
       DexFuture *chained;
 
-      list = list->prev;
-
-      if (list != NULL)
-        {
-          list->next = NULL;
-          cf->link.prev = NULL;
-        }
+      g_queue_unlink (&queue, &cf->link);
 
       g_assert (cf != NULL);
       g_assert (cf->link.data == cf);
@@ -215,7 +212,9 @@ dex_future_finalize (DexObject *object)
 {
   DexFuture *future = (DexFuture *)object;
 
-  g_assert (future->chained == NULL);
+  g_assert (future->chained.length == 0);
+  g_assert (future->chained.head == NULL);
+  g_assert (future->chained.tail == NULL);
 
   if (G_IS_VALUE (&future->resolved))
     g_value_unset (&future->resolved);
@@ -286,9 +285,7 @@ dex_future_chain (DexFuture *future,
   if (future->status == DEX_FUTURE_STATUS_PENDING)
     {
       DexChainedFuture *cf = dex_chained_future_new (chained);
-      future->chained = g_list_insert_before_link (future->chained,
-                                                   future->chained,
-                                                   &cf->link);
+      g_queue_push_tail_link (&future->chained, &cf->link);
       did_chain = TRUE;
     }
   dex_object_unlock (future);
@@ -309,6 +306,7 @@ dex_future_discard (DexFuture *future,
 
   dex_object_lock (future);
 
+#if 0
   /* Mark the chained future as no longer necessary to dispatch to.
    * If so, we can possibly request that @future discard any ongoing
    * operations so that we propagate cancellation.
@@ -320,27 +318,26 @@ dex_future_discard (DexFuture *future,
       dex_object_unlock (future);
       return;
     }
+#endif
 
-  for (const GList *iter = future->chained; iter; iter = iter->next)
+  for (const GList *iter = future->chained.head; iter; )
     {
       DexChainedFuture *cf = iter->data;
-      DexFuture *obj;
 
-      g_assert (cf != NULL);
+      iter = iter->next;
 
-      if ((obj = dex_weak_ref_get (&cf->wr)))
+      if (chained == cf->where_future_was)
         {
-          if (obj == chained)
+          if (cf->awaiting == TRUE)
             {
-              if (cf->awaiting == TRUE)
-                {
-                  matched = TRUE;
-                  cf->awaiting = FALSE;
-                }
+              matched = TRUE;
+              cf->awaiting = FALSE;
             }
 
           has_awaiting |= cf->awaiting;
-          dex_unref (obj);
+
+          g_queue_unlink (&future->chained, &cf->link);
+          dex_chained_future_free (cf);
         }
     }
 

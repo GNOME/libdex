@@ -157,7 +157,10 @@ dex_future_set_finalize (DexObject *object)
   DexFutureSet *future_set = DEX_FUTURE_SET (object);
 
   for (guint i = 0; i < future_set->n_futures; i++)
-    dex_unref (future_set->futures[i]);
+    {
+      dex_future_discard (future_set->futures[i], DEX_FUTURE (future_set));
+      dex_unref (future_set->futures[i]);
+    }
 
   if (future_set->futures != future_set->embedded)
     g_free (future_set->futures);
