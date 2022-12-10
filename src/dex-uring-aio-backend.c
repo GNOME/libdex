@@ -25,6 +25,7 @@
 
 #include <liburing.h>
 
+#include "dex-thread-storage-private.h"
 #include "dex-uring-aio-backend-private.h"
 #include "dex-uring-future-private.h"
 
@@ -181,15 +182,18 @@ static DexFuture *
 dex_uring_aio_context_queue (DexUringAioContext *aio_context,
                              DexUringFuture     *future)
 {
+  gboolean is_same_thread;
   struct io_uring_sqe *sqe;
 
   g_assert (aio_context != NULL);
   g_assert (DEX_IS_URING_AIO_BACKEND (aio_context->parent.aio_backend));
   g_assert (DEX_IS_URING_FUTURE (future));
 
-  g_mutex_lock (&aio_context->mutex);
+  is_same_thread = dex_thread_storage_get ()->aio_context == (DexAioContext *)aio_context;
 
-  if G_LIKELY (aio_context->queued.length == 0 &&
+  g_mutex_lock (&aio_context->mutex);
+  if G_LIKELY (is_same_thread &&
+               aio_context->queued.length == 0 &&
                (sqe = io_uring_get_sqe (&aio_context->ring)))
     {
       dex_uring_future_sqe (future, sqe);
@@ -199,12 +203,10 @@ dex_uring_aio_context_queue (DexUringAioContext *aio_context,
     {
       g_queue_push_tail (&aio_context->queued, dex_ref (future));
     }
-
   g_mutex_unlock (&aio_context->mutex);
 
-  /* TODO: If we're pushing onto this aio ring from a thread that isn't
-   * processing it, we would have to wake up the GMainContext too.
-   */
+  if (!is_same_thread)
+    g_main_context_wakeup (g_source_get_context ((GSource *)aio_context));
 
   return DEX_FUTURE (future);
 }
@@ -227,6 +229,10 @@ dex_uring_aio_backend_create_context (DexAioBackend *aio_backend)
 
 #ifdef IORING_SETUP_COOP_TASKRUN
   uring_flags |= IORING_SETUP_COOP_TASKRUN;
+#endif
+
+#ifdef IORING_SETUP_SINGLE_ISSUER
+  uring_flags |= IORING_SETUP_SINGLE_ISSUER;
 #endif
 
   aio_context->eventfd = -1;
