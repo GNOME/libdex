@@ -337,7 +337,7 @@ dex_fiber_ensure_stack (DexFiber          *fiber,
       getcontext (&fiber->context);
 
       fiber->context.uc_stack.ss_size = fiber->stack->size;
-      fiber->context.uc_stack.ss_sp = fiber->stack->base;
+      fiber->context.uc_stack.ss_sp = fiber->stack->ptr;
       fiber->context.uc_link = 0;
 
 #if GLIB_SIZEOF_VOID_P == 8

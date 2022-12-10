@@ -140,6 +140,11 @@ dex_stack_new (gsize size)
   stack->base = map;
   stack->guard = guard;
 
+  if (map == guard)
+    stack->ptr = (gpointer)((gintptr)map + page_size);
+  else
+    stack->ptr = map;
+
   return stack;
 #endif
 }

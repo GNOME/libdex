@@ -33,6 +33,7 @@ struct _DexStack
   gsize    size;
   gpointer base;
   gpointer guard;
+  gpointer ptr;
 };
 
 struct _DexStackPool
