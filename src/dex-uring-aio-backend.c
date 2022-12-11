@@ -231,8 +231,13 @@ dex_uring_aio_backend_create_context (DexAioBackend *aio_backend)
   uring_flags |= IORING_SETUP_COOP_TASKRUN;
 #endif
 
+#if 0
+  /* TODO: We need to do system checks with io_uring_queue_init_params() or
+   * similar to be able to detect if the feature is available.
+   */
 #ifdef IORING_SETUP_SINGLE_ISSUER
   uring_flags |= IORING_SETUP_SINGLE_ISSUER;
+#endif
 #endif
 
   aio_context->eventfd = -1;
