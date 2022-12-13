@@ -1133,7 +1133,7 @@ dex_await_check (DexFuture  *future,
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
-  if ((value = dex_await (future, error)))
+  if ((value = dex_await_borrowed (future, error)))
     {
       if (!G_VALUE_HOLDS (value, type))
         {
@@ -1152,7 +1152,7 @@ dex_await_check (DexFuture  *future,
 
 /**
  * dex_await_pointer: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Calls dex_await() and returns the value of g_value_get_pointer(),
@@ -1165,18 +1165,21 @@ dex_await_pointer (DexFuture  *future,
                    GError    **error)
 {
   const GValue *value;
+  gpointer ret = NULL;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
   if ((value = dex_await_check (future, G_TYPE_POINTER, error)))
-    return g_value_get_pointer (value);
+    ret = g_value_get_pointer (value);
 
-  return NULL;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_int: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the result as an int.
@@ -1185,23 +1188,26 @@ dex_await_pointer (DexFuture  *future,
  *
  * Returns: an int, or 0 in case of failure and @error is set.
  */
-gint
+int
 dex_await_int (DexFuture  *future,
                GError    **error)
 {
   const GValue *value;
+  int ret = 0;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
   if ((value = dex_await_check (future, G_TYPE_INT, error)))
-    return g_value_get_int (value);
+    ret = g_value_get_int (value);
 
-  return 0;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_uint: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the result as an uint.
@@ -1215,18 +1221,21 @@ dex_await_uint (DexFuture  *future,
                 GError    **error)
 {
   const GValue *value;
+  guint ret = 0;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
   if ((value = dex_await_check (future, G_TYPE_UINT, error)))
-    return g_value_get_uint (value);
+    ret = g_value_get_uint (value);
 
-  return 0;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_int64: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the result as an int64.
@@ -1240,18 +1249,21 @@ dex_await_int64 (DexFuture  *future,
                  GError    **error)
 {
   const GValue *value;
+  gint64 ret = 0;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
   if ((value = dex_await_check (future, G_TYPE_INT64, error)))
-    return g_value_get_int64 (value);
+    ret = g_value_get_int64 (value);
 
-  return 0;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_uint64: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the result as an uint64.
@@ -1265,18 +1277,21 @@ dex_await_uint64 (DexFuture  *future,
                   GError    **error)
 {
   const GValue *value;
+  guint64 ret = 0;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
   if ((value = dex_await_check (future, G_TYPE_UINT64, error)))
-    return g_value_get_uint64 (value);
+    ret = g_value_get_uint64 (value);
 
-  return 0;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_double: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the result as an double.
@@ -1290,18 +1305,21 @@ dex_await_double (DexFuture  *future,
                   GError    **error)
 {
   const GValue *value;
+  double ret = 0;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
   if ((value = dex_await_check (future, G_TYPE_DOUBLE, error)))
-    return g_value_get_double (value);
+    ret = g_value_get_double (value);
 
-  return 0;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_float: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the result as an float.
@@ -1315,18 +1333,21 @@ dex_await_float (DexFuture  *future,
                  GError    **error)
 {
   const GValue *value;
+  float ret = 0;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
   if ((value = dex_await_check (future, G_TYPE_FLOAT, error)))
-    return g_value_get_float (value);
+    ret = g_value_get_float (value);
 
-  return 0;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_boxed: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the %G_TYPE_BOXED based result.
@@ -1338,18 +1359,21 @@ dex_await_boxed (DexFuture  *future,
                  GError    **error)
 {
   const GValue *value;
+  gpointer ret = NULL;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
   if ((value = dex_await_check (future, G_TYPE_BOXED, error)))
-    return g_value_dup_boxed (value);
+    ret = g_value_dup_boxed (value);
 
-  return NULL;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_object: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the #GObject-based result.
@@ -1361,18 +1385,21 @@ dex_await_object (DexFuture  *future,
                   GError    **error)
 {
   const GValue *value;
+  gpointer ret = NULL;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
   if ((value = dex_await_check (future, G_TYPE_OBJECT, error)))
-    return g_value_dup_object (value);
+    ret = g_value_dup_object (value);
 
-  return NULL;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_boolean: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the gboolean result.
@@ -1386,18 +1413,21 @@ dex_await_boolean (DexFuture  *future,
                    GError    **error)
 {
   const GValue *value;
+  gboolean ret = FALSE;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), FALSE);
 
   if ((value = dex_await_check (future, G_TYPE_BOOLEAN, error)))
-    return g_value_get_boolean (value);
+    ret = g_value_get_boolean (value);
 
-  return FALSE;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_string: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the string result.
@@ -1411,18 +1441,21 @@ dex_await_string (DexFuture  *future,
                   GError    **error)
 {
   const GValue *value;
+  char *ret = NULL;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
   if ((value = dex_await_check (future, G_TYPE_STRING, error)))
-    return g_value_dup_string (value);
+    ret = g_value_dup_string (value);
 
-  return NULL;
+  dex_unref (ret);
+
+  return ret;
 }
 
 /**
  * dex_await_enum: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the enum result.
@@ -1436,18 +1469,21 @@ dex_await_enum (DexFuture  *future,
                 GError    **error)
 {
   const GValue *value;
+  guint ret = 0;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
   if ((value = dex_await_check (future, G_TYPE_ENUM, error)))
-    return g_value_get_enum (value);
+    ret = g_value_get_enum (value);
 
-  return 0;
+  dex_unref (future);
+
+  return ret;
 }
 
 /**
  * dex_await_flags: (method) (skip)
- * @future: a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the flags result.
@@ -1461,11 +1497,14 @@ dex_await_flags (DexFuture  *future,
                  GError    **error)
 {
   const GValue *value;
+  guint ret = 0;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
   if ((value = dex_await_check (future, G_TYPE_FLAGS, error)))
-    return g_value_get_flags (value);
+    ret = g_value_get_flags (value);
 
-  return 0;
+  dex_unref (future);
+
+  return ret;
 }

@@ -19,19 +19,25 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-/* A variant of cat.c which uses the internal/private AIO for testing
- * performance compared to GIO async/finish pairs.
- */
-
 #include <unistd.h>
 
 #include <gio/gio.h>
+#include <gio/gunixinputstream.h>
+#include <gio/gunixoutputstream.h>
 
-#include <libdex.h>
+#include "cat-util.h"
 
 #include "dex-aio-private.h"
 
-#include "cat-util.h"
+/* NOTE:
+ *
+ * `cat` from coreutils is certainly faster than this, especially if you're
+ * doing things like `./examples/cat foo > bar` as it will use
+ * copy_file_range() to avoid reading into userspace.
+ *
+ * `gio cat` is likely faster than this doing synchronous IO on the calling
+ * thread because it doesn't have to coordinate across thread pools.
+ */
 
 static DexFuture *
 cat_read_fiber (gpointer user_data)
@@ -41,37 +47,34 @@ cat_read_fiber (gpointer user_data)
 
   for (;;)
     {
-      g_autoptr(DexFuture) all = NULL;
-      DexFuture *send_future = NULL;
-      DexFuture *read_future;
-      Buffer *next = cat_pop_buffer (cat);
+      Buffer *next;
 
+      /* Suspend while sending the buffer to the channel, which may
+       * help throttle reads if they get too far ahead of writes.
+       */
       if (buffer != NULL)
-        send_future = dex_channel_send (cat->channel,
-                                        dex_future_new_for_pointer (g_steal_pointer (&buffer)));
+        dex_await (dex_channel_send (cat->channel,
+                                     dex_future_new_for_pointer (g_steal_pointer (&buffer))),
+                   NULL);
 
-      if (cat->to_read == 0)
-        return DEX_FUTURE (send_future);
+      /* Get next buffer from the pool */
+      next = cat_pop_buffer (cat);
 
-      read_future = dex_aio_read (NULL,
-                                  cat->read_fd,
-                                  next->data,
-                                  MIN (next->capacity, cat->to_read),
-                                  -1);
+      /* Suspend while reading into the buffer */
+      next->length = dex_await_int64 (dex_aio_read (NULL,
+                                                    cat->read_fd,
+                                                    next->data,
+                                                    next->capacity,
+                                                    -1),
+                                      NULL);
 
-      all = dex_future_all (read_future, send_future, NULL);
-      dex_await (all, NULL);
-
-      next->length = dex_await_int64 (read_future, NULL);
-
+      /* If we got length <= 0, we failed or finished */
       if (next->length <= 0)
         {
           dex_channel_close_send (cat->channel);
           cat_push_buffer (cat, next);
           break;
         }
-
-      cat->to_read -= next->length;
 
       buffer = next;
     }
@@ -86,23 +89,25 @@ cat_write_fiber (gpointer user_data)
 
   for (;;)
     {
-      g_autoptr(DexFuture) recv = dex_channel_receive (cat->channel);
-      g_autoptr(DexFuture) wr = NULL;
       Buffer *buffer;
       gssize len;
 
-      if (!(buffer = dex_await_pointer (recv, NULL)))
+      /* Suspend while we wait for another buffer (or error on channel closed) */
+      if (!(buffer = dex_await_pointer (dex_channel_receive (cat->channel), NULL)))
         break;
 
-      wr = dex_aio_write (NULL,
-                          cat->write_fd,
-                          buffer->data,
-                          buffer->length,
-                          -1);
+      /* Suspend while we write the buffer contents to output stream */
+      len = dex_await_int64 (dex_aio_write (NULL,
+                                            cat->write_fd,
+                                            buffer->data,
+                                            buffer->length,
+                                            -1),
+                            NULL);
 
-      len = dex_await_int64 (wr, NULL);
+      /* Give the buffer back to the pool */
       cat_push_buffer (cat, buffer);
 
+      /* Bail if we got a failure or empty buffer */
       if (len <= 0)
         break;
     }

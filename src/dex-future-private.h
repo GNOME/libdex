@@ -52,14 +52,16 @@ typedef struct _DexFutureClass
   void     (*discard)   (DexFuture *future);
 } DexFutureClass;
 
-void dex_future_chain         (DexFuture    *future,
-                               DexFuture    *chained);
-void dex_future_complete      (DexFuture    *future,
-                               const GValue *value,
-                               GError       *error);
-void dex_future_complete_from (DexFuture    *future,
-                               DexFuture    *completed);
-void dex_future_discard       (DexFuture    *future,
-                               DexFuture    *chained);
+void          dex_future_chain         (DexFuture     *future,
+                                        DexFuture     *chained);
+void          dex_future_complete      (DexFuture     *future,
+                                        const GValue  *value,
+                                        GError        *error);
+void          dex_future_complete_from (DexFuture     *future,
+                                        DexFuture     *completed);
+void          dex_future_discard       (DexFuture     *future,
+                                        DexFuture     *chained);
+const GValue *dex_await_borrowed       (DexFuture     *future,
+                                        GError       **error);
 
 G_END_DECLS

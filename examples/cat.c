@@ -40,33 +40,33 @@
 static DexFuture *
 cat_read_fiber (gpointer user_data)
 {
-  g_autoptr(GInputStream) stream = NULL;
   Cat *cat = user_data;
+  GInputStream *stream = g_unix_input_stream_new (cat->read_fd, FALSE);
   Buffer *buffer = NULL;
-
-  stream = G_INPUT_STREAM (g_unix_input_stream_new (cat->read_fd, FALSE));
 
   for (;;)
     {
-      g_autoptr(DexFuture) all = NULL;
-      DexFuture *send_future = NULL;
-      DexFuture *read_future;
-      Buffer *next = cat_pop_buffer (cat);
+      Buffer *next;
 
+      /* Suspend while sending the buffer to the channel, which may
+       * help throttle reads if they get too far ahead of writes.
+       */
       if (buffer != NULL)
-        send_future = dex_channel_send (cat->channel,
-                                        dex_future_new_for_pointer (g_steal_pointer (&buffer)));
+        dex_await (dex_channel_send (cat->channel,
+                                     dex_future_new_for_pointer (g_steal_pointer (&buffer))),
+                   NULL);
 
-      read_future = dex_input_stream_read (stream,
-                                           next->data,
-                                           next->capacity,
-                                           G_PRIORITY_DEFAULT);
+      /* Get next buffer from the pool */
+      next = cat_pop_buffer (cat);
 
-      all = dex_future_all (read_future, send_future, NULL);
-      dex_await (all, NULL);
+      /* Suspend while reading into the buffer */
+      next->length = dex_await_int64 (dex_input_stream_read (stream,
+                                                             next->data,
+                                                             next->capacity,
+                                                             G_PRIORITY_DEFAULT),
+                                      NULL);
 
-      next->length = dex_await_int64 (read_future, NULL);
-
+      /* If we got length <= 0, we failed or finished */
       if (next->length <= 0)
         {
           dex_channel_close_send (cat->channel);
@@ -77,38 +77,49 @@ cat_read_fiber (gpointer user_data)
       buffer = next;
     }
 
+  /* Suspend while we close the stream */
+  dex_await (dex_input_stream_close (stream, 0), NULL);
+
+  g_object_unref (stream);
+
   return dex_future_new_for_boolean (TRUE);
 }
 
 static DexFuture *
 cat_write_fiber (gpointer user_data)
 {
-  g_autoptr(GOutputStream) stream = NULL;
   Cat *cat = user_data;
-
-  stream = G_OUTPUT_STREAM (g_unix_output_stream_new (cat->write_fd, FALSE));
+  GOutputStream *stream = g_unix_output_stream_new (cat->write_fd, FALSE);
 
   for (;;)
     {
-      g_autoptr(DexFuture) recv = dex_channel_receive (cat->channel);
-      g_autoptr(DexFuture) wr = NULL;
       Buffer *buffer;
       gssize len;
 
-      if (!(buffer = dex_await_pointer (recv, NULL)))
+      /* Suspend while we wait for another buffer (or error on channel closed) */
+      if (!(buffer = dex_await_pointer (dex_channel_receive (cat->channel), NULL)))
         break;
 
-      wr = dex_output_stream_write (stream,
-                                    buffer->data,
-                                    buffer->length,
-                                    G_PRIORITY_DEFAULT);
+      /* Suspend while we write the buffer contents to output stream */
+      len = dex_await_int64 (dex_output_stream_write (G_OUTPUT_STREAM (stream),
+                                                      buffer->data,
+                                                      buffer->length,
+                                                      G_PRIORITY_DEFAULT),
+                            NULL);
 
-      len = dex_await_int64 (wr, NULL);
+      /* Give the buffer back to the pool */
       cat_push_buffer (cat, buffer);
 
+      /* Bail if we got a failure or empty buffer */
       if (len <= 0)
         break;
     }
+
+  /* Asynchronously close the stream, which may cause flushing to occur. */
+  dex_await (dex_output_stream_close (stream, 0), NULL);
+
+  /* Release the stream, which should not block since it was closed above */
+  g_object_unref (stream);
 
   return dex_future_new_for_boolean (TRUE);
 }

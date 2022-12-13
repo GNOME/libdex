@@ -127,7 +127,7 @@ dex_fiber_start (DexFiber *fiber)
 
   if (future != NULL)
     {
-      dex_await (future, NULL);
+      dex_await_borrowed (future, NULL);
       dex_future_complete_from (DEX_FUTURE (fiber), future);
       dex_unref (future);
     }
@@ -436,31 +436,9 @@ dex_fiber_await (DexFiber  *fiber,
   swapcontext (&fiber->context, &fiber_scheduler->context);
 }
 
-/**
- * dex_await: (method) (skip)
- * @future: a #DexFuture
- * @error: a location for a #GError, or %NULL
- *
- * Suspends the current fiber and resumes when @future has completed.
- *
- * If @future is completed when this function is called, the fiber will
- * not suspend and handle the result immediately.
- *
- * This function may only be called within a created #DexFiber. To do
- * otherwise will return %NULL and @error set to %DEX_ERROR_NO_FIBER.
- *
- * It is an error to call this function in a way that would cause
- * intermediate code to become invalid when resuming the stack. For example,
- * if a foreach-style function taking a callback was to suspend from the
- * callback, undefined behavior may occur such as thread-local-storage
- * having changed.
- *
- * Returns: (transfer none): a #GValue containing the result of @future;
- *   or @error is set.
- */
 const GValue *
-dex_await (DexFuture  *future,
-           GError    **error)
+dex_await_borrowed (DexFuture  *future,
+                    GError    **error)
 {
   DexFiber *fiber;
 
@@ -478,4 +456,32 @@ dex_await (DexFuture  *future,
   dex_fiber_await (fiber, future);
 
   return dex_future_get_value (future, error);
+}
+
+/**
+ * dex_await: (method) (skip)
+ * @future: (transfer full): a #DexFuture
+ * @error: a location for a #GError, or %NULL
+ *
+ * Suspends the current #DexFiber and resumes when @future has completed.
+ *
+ * If @future is completed when this function is called, the fiber will handle
+ * the result immediately.
+ *
+ * This function may only be called within a #DexFiber. To do otherwise will
+ * return %FALSE and @error set to %DEX_ERROR_NO_FIBER.
+ *
+ * It is an error to call this function in a way that would cause
+ * intermediate code to become invalid when resuming the stack. For example,
+ * if a foreach-style function taking a callback was to suspend from the
+ * callback, undefined behavior may occur such as thread-local-storage
+ * having changed.
+ */
+gboolean
+dex_await (DexFuture  *future,
+           GError    **error)
+{
+  const GValue *value = dex_await_borrowed (future, error);
+  dex_unref (future);
+  return value != NULL;
 }

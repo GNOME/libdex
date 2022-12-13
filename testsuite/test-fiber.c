@@ -95,8 +95,9 @@ test_await_send (gpointer user_data)
       GError *error = NULL;
 
       send = dex_channel_send (channel, dex_future_new_for_int (200));
-      value = dex_await (send, &error);
+      g_assert_true (dex_await (dex_ref (send), &error));
       g_assert_no_error (error);
+      value = dex_future_get_value (send, NULL);
       g_assert_nonnull (value);
       g_assert_true (G_VALUE_HOLDS_UINT (value));
       dex_unref (send);
@@ -117,8 +118,9 @@ test_await_recv (gpointer user_data)
       const GValue *value;
 
       recv = dex_channel_receive (channel);
-      value = dex_await (recv, &error);
+      g_assert_true (dex_await (dex_ref (recv), &error));
       g_assert_no_error (error);
+      value = dex_future_get_value (recv, NULL);
       g_assert_nonnull (value);
       g_assert_true (G_VALUE_HOLDS_INT (value));
       g_assert_cmpint (200, ==, g_value_get_int (value));

@@ -142,7 +142,7 @@ DEX_AVAILABLE_IN_ALL
 void             dex_future_set_static_name (DexFuture          *future,
                                              const char         *name);
 DEX_AVAILABLE_IN_ALL
-const GValue    *dex_await                  (DexFuture          *future,
+gboolean         dex_await                  (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
 gboolean         dex_await_boolean          (DexFuture          *future,
