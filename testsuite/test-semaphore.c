@@ -21,6 +21,7 @@
 #include <libdex.h>
 
 #include "dex-aio-backend-private.h"
+#include "dex-main-scheduler-private.h"
 #include "dex-semaphore-private.h"
 #include "dex-thread-storage-private.h"
 
@@ -55,18 +56,9 @@ static gpointer
 worker_thread_func (gpointer data)
 {
   WorkerState *state = data;
-  DexAioBackend *aio_backend = dex_aio_backend_get_default ();
-  DexAioContext *aio_context = dex_aio_backend_create_context (aio_backend);
   GMainContext *main_context = g_main_context_new ();
-  char *name = g_strdup_printf ("semaphore-thread-%u", state->threadid);
+  DexMainScheduler *main_scheduler = dex_main_scheduler_new (main_context);
   DexFuture *future;
-
-  state->source = (GSource *)aio_context;
-
-  dex_thread_storage_get ()->aio_context = aio_context;
-
-  g_source_set_name (state->source, name);
-  g_source_attach (state->source, main_context);
 
   future = dex_semaphore_wait (state->semaphore);
   future = dex_future_then_loop (future, worker_thread_callback, state, NULL);
@@ -75,7 +67,8 @@ worker_thread_func (gpointer data)
     g_main_context_iteration (main_context, TRUE);
 
   dex_unref (future);
-  g_free (name);
+  dex_unref (main_scheduler);
+  g_main_context_unref (main_context);
 
   g_atomic_int_inc (&done);
 
