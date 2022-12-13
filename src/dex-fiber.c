@@ -436,6 +436,28 @@ dex_fiber_await (DexFiber  *fiber,
   swapcontext (&fiber->context, &fiber_scheduler->context);
 }
 
+/**
+ * dex_await: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError, or %NULL
+ *
+ * Suspends the current fiber and resumes when @future has completed.
+ *
+ * If @future is completed when this function is called, the fiber will
+ * not suspend and handle the result immediately.
+ *
+ * This function may only be called within a created #DexFiber. To do
+ * otherwise will return %NULL and @error set to %DEX_ERROR_NO_FIBER.
+ *
+ * It is an error to call this function in a way that would cause
+ * intermediate code to become invalid when resuming the stack. For example,
+ * if a foreach-style function taking a callback was to suspend from the
+ * callback, undefined behavior may occur such as thread-local-storage
+ * having changed.
+ *
+ * Returns: (transfer none): a #GValue containing the result of @future;
+ *   or @error is set.
+ */
 const GValue *
 dex_await (DexFuture  *future,
            GError    **error)
