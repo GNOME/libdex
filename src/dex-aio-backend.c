@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include "dex-aio-backend-private.h"
+#include "dex-posix-aio-backend-private.h"
 
 #ifdef HAVE_LIBURING
 # include "dex-uring-aio-backend-private.h"
@@ -90,7 +91,7 @@ dex_aio_backend_get_default (void)
 #elif defined(HAVE_KQUEUE)
       backend = dex_kqueue_aio_backend_new ();
 #else
-# error "No aio backend configured"
+      backend = dex_posix_aio_backend_new ();
 #endif
       g_once_init_leave (&instance, backend);
     }

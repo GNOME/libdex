@@ -18,6 +18,8 @@ libdex_sources = [
   'dex-main-scheduler.c',
   'dex-object.c',
   'dex-platform.c',
+  'dex-posix-aio-backend.c',
+  'dex-posix-aio-future.c',
   'dex-promise.c',
   'dex-scheduler.c',
   'dex-semaphore.c',
