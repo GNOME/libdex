@@ -321,7 +321,7 @@ dex_semaphore_close (DexSemaphore *semaphore)
 #ifdef HAVE_EVENTFD
   if (semaphore->eventfd != -1)
     {
-      close (semaphore->eventfd, -1);
+      close (semaphore->eventfd);
       semaphore->eventfd = -1;
     }
 #else
