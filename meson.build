@@ -27,7 +27,7 @@ glib_req_version = '2.68'
 glib_req = '>= @0@'.format(glib_req_version)
 glib_dep = dependency('gio-2.0', version: glib_req)
 
-liburing_req_version = '2.3'
+liburing_req_version = '0.7'
 liburing_req = '>= @0@'.format(liburing_req_version)
 liburing_dep = dependency('liburing', version: liburing_req, required: false)
 
