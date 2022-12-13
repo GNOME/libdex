@@ -44,14 +44,14 @@ struct _DexKqueueFuture
       gpointer buffer;
       gsize count;
       goffset offset;
-      gsize bytes_available;
+      goffset bytes_available;
     } read;
     struct {
       int fd;
       gconstpointer buffer;
       gsize count;
       goffset offset;
-      gsize bytes_available;
+      goffset bytes_available;
     } write;
   };
 };
@@ -79,9 +79,6 @@ dex_kqueue_future_complete_read (DexKqueueFuture     *kqueue_future,
 {
   gsize to_read = kqueue_future->read.count;
   gssize n_read;
-
-  if (kqueue_future->read.bytes_available > 0)
-    to_read = MIN (to_read, kqueue_future->read.bytes_available);
 
   if (kqueue_future->read.offset >= 0)
     n_read = pread (kqueue_future->read.fd,
@@ -114,22 +111,19 @@ dex_kqueue_future_complete_write (DexKqueueFuture     *kqueue_future,
                                   const struct kevent *event)
 {
   gsize to_write = kqueue_future->write.count;
-  gssize n_write;
-
-  if (kqueue_future->write.bytes_available > 0)
-    to_write = MIN (to_write, kqueue_future->write.bytes_available);
+  gssize n_written;
 
   if (kqueue_future->write.offset >= 0)
-    n_write = pwrite (kqueue_future->write.fd,
-                      kqueue_future->write.buffer,
-                      to_write,
-                      kqueue_future->write.offset);
+    n_written = pwrite (kqueue_future->write.fd,
+                        kqueue_future->write.buffer,
+                        to_write,
+                        kqueue_future->write.offset);
   else
-    n_write = write (kqueue_future->write.fd,
-                     kqueue_future->write.buffer,
-                     to_write);
+    n_written = write (kqueue_future->write.fd,
+                       kqueue_future->write.buffer,
+                       to_write);
 
-  if (n_write < 0)
+  if (n_written < 0)
     {
       int errsv = errno;
       dex_future_complete (DEX_FUTURE (kqueue_future),
@@ -140,7 +134,7 @@ dex_kqueue_future_complete_write (DexKqueueFuture     *kqueue_future,
     }
   else
     {
-      GValue value = {G_TYPE_INT64, {{.v_int64 = n_write}}};
+      GValue value = {G_TYPE_INT64, {{.v_int64 = n_written}}};
       dex_future_complete (DEX_FUTURE (kqueue_future), &value, NULL);
     }
 }
@@ -176,12 +170,12 @@ dex_kqueue_future_submit (DexKqueueFuture *kqueue_future,
     case DEX_KQUEUE_TYPE_READ:
       kqueue_future->read.bytes_available = 0;
 
-      /* FIXME: We sort of want this to work like pread(),
-       * but that requires not modifying the offset. Can that
-       * be done with kqueue event filters?
+      /* NOTE:
+       *
+       * This doesn't really take into account that EVFILT_READ will always
+       * complete for a local file (vnode). @data is populated in that case
+       * with the number of bytes until the end, which may be negative.
        */
-      if (kqueue_future->read.offset >= 0)
-        lseek (kqueue_future->read.fd, kqueue_future->read.offset, SEEK_SET);
 
       EV_SET (&change,
               kqueue_future->read.fd,
@@ -194,10 +188,6 @@ dex_kqueue_future_submit (DexKqueueFuture *kqueue_future,
 
     case DEX_KQUEUE_TYPE_WRITE:
       kqueue_future->write.bytes_available = 0;
-
-      /* FIXME: Same as for read */
-      if (kqueue_future->write.offset >= 0)
-        lseek (kqueue_future->write.fd, kqueue_future->write.offset, SEEK_SET);
 
       EV_SET (&change,
               kqueue_future->write.fd,
