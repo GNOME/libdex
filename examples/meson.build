@@ -1,4 +1,5 @@
 libgio_unix_dep = dependency('gio-unix-2.0', required: false, disabler: true)
+libsoup_dep = dependency('libsoup-3.0', required: false, disabler: true)
 
 examples = {
   'cat': {
@@ -6,6 +7,9 @@ examples = {
   },
   'cat-aio': { },
   'infinite-loop': {},
+  'wget': {
+    'dependencies': libsoup_dep,
+  },
 }
 
 foreach example, params: examples
