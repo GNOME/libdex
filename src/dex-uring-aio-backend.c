@@ -50,6 +50,7 @@ typedef struct _DexUringAioContext
   gpointer         eventfdtag;
   GMutex           mutex;
   GQueue           queued;
+  guint            ring_initialized : 1;
 } DexUringAioContext;
 
 DEX_DEFINE_FINAL_TYPE (DexUringAioBackend, dex_uring_aio_backend, DEX_TYPE_AIO_BACKEND)
@@ -161,7 +162,9 @@ dex_uring_aio_context_finalize (GSource *source)
   if (aio_context->queued.length > 0)
     g_critical ("Destroying DexAioContext with queued items!");
 
-  io_uring_queue_exit (&aio_context->ring);
+  if (aio_context->ring_initialized)
+    io_uring_queue_exit (&aio_context->ring);
+
   dex_clear (&aio_context->parent.aio_backend);
   g_mutex_clear (&aio_context->mutex);
 
@@ -246,6 +249,8 @@ dex_uring_aio_backend_create_context (DexAioBackend *aio_backend)
   /* Setup uring submission/completion queue */
   if (io_uring_queue_init (DEFAULT_URING_SIZE, &aio_context->ring, uring_flags) != 0)
     goto failure;
+
+  aio_context->ring_initialized = TRUE;
 
 #if DEX_URING_CHECK_VERSION(2, 2)
   /* Register the ring FD so we don't have to on every io_ring_enter() */
