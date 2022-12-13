@@ -142,16 +142,16 @@ DEX_AVAILABLE_IN_ALL
 void             dex_future_set_static_name (DexFuture          *future,
                                              const char         *name);
 DEX_AVAILABLE_IN_ALL
-const GValue    *dex_future_await           (DexFuture          *future,
+const GValue    *dex_await                  (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
-gpointer         dex_future_await_pointer   (DexFuture          *future,
+gpointer         dex_await_pointer          (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
-gint64           dex_future_await_int64     (DexFuture          *future,
+gint64           dex_await_int64            (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
-gpointer         dex_future_await_boxed     (DexFuture          *future,
+gpointer         dex_await_boxed            (DexFuture          *future,
                                              GError            **error);
 
 #if G_GNUC_CHECK_VERSION(3,0) && defined(DEX_ENABLE_DEBUG)

@@ -1125,15 +1125,15 @@ DexFuture *
 }
 
 static const GValue *
-dex_future_await_check (DexFuture  *future,
-                        GType       type,
-                        GError    **error)
+dex_await_check (DexFuture  *future,
+                 GType       type,
+                 GError    **error)
 {
   const GValue *value;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
-  if ((value = dex_future_await (future, error)))
+  if ((value = dex_await (future, error)))
     {
       if (!G_VALUE_HOLDS (value, type))
         {
@@ -1151,31 +1151,31 @@ dex_future_await_check (DexFuture  *future,
 }
 
 /**
- * dex_future_await_pointer: (skip)
+ * dex_await_pointer: (skip)
  * @future: a #DexFuture
  * @error: a location for a #GError
  *
- * Calls dex_future_await() and returns the value of g_value_get_pointer(),
+ * Calls dex_await() and returns the value of g_value_get_pointer(),
  * otherwise @error is set if the future rejected.
  *
  * Returns: (nullable): a pointer or %NULL
  */
 gpointer
-dex_future_await_pointer (DexFuture  *future,
-                          GError    **error)
+dex_await_pointer (DexFuture  *future,
+                   GError    **error)
 {
   const GValue *value;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
-  if ((value = dex_future_await_check (future, G_TYPE_POINTER, error)))
+  if ((value = dex_await_check (future, G_TYPE_POINTER, error)))
     return g_value_get_pointer (value);
 
   return NULL;
 }
 
 /**
- * dex_future_await_int64:
+ * dex_await_int64:
  * @future: a #DexFuture
  * @error: a location for a #GError
  *
@@ -1186,21 +1186,21 @@ dex_future_await_pointer (DexFuture  *future,
  * Returns: an int64, or 0 in case of failure and @error is set.
  */
 gint64
-dex_future_await_int64 (DexFuture  *future,
-                        GError    **error)
+dex_await_int64 (DexFuture  *future,
+                 GError    **error)
 {
   const GValue *value;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
-  if ((value = dex_future_await_check (future, G_TYPE_INT64, error)))
+  if ((value = dex_await_check (future, G_TYPE_INT64, error)))
     return g_value_get_int64 (value);
 
   return 0;
 }
 
 /**
- * dex_future_await_boxed: (skip)
+ * dex_await_boxed: (skip)
  * @future: a #DexFuture
  * @error: a location for a #GError
  *
@@ -1209,14 +1209,14 @@ dex_future_await_int64 (DexFuture  *future,
  * Returns: (transfer full): the boxed result, or %NULL and @error is set.
  */
 gpointer
-dex_future_await_boxed (DexFuture *future,
-                        GError **error)
+dex_await_boxed (DexFuture  *future,
+                 GError    **error)
 {
   const GValue *value;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
 
-  if ((value = dex_future_await_check (future, G_TYPE_BOXED, error)))
+  if ((value = dex_await_check (future, G_TYPE_BOXED, error)))
     return g_value_dup_boxed (value);
 
   return NULL;

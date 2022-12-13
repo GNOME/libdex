@@ -60,9 +60,9 @@ cat_read_fiber (gpointer user_data)
                                   -1);
 
       all = dex_future_all (read_future, send_future, NULL);
-      dex_future_await (all, NULL);
+      dex_await (all, NULL);
 
-      next->length = dex_future_await_int64 (read_future, NULL);
+      next->length = dex_await_int64 (read_future, NULL);
 
       if (next->length <= 0)
         {
@@ -91,7 +91,7 @@ cat_write_fiber (gpointer user_data)
       Buffer *buffer;
       gssize len;
 
-      if (!(buffer = dex_future_await_pointer (recv, NULL)))
+      if (!(buffer = dex_await_pointer (recv, NULL)))
         break;
 
       wr = dex_aio_write (NULL,
@@ -100,7 +100,7 @@ cat_write_fiber (gpointer user_data)
                           buffer->length,
                           -1);
 
-      len = dex_future_await_int64 (wr, NULL);
+      len = dex_await_int64 (wr, NULL);
       cat_push_buffer (cat, buffer);
 
       if (len <= 0)

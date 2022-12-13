@@ -127,7 +127,7 @@ dex_fiber_start (DexFiber *fiber)
 
   if (future != NULL)
     {
-      dex_future_await (future, NULL);
+      dex_await (future, NULL);
       dex_future_complete_from (DEX_FUTURE (fiber), future);
       dex_unref (future);
     }
@@ -437,8 +437,8 @@ dex_fiber_await (DexFiber  *fiber,
 }
 
 const GValue *
-dex_future_await (DexFuture  *future,
-                  GError    **error)
+dex_await (DexFuture  *future,
+           GError    **error)
 {
   DexFiber *fiber;
 
