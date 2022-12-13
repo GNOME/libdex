@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include "dex-block-private.h"
+#include "dex-thread-storage-private.h"
 
 typedef struct _DexBlock
 {
@@ -171,12 +172,22 @@ dex_block_propagate (DexFuture *future,
   if (do_callback && dex_block_handles (block, completed))
     {
       PropagateState state = {block, completed};
+      DexThreadStorage *storage = dex_thread_storage_get ();
 
       /* If we are on the same scheduler that created this block, then
        * we can execute it now.
        */
-      if (block->scheduler == dex_scheduler_get_thread_default ())
-        return dex_block_propagate_within_scheduler_internal (&state);
+      if (block->scheduler == dex_scheduler_get_thread_default () &&
+          storage->sync_dispatch_depth < 4)
+        {
+          gboolean ret;
+
+          storage->sync_dispatch_depth++;
+          ret = dex_block_propagate_within_scheduler_internal (&state);
+          storage->sync_dispatch_depth--;
+
+          return ret;
+        }
 
       /* Otherwise we must defer it to the scheduler */
       dex_ref (block);

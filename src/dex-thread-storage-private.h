@@ -38,6 +38,7 @@ typedef struct _DexThreadStorage
   DexThreadPoolWorker *worker;
   DexAioContext       *aio_context;
   DexFiberScheduler   *fiber_scheduler;
+  guint                sync_dispatch_depth;
 } DexThreadStorage;
 
 DexThreadStorage *dex_thread_storage_get (void);
