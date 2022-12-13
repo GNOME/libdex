@@ -145,13 +145,43 @@ DEX_AVAILABLE_IN_ALL
 const GValue    *dex_await                  (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
+gboolean         dex_await_boolean          (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
+guint            dex_await_enum             (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
+guint            dex_await_flags            (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
+char            *dex_await_string           (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
+float            dex_await_float            (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
+double           dex_await_double           (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
 gpointer         dex_await_pointer          (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
+int              dex_await_int              (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
+guint            dex_await_uint             (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
 gint64           dex_await_int64            (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
+guint64          dex_await_uint64           (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
 gpointer         dex_await_boxed            (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
+gpointer         dex_await_object           (DexFuture          *future,
                                              GError            **error);
 
 #if G_GNUC_CHECK_VERSION(3,0) && defined(DEX_ENABLE_DEBUG)

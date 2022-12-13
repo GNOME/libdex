@@ -1175,6 +1175,56 @@ dex_await_pointer (DexFuture  *future,
 }
 
 /**
+ * dex_await_int: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the result as an int.
+ *
+ * The resolved value must be of type %G_TYPE_INT or @error is set.
+ *
+ * Returns: an int, or 0 in case of failure and @error is set.
+ */
+gint
+dex_await_int (DexFuture  *future,
+               GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_await_check (future, G_TYPE_INT, error)))
+    return g_value_get_int (value);
+
+  return 0;
+}
+
+/**
+ * dex_await_uint: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the result as an uint.
+ *
+ * The resolved value must be of type %G_TYPE_INT or @error is set.
+ *
+ * Returns: an uint, or 0 in case of failure and @error is set.
+ */
+guint
+dex_await_uint (DexFuture  *future,
+                GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_await_check (future, G_TYPE_UINT, error)))
+    return g_value_get_uint (value);
+
+  return 0;
+}
+
+/**
  * dex_await_int64: (method) (skip)
  * @future: a #DexFuture
  * @error: a location for a #GError
@@ -1200,6 +1250,81 @@ dex_await_int64 (DexFuture  *future,
 }
 
 /**
+ * dex_await_uint64: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the result as an uint64.
+ *
+ * The resolved value must be of type %G_TYPE_INT64 or @error is set.
+ *
+ * Returns: an uint64, or 0 in case of failure and @error is set.
+ */
+guint64
+dex_await_uint64 (DexFuture  *future,
+                  GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_await_check (future, G_TYPE_UINT64, error)))
+    return g_value_get_uint64 (value);
+
+  return 0;
+}
+
+/**
+ * dex_await_double: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the result as an double.
+ *
+ * The resolved value must be of type %G_TYPE_INT or @error is set.
+ *
+ * Returns: an double, or 0 in case of failure and @error is set.
+ */
+double
+dex_await_double (DexFuture  *future,
+                  GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_await_check (future, G_TYPE_DOUBLE, error)))
+    return g_value_get_double (value);
+
+  return 0;
+}
+
+/**
+ * dex_await_float: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the result as an float.
+ *
+ * The resolved value must be of type %G_TYPE_INT or @error is set.
+ *
+ * Returns: an float, or 0 in case of failure and @error is set.
+ */
+float
+dex_await_float (DexFuture  *future,
+                 GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_await_check (future, G_TYPE_FLOAT, error)))
+    return g_value_get_float (value);
+
+  return 0;
+}
+
+/**
  * dex_await_boxed: (method) (skip)
  * @future: a #DexFuture
  * @error: a location for a #GError
@@ -1220,4 +1345,127 @@ dex_await_boxed (DexFuture  *future,
     return g_value_dup_boxed (value);
 
   return NULL;
+}
+
+/**
+ * dex_await_object: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the #GObject-based result.
+ *
+ * Returns: (type GObject) (transfer full): the object, or %NULL and @error is set.
+ */
+gpointer
+dex_await_object (DexFuture  *future,
+                  GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  if ((value = dex_await_check (future, G_TYPE_OBJECT, error)))
+    return g_value_dup_object (value);
+
+  return NULL;
+}
+
+/**
+ * dex_await_boolean: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the gboolean result.
+ *
+ * If the result is not a #gboolean, @error is set.
+ *
+ * Returns: the #gboolean, or %FALSE and @error is set
+ */
+gboolean
+dex_await_boolean (DexFuture  *future,
+                   GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), FALSE);
+
+  if ((value = dex_await_check (future, G_TYPE_BOOLEAN, error)))
+    return g_value_get_boolean (value);
+
+  return FALSE;
+}
+
+/**
+ * dex_await_string: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the string result.
+ *
+ * If the result is not a %G_TYPE_STRING, @error is set.
+ *
+ * Returns: (transfer full) (nullable): the string  or %NULL and @error is set
+ */
+char *
+dex_await_string (DexFuture  *future,
+                  GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  if ((value = dex_await_check (future, G_TYPE_STRING, error)))
+    return g_value_dup_string (value);
+
+  return NULL;
+}
+
+/**
+ * dex_await_enum: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the enum result.
+ *
+ * If the result is not a %G_TYPE_ENUM, @error is set.
+ *
+ * Returns: the enum or 0 and @error is set.
+ */
+guint
+dex_await_enum (DexFuture  *future,
+                GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_await_check (future, G_TYPE_ENUM, error)))
+    return g_value_get_enum (value);
+
+  return 0;
+}
+
+/**
+ * dex_await_flags: (method) (skip)
+ * @future: a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the flags result.
+ *
+ * If the result is not a %G_TYPE_FLAGS, @error is set.
+ *
+ * Returns: the flags or 0 and @error is set.
+ */
+guint
+dex_await_flags (DexFuture  *future,
+                 GError    **error)
+{
+  const GValue *value;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_await_check (future, G_TYPE_FLAGS, error)))
+    return g_value_get_flags (value);
+
+  return 0;
 }
