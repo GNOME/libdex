@@ -1151,7 +1151,7 @@ dex_await_check (DexFuture  *future,
 }
 
 /**
- * dex_await_pointer: (skip)
+ * dex_await_pointer: (method) (skip)
  * @future: a #DexFuture
  * @error: a location for a #GError
  *
@@ -1175,7 +1175,7 @@ dex_await_pointer (DexFuture  *future,
 }
 
 /**
- * dex_await_int64:
+ * dex_await_int64: (method) (skip)
  * @future: a #DexFuture
  * @error: a location for a #GError
  *
@@ -1200,7 +1200,7 @@ dex_await_int64 (DexFuture  *future,
 }
 
 /**
- * dex_await_boxed: (skip)
+ * dex_await_boxed: (method) (skip)
  * @future: a #DexFuture
  * @error: a location for a #GError
  *
