@@ -65,7 +65,21 @@ static gboolean
 dex_main_work_queue_check (GSource *source)
 {
   DexMainWorkQueueSource *wqs = (DexMainWorkQueueSource *)source;
-  return wqs->queue->length > 0;
+  gboolean ret;
+
+  dex_object_lock (wqs->object);
+  ret =  wqs->queue->length > 0;
+  dex_object_unlock (wqs->object);
+
+  return ret;
+}
+
+static gboolean
+dex_main_work_queue_prepare (GSource *source,
+                             int     *timeout)
+{
+  *timeout = -1;
+  return dex_main_work_queue_check (source);
 }
 
 static gboolean
@@ -94,6 +108,7 @@ dex_main_work_queue_dispatch (GSource     *source,
 static GSourceFuncs dex_main_work_queue_source_funcs = {
   .check = dex_main_work_queue_check,
   .dispatch = dex_main_work_queue_dispatch,
+  .prepare = dex_main_work_queue_prepare,
 };
 
 static void
