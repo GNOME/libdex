@@ -49,7 +49,7 @@ _g_source_set_static_name (GSource    *source,
 # define G_TYPE_IS_FINAL(type) 1
 #endif
 
-#if !GLIB_CHECK_VERSION(2, 74, 0)
+#if !GLIB_CHECK_VERSION(2, 73, 0)
 # define G_DEFINE_ENUM_VALUE(EnumValue, EnumNick) \
   { EnumValue, #EnumValue, EnumNick }
 # define G_DEFINE_ENUM_TYPE(TypeName, type_name, ...) \
