@@ -204,3 +204,143 @@ dex_async_pair_new (gpointer                instance,
 
   return DEX_FUTURE (async_pair);
 }
+
+/**
+ * dex_async_pair_get_cancellable:
+ * @async_pair: a #DexAsyncPair
+ *
+ * Gets the cancellable for the async pair.
+ *
+ * If the DexAsyncPair is discarded by it's callers, then it will automatically
+ * be cancelled using g_cancellable_cancel().
+ *
+ * Returns: (transfer none): a #GCancellable
+ */
+GCancellable *
+dex_async_pair_get_cancellable (DexAsyncPair *async_pair)
+{
+  g_return_val_if_fail (DEX_IS_ASYNC_PAIR (async_pair), NULL);
+
+  return async_pair->cancellable;
+}
+
+/**
+ * dex_async_pair_return_object:
+ * @async_pair: a #DexAsyncPair
+ * @instance: (type GObject) (transfer full): a #GObject
+ *
+ * Resolves @async_pair with a value of @instance.
+ *
+ * This function is meant to be used when manually wrapping
+ * various #GAsyncReadyCallback based API.
+ *
+ * The ownership of @instance is taken when calling this function.
+ */
+void
+dex_async_pair_return_object (DexAsyncPair *async_pair,
+                              gpointer      instance)
+{
+  GValue value = G_VALUE_INIT;
+
+  g_return_if_fail (DEX_IS_ASYNC_PAIR (async_pair));
+  g_return_if_fail (G_IS_OBJECT (instance));
+
+  g_value_init (&value, G_OBJECT_TYPE (instance));
+  g_value_take_object (&value, instance);
+  dex_future_complete (DEX_FUTURE (async_pair), &value, NULL);
+  g_value_unset (&value);
+}
+
+/**
+ * dex_async_pair_return_object:
+ * @async_pair: a #DexAsyncPair
+ * @error: (transfer full): a #GError
+ *
+ * Rejects @async_pair with @error.
+ *
+ * This function is meant to be used when manually wrapping
+ * various #GAsyncReadyCallback based API.
+ *
+ * The ownership of @error is taken when calling this function.
+ */
+void
+dex_async_pair_return_error (DexAsyncPair *async_pair,
+                             GError       *error)
+{
+  g_return_if_fail (DEX_IS_ASYNC_PAIR (async_pair));
+  g_return_if_fail (error != NULL);
+
+  dex_future_complete (DEX_FUTURE (async_pair), NULL, error);
+}
+
+void
+dex_async_pair_return_int64 (DexAsyncPair *async_pair,
+                             gint64        value)
+{
+  g_return_if_fail (DEX_IS_ASYNC_PAIR (async_pair));
+
+  dex_future_complete (DEX_FUTURE (async_pair), &(GValue) {G_TYPE_INT64, {{.v_int64 = value}}}, NULL);
+}
+
+void
+dex_async_pair_return_uint64 (DexAsyncPair *async_pair,
+                              guint64       value)
+{
+  g_return_if_fail (DEX_IS_ASYNC_PAIR (async_pair));
+
+  dex_future_complete (DEX_FUTURE (async_pair), &(GValue) {G_TYPE_UINT64, {{.v_uint64 = value}}}, NULL);
+}
+
+void
+dex_async_pair_return_boolean (DexAsyncPair *async_pair,
+                               gboolean      value)
+{
+  g_return_if_fail (DEX_IS_ASYNC_PAIR (async_pair));
+
+  dex_future_complete (DEX_FUTURE (async_pair), &(GValue) {G_TYPE_BOOLEAN, {{.v_int = value}}}, NULL);
+}
+
+/**
+ * dex_async_pair_return_string:
+ * @async_pair: a #DexAsyncPair
+ * @value: (transfer full) (nullable): a string or %NULL
+ *
+ * Resolves @async_pair with @value.
+ */
+void
+dex_async_pair_return_string (DexAsyncPair *async_pair,
+                              char         *value)
+{
+  GValue gvalue = G_VALUE_INIT;
+
+  g_return_if_fail (DEX_IS_ASYNC_PAIR (async_pair));
+
+  g_value_init (&gvalue, G_TYPE_STRING);
+  g_value_take_string (&gvalue, value);
+  dex_future_complete (DEX_FUTURE (async_pair), &gvalue, NULL);
+  g_value_unset (&gvalue);
+}
+
+/**
+ * dex_async_pair_return_boxed: (skip)
+ * @async_pair: a #DexAsyncPair
+ * @boxed_type: a #GType of %G_TYPE_BOXED
+ * @instance: (transfer full): the boxed value to store
+ *
+ * Resolves @async_pair with @instance.
+ */
+void
+dex_async_pair_return_boxed (DexAsyncPair *async_pair,
+                             GType         boxed_type,
+                             gpointer      instance)
+{
+  GValue gvalue = G_VALUE_INIT;
+
+  g_return_if_fail (DEX_IS_ASYNC_PAIR (async_pair));
+  g_return_if_fail (g_type_is_a (boxed_type, G_TYPE_BOXED));
+
+  g_value_init (&gvalue, boxed_type);
+  g_value_take_boxed (&gvalue, instance);
+  dex_future_complete (DEX_FUTURE (async_pair), &gvalue, NULL);
+  g_value_unset (&gvalue);
+}
