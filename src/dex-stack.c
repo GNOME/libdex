@@ -30,7 +30,7 @@
 #include "dex-platform.h"
 #include "dex-stack-private.h"
 
-#define DEFAULT_STACK_SIZE (dex_get_min_stack_size())
+#define DEFAULT_STACK_SIZE (MAX (4096*16, dex_get_min_stack_size()))
 #define DEFAULT_MIN_POOL_SIZE 4
 #define DEFAULT_MAX_POOL_SIZE 16
 
