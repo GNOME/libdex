@@ -49,7 +49,10 @@ worker_thread_callback (DexFuture *future,
   g_atomic_int_inc (&total_count);
   state->handled++;
 
-  return dex_semaphore_wait (state->semaphore);
+  if (!g_atomic_int_get (&shutdown))
+    return dex_semaphore_wait (state->semaphore);
+
+  return NULL;
 }
 
 static gpointer
@@ -67,6 +70,10 @@ worker_thread_func (gpointer data)
     g_main_context_iteration (main_context, TRUE);
 
   dex_unref (future);
+
+  while (g_main_context_pending (main_context))
+    g_main_context_iteration (main_context, FALSE);
+
   dex_unref (main_scheduler);
   g_main_context_unref (main_context);
 
@@ -109,6 +116,8 @@ main (int argc,
 
   while (g_atomic_int_get (&done) < N_THREADS)
     dex_semaphore_post (semaphore);
+
+  dex_semaphore_close (semaphore);
 
   for (guint i = 0; i < G_N_ELEMENTS (state); i++)
     {
