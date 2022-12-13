@@ -29,14 +29,6 @@
 #include "dex-scheduler.h"
 #include "dex-timeout.h"
 
-/* TODO: This future type suffers from an issue if it is the most bare
- * future type returned, it could be ignored even if chained because it's
- * last reference could be dropped.
- *
- * We could handle this by having explicit await propagation and then
- * use that await count to determine when to properly discard.
- */
-
 typedef struct _DexTimeout
 {
   DexFuture parent_instance;
