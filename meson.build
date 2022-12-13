@@ -161,8 +161,6 @@ add_project_arguments('-I' + meson.project_build_root(), language: 'c')
 
 functions = [
   'eventfd',
-  'kqueue',
-  'kevent',
   'posix_fadvise',
 ]
 

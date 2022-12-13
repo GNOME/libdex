@@ -66,13 +66,6 @@ if liburing_dep.found()
   ]
 endif
 
-if config_h.get('HAVE_KQUEUE', 0) == 1 and config_h.get('HAVE_KEVENT', 0) == 1
-  libdex_sources += [
-    'dex-kqueue-aio-backend.c',
-    'dex-kqueue-future.c',
-  ]
-endif
-
 if host_machine.system() != 'windows'
   libdex_sources += ['dex-unix-signal.c']
   libdex_headers += ['dex-unix-signal.h']
