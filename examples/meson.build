@@ -4,9 +4,7 @@ examples = {
   'cat': {
     'dependencies': libgio_unix_dep,
   },
-  'cat-aio': {
-    'dependencies': libgio_unix_dep,
-  },
+  'cat-aio': { },
   'infinite-loop': {},
 }
 
