@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include "dex-async-result.h"
+#include "dex-compat-private.h"
 #include "dex-error.h"
 
 struct _DexAsyncResult
@@ -352,7 +353,7 @@ dex_async_result_await_cb (DexFuture *future,
                              g_object_unref);
 
       if (async_result->name_is_static)
-        g_source_set_static_name (idle_source, async_result->name);
+        _g_source_set_static_name (idle_source, async_result->name);
       else
         g_source_set_name (idle_source, async_result->name);
 

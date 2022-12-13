@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "dex-compat-private.h"
 #include "dex-posix-aio-backend-private.h"
 #include "dex-posix-aio-future-private.h"
 
@@ -167,7 +168,7 @@ dex_posix_aio_backend_create_context (DexAioBackend *aio_backend)
   aio_context = (DexPosixAioContext *)
     g_source_new (&dex_posix_aio_context_source_funcs,
                   sizeof *aio_context);
-  g_source_set_static_name ((GSource *)aio_context, "[dex-posix-aio-backend]");
+  _g_source_set_static_name ((GSource *)aio_context, "[dex-posix-aio-backend]");
   g_source_set_can_recurse ((GSource *)aio_context, TRUE);
   aio_context->parent.aio_backend = dex_ref (aio_backend);
   g_mutex_init (&aio_context->mutex);

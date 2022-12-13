@@ -24,6 +24,7 @@
 #include <stdatomic.h>
 
 #include "dex-aio-backend-private.h"
+#include "dex-compat-private.h"
 #include "dex-fiber-private.h"
 #include "dex-thread-pool-worker-private.h"
 #include "dex-thread-storage-private.h"
@@ -114,7 +115,7 @@ dex_thread_pool_worker_finalize (DexObject *object)
    * any sort of synchronization/atomic operations every loop.
    */
   idle_source = g_idle_source_new ();
-  g_source_set_static_name (idle_source, "[dex-thread-pool-worker-finalize]");
+  _g_source_set_static_name (idle_source, "[dex-thread-pool-worker-finalize]");
   g_source_set_priority (idle_source, G_MININT);
   g_source_set_callback (idle_source,
                          dex_thread_pool_worker_finalize_cb,
@@ -383,7 +384,7 @@ dex_thread_pool_worker_set_create_source (DexThreadPoolWorkerSet *set,
 
   source = (DexThreadPoolWorkerSetSource *)
     g_source_new (&dex_thread_pool_worker_set_source_funcs, sizeof *source);
-  g_source_set_static_name ((GSource *)source, "[dex-thread-pool-worker-set]");
+  _g_source_set_static_name ((GSource *)source, "[dex-thread-pool-worker-set]");
   source->set = set;
   source->thread_pool_worker = thread_pool_worker;
 

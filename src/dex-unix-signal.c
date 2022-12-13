@@ -23,6 +23,7 @@
 
 #include <glib-unix.h>
 
+#include "dex-compat-private.h"
 #include "dex-future-private.h"
 #include "dex-unix-signal.h"
 
@@ -142,7 +143,7 @@ dex_unix_signal_new (int signum)
                          dex_unix_signal_source_func,
                          wr,
                          clear_weak_ref);
-  g_source_set_static_name (unix_signal->source, name);
+  _g_source_set_static_name (unix_signal->source, name);
   g_source_attach (unix_signal->source, NULL);
 
   return DEX_FUTURE (unix_signal);

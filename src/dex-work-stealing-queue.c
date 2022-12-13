@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include "dex-compat-private.h"
 #include "dex-work-stealing-queue-private.h"
 
 #define DEFAULT_BATCH_SIZE 32
@@ -135,7 +136,7 @@ dex_work_stealing_queue_create_source (DexWorkStealingQueue *work_stealing_queue
   source = g_source_new (&dex_work_stealing_queue_source_funcs, sizeof (DexWorkStealingQueueSource));
   real_source = (DexWorkStealingQueueSource *)source;
 
-  g_source_set_static_name (source, "[dex-work-stealing-queue]");
+  _g_source_set_static_name (source, "[dex-work-stealing-queue]");
   real_source->work_stealing_queue = dex_work_stealing_queue_ref (work_stealing_queue);
   real_source->batch_size = DEFAULT_BATCH_SIZE;
 
