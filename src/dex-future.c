@@ -71,6 +71,8 @@ dex_chained_future_free (DexChainedFuture *cf)
 
   dex_weak_ref_clear (&cf->wr);
   cf->link.data = NULL;
+  cf->where_future_was = NULL;
+  cf->awaiting = FALSE;
   g_free (cf);
 }
 
@@ -110,9 +112,7 @@ dex_future_complete (DexFuture    *future,
         }
 
       queue = future->chained;
-      future->chained.head = NULL;
-      future->chained.tail = NULL;
-      future->chained.length = 0;
+      future->chained = (GQueue) {NULL, NULL, 0};
     }
   else
     {
@@ -126,10 +126,8 @@ dex_future_complete (DexFuture    *future,
    */
   while (queue.tail != NULL)
     {
-      DexChainedFuture *cf = queue.tail->data;
+      DexChainedFuture *cf = g_queue_pop_tail_link (&queue)->data;
       DexFuture *chained;
-
-      g_queue_unlink (&queue, &cf->link);
 
       g_assert (cf != NULL);
       g_assert (cf->link.data == cf);
