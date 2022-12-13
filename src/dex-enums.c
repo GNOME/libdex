@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include "dex-compat-private.h"
 #include "dex-enums.h"
 
 G_DEFINE_ENUM_TYPE (DexFutureStatus, dex_future_status,

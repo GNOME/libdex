@@ -31,6 +31,12 @@
 
 #include <libdex.h>
 
+/* You don't need to do this in your code. This just allows us to build
+ * Dex on older systems where GLib features we want to use are not available
+ * such as aligned allocations.
+ */
+#include "dex-compat-private.h"
+
 G_BEGIN_DECLS
 
 typedef struct _Cat Cat;

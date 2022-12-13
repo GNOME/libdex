@@ -20,7 +20,15 @@
 
 #pragma once
 
-#include <glib.h>
+#include <glib-object.h>
+
+#if !GLIB_CHECK_VERSION(2, 72, 0)
+# ifndef _ISOC11_SOURCE
+#  define _ISOC11_SOURCE
+# endif
+# include <stdlib.h>
+# include <string.h>
+#endif
 
 G_BEGIN_DECLS
 
@@ -33,6 +41,72 @@ _g_source_set_static_name (GSource    *source,
 #else
   g_source_set_name (source, name);
 #endif
+}
+
+#if !GLIB_CHECK_VERSION(2, 70, 0)
+# define G_DEFINE_FINAL_TYPE_WITH_CODE(TN, t_n, T_P, _C_) _G_DEFINE_TYPE_EXTENDED_BEGIN (TN, t_n, T_P, 0) {_C_;} _G_DEFINE_TYPE_EXTENDED_END()
+# define G_TYPE_FLAG_FINAL 0
+#endif
+
+#if !GLIB_CHECK_VERSION(2, 74, 0)
+# define G_DEFINE_ENUM_VALUE(EnumValue, EnumNick) \
+  { EnumValue, #EnumValue, EnumNick }
+#endif
+
+#if !GLIB_CHECK_VERSION(2, 74, 0)
+# define G_DEFINE_ENUM_TYPE(TypeName, type_name, ...) \
+GType \
+G_PASTE(type_name, _get_type) (void) \
+{ \
+  static gsize g_define_type__static = 0; \
+  if (g_once_init_enter (&g_define_type__static)) { \
+    static const GEnumValue enum_values[] = { \
+      __VA_ARGS__ , \
+      { 0, NULL, NULL }, \
+    }; \
+    GType g_define_type = g_enum_register_static (g_intern_static_string (G_STRINGIFY (TypeName)), enum_values); \
+    g_once_init_leave (&g_define_type__static, g_define_type); \
+  } \
+  return g_define_type__static; \
+}
+#endif
+
+#if !GLIB_CHECK_VERSION(2, 70, 0)
+static inline gboolean
+G_TYPE_IS_FINAL (GType type)
+{
+  return TRUE;
+}
+#endif
+
+static inline gpointer
+g_aligned_alloc (gsize n_blocks,
+                 gsize n_block_bytes,
+                 gsize alignment)
+{
+  gpointer mem = aligned_alloc (alignment, n_blocks * n_block_bytes);
+
+  if (mem == NULL)
+    g_error ("Failed to allocate %"G_GSIZE_FORMAT" bytes",
+             n_blocks * n_block_bytes);
+
+  return mem;
+}
+
+static inline gpointer
+g_aligned_alloc0 (gsize n_blocks,
+                  gsize n_block_bytes,
+                  gsize alignment)
+{
+  gpointer mem = g_aligned_alloc (n_blocks, n_block_bytes, alignment);
+  memset (mem, 0, n_blocks * n_block_bytes);
+  return mem;
+}
+
+static inline void
+g_aligned_free (gpointer mem)
+{
+  free (mem);
 }
 
 G_END_DECLS

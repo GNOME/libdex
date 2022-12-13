@@ -23,7 +23,7 @@ typelibdir = join_paths(libdir, 'girepository-1.0')
 package_name = meson.project_name()
 package_string = '@0@-@1@'.format(package_name, api_version)
 
-glib_req_version = '2.73'
+glib_req_version = '2.68'
 glib_req = '>= @0@'.format(glib_req_version)
 glib_dep = dependency('gio-2.0', version: glib_req)
 

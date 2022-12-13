@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "dex-compat-private.h"
 #include "dex-object.h"
 
 G_BEGIN_DECLS
