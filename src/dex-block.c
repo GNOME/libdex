@@ -90,10 +90,11 @@ dex_block_propagate_within_scheduler_internal (PropagateState *state)
   if (delayed != NULL)
     {
       dex_object_lock (state->block);
-      state->block->awaiting = delayed;
+      state->block->awaiting = dex_ref (delayed);
       dex_object_unlock (state->block);
 
       dex_future_chain (delayed, DEX_FUTURE (state->block));
+      dex_unref (delayed);
 
       return TRUE;
     }
