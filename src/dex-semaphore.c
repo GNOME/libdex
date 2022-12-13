@@ -310,3 +310,36 @@ dex_semaphore_wait (DexSemaphore *semaphore)
   }
 #endif
 }
+
+void
+dex_semaphore_close (DexSemaphore *semaphore)
+{
+  g_return_if_fail (DEX_IS_SEMAPHORE (semaphore));
+
+  dex_object_lock (semaphore);
+
+#ifdef HAVE_EVENTFD
+  if (semaphore->eventfd != -1)
+    {
+      close (semaphore->eventfd, -1);
+      semaphore->eventfd = -1;
+    }
+#else
+  if (semaphore->waiters.length > 0)
+    {
+      GQueue queue = semaphore->waiters;
+      semaphore->waiters = (GQueue) {NULL, NULL, 0};
+
+      while (queue.length)
+        {
+          DexSemaphoreWaiter *waiter = g_queue_pop_head_link (&queue)->data;
+          dex_future_complete (DEX_FUTURE (waiter),
+                               NULL,
+                               g_error_copy (&semaphore_closed_error));
+          dex_unref (waiter);
+        }
+    }
+#endif
+
+  dex_object_unlock (semaphore);
+}

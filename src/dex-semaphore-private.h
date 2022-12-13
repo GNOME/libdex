@@ -37,5 +37,6 @@ void          dex_semaphore_post       (DexSemaphore *semaphore);
 void          dex_semaphore_post_many  (DexSemaphore *semaphore,
                                         guint         count);
 DexFuture    *dex_semaphore_wait       (DexSemaphore *semaphore);
+void          dex_semaphore_close      (DexSemaphore *semaphore);
 
 G_END_DECLS
