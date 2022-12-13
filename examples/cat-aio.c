@@ -21,10 +21,6 @@
 
 #include <unistd.h>
 
-#include <gio/gio.h>
-#include <gio/gunixinputstream.h>
-#include <gio/gunixoutputstream.h>
-
 #include "cat-util.h"
 
 #include "dex-aio-private.h"
