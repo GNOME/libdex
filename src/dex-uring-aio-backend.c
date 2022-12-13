@@ -28,6 +28,7 @@
 #include "dex-thread-storage-private.h"
 #include "dex-uring-aio-backend-private.h"
 #include "dex-uring-future-private.h"
+#include "dex-uring-version.h"
 
 #define DEFAULT_URING_SIZE 32
 
@@ -246,9 +247,11 @@ dex_uring_aio_backend_create_context (DexAioBackend *aio_backend)
   if (io_uring_queue_init (DEFAULT_URING_SIZE, &aio_context->ring, uring_flags) != 0)
     goto failure;
 
+#if DEX_URING_CHECK_VERSION(2, 2)
   /* Register the ring FD so we don't have to on every io_ring_enter() */
   if (io_uring_register_ring_fd (&aio_context->ring) < 0)
     goto failure;
+#endif
 
   /* Create eventfd() we can poll() on with GMainContext since GMainContext
    * knows nothing of uring and how to drive the loop using that.
