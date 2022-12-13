@@ -154,7 +154,6 @@ endif
 deprecated_c_args = [
   '-DG_DISABLE_DEPRECATED',
   '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_@0@_@1@'.format(glib_major_version, glib_minor_version),
-  '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_@0@_@1@'.format(glib_major_version, glib_minor_version),
 ]
 
 add_project_arguments('-I' + meson.project_build_root(), language: 'c')
