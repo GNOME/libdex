@@ -416,10 +416,6 @@ dex_fiber_await (DexFiber  *fiber,
 
   g_assert (DEX_IS_FIBER (fiber));
 
-  /* If future is already resolved or rejected, then there is nothing to do */
-  if (dex_future_get_status (future) != DEX_FUTURE_STATUS_PENDING)
-    return;
-
   /* Move from ready to waiting queue and update status */
   dex_object_lock (fiber);
   g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
@@ -443,6 +439,9 @@ dex_await_borrowed (DexFuture  *future,
   DexFiber *fiber;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  if (dex_future_get_status (future) != DEX_FUTURE_STATUS_PENDING)
+    return dex_future_get_value (future, error);
 
   if G_UNLIKELY (!(fiber = dex_fiber_current ()))
     {
