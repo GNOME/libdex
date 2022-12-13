@@ -239,3 +239,77 @@ dex_output_stream_write (GOutputStream *self,
 
   return DEX_FUTURE (async_pair);
 }
+
+static void
+dex_output_stream_close_cb (GObject      *object,
+                            GAsyncResult *result,
+                            gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+
+  g_output_stream_close_finish (G_OUTPUT_STREAM (object), result, &error);
+
+  if (error == NULL)
+    dex_future_complete (DEX_FUTURE (async_pair), &(GValue) { G_TYPE_BOOLEAN, {{.v_int = TRUE}}}, NULL);
+  else
+    dex_future_complete (DEX_FUTURE (async_pair), NULL, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_output_stream_close (GOutputStream *self,
+                         int            priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_OUTPUT_STREAM (self), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_output_stream_close_async (self,
+                               priority,
+                               async_pair->cancellable,
+                               dex_output_stream_close_cb,
+                               dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_input_stream_close_cb (GObject      *object,
+                           GAsyncResult *result,
+                           gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+
+  g_input_stream_close_finish (G_INPUT_STREAM (object), result, &error);
+
+  if (error == NULL)
+    dex_future_complete (DEX_FUTURE (async_pair), &(GValue) { G_TYPE_BOOLEAN, {{.v_int = TRUE}}}, NULL);
+  else
+    dex_future_complete (DEX_FUTURE (async_pair), NULL, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_input_stream_close (GInputStream *self,
+                        int           priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_INPUT_STREAM (self), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_input_stream_close_async (self,
+                              priority,
+                              async_pair->cancellable,
+                              dex_input_stream_close_cb,
+                              dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
