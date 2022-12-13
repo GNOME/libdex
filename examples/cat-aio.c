@@ -50,10 +50,13 @@ cat_read_fiber (gpointer user_data)
         send_future = dex_channel_send (cat->channel,
                                         dex_future_new_for_pointer (g_steal_pointer (&buffer)));
 
+      if (cat->to_read == 0)
+        return DEX_FUTURE (send_future);
+
       read_future = dex_aio_read (NULL,
                                   cat->read_fd,
                                   next->data,
-                                  next->capacity,
+                                  MIN (next->capacity, cat->to_read),
                                   -1);
 
       all = dex_future_all (read_future, send_future, NULL);
@@ -67,6 +70,8 @@ cat_read_fiber (gpointer user_data)
           cat_push_buffer (cat, next);
           break;
         }
+
+      cat->to_read -= next->length;
 
       buffer = next;
     }

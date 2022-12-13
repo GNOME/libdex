@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <glib/gstdio.h>
@@ -40,6 +41,7 @@ struct _Cat
   gsize buffer_size;
   int read_fd;
   int write_fd;
+  gssize to_read;
   GQueue buffer_pool;
   DexChannel *channel;
   GMainLoop *main_loop;
@@ -102,6 +104,7 @@ cat_init (Cat      *cat,
 #ifdef HAVE_POSIX_FADVISE
   gssize len;
 #endif
+  struct stat stbuf;
   const GOptionEntry entries[] = {
     { "output", 'o', 0, G_OPTION_ARG_FILENAME, &output, "Cat contents into OUTPUT", "OUTPUT" },
     { "buffer-size", 'b', 0, G_OPTION_ARG_INT, &buffer_size, "Read/Write buffer size", "BYTES" },
@@ -161,6 +164,11 @@ cat_init (Cat      *cat,
       lseek (cat->read_fd, 0, SEEK_SET);
     }
 #endif
+
+  if (fstat (cat->read_fd, &stbuf) == 0)
+    cat->to_read = stbuf.st_size;
+  else
+    cat->to_read = -1;
 
   ret = TRUE;
 
