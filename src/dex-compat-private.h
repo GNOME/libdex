@@ -46,14 +46,12 @@ _g_source_set_static_name (GSource    *source,
 #if !GLIB_CHECK_VERSION(2, 70, 0)
 # define G_DEFINE_FINAL_TYPE_WITH_CODE(TN, t_n, T_P, _C_) _G_DEFINE_TYPE_EXTENDED_BEGIN (TN, t_n, T_P, 0) {_C_;} _G_DEFINE_TYPE_EXTENDED_END()
 # define G_TYPE_FLAG_FINAL 0
+# define G_TYPE_IS_FINAL(type) 1
 #endif
 
 #if !GLIB_CHECK_VERSION(2, 74, 0)
 # define G_DEFINE_ENUM_VALUE(EnumValue, EnumNick) \
   { EnumValue, #EnumValue, EnumNick }
-#endif
-
-#if !GLIB_CHECK_VERSION(2, 74, 0)
 # define G_DEFINE_ENUM_TYPE(TypeName, type_name, ...) \
 GType \
 G_PASTE(type_name, _get_type) (void) \
@@ -71,14 +69,7 @@ G_PASTE(type_name, _get_type) (void) \
 }
 #endif
 
-#if !GLIB_CHECK_VERSION(2, 70, 0)
-static inline gboolean
-G_TYPE_IS_FINAL (GType type)
-{
-  return TRUE;
-}
-#endif
-
+#if !GLIB_CHECK_VERSION(2, 72, 0)
 static inline gpointer
 g_aligned_alloc (gsize n_blocks,
                  gsize n_block_bytes,
@@ -92,7 +83,6 @@ g_aligned_alloc (gsize n_blocks,
 
   return mem;
 }
-
 static inline gpointer
 g_aligned_alloc0 (gsize n_blocks,
                   gsize n_block_bytes,
@@ -102,11 +92,11 @@ g_aligned_alloc0 (gsize n_blocks,
   memset (mem, 0, n_blocks * n_block_bytes);
   return mem;
 }
-
 static inline void
 g_aligned_free (gpointer mem)
 {
   free (mem);
 }
+#endif
 
 G_END_DECLS
