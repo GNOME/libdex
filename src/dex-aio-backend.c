@@ -83,11 +83,14 @@ dex_aio_backend_get_default (void)
   if (g_once_init_enter (&instance))
     {
       DexAioBackend *backend = NULL;
+
 #if defined(HAVE_LIBURING)
       backend = dex_uring_aio_backend_new ();
-#else
-      backend = dex_posix_aio_backend_new ();
 #endif
+
+      if (backend == NULL)
+        backend = dex_posix_aio_backend_new ();
+
       g_once_init_leave (&instance, backend);
     }
 
