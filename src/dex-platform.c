@@ -59,7 +59,16 @@ dex_get_min_stack_size (void)
        */
       min_stack_size = 4096*16;
 #else
-      min_stack_size = sysconf (_SC_THREAD_STACK_MIN);
+      /* On FreeBSD we can get 2048 for min-stack-size which
+       * doesn't really work well for pretty much anything.
+       * Even when we round up to 4096 we trivially hit the
+       * guard page. Perhaps something still needs to be
+       * fixed in DexStack to ensure we don't write somewhere
+       * we shouldn't, but the easiest thing to do right now
+       * is to just enforce 2+pages + guard page.
+       */
+      min_stack_size = MAX (sysconf (_SC_THREAD_STACK_MIN),
+		            dex_get_page_size () * 2);
 #endif
     }
 
