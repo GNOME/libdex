@@ -68,7 +68,7 @@ dex_get_min_stack_size (void)
        * is to just enforce 2+pages + guard page.
        */
       min_stack_size = MAX (sysconf (_SC_THREAD_STACK_MIN),
-		            dex_get_page_size () * 2);
+                            dex_get_page_size () * 2);
 #endif
     }
 
