@@ -70,6 +70,7 @@ static DexFuture *
 request_fiber (gpointer user_data)
 {
   Request *request = user_data;
+  SoupMessageHeaders *headers;
   const char *path = request->path;
   GFileInfo *file_info;
   GError *error = NULL;
@@ -96,6 +97,17 @@ request_fiber (gpointer user_data)
   else
     file_type = G_FILE_TYPE_UNKNOWN;
 
+  headers = soup_server_message_get_response_headers (request->message);
+
+  if (soup_server_message_get_method (request->message) == SOUP_METHOD_HEAD)
+    {
+      char *length = g_strdup_printf ("%"G_GOFFSET_FORMAT, g_file_info_get_size (file_info));
+      soup_message_headers_append (headers, "Content-Length", length);
+      soup_server_message_set_status (request->message, SOUP_STATUS_OK, NULL);
+      g_free (length);
+      goto unpause;
+    }
+
   /* TODO: It would be nice to use io_uring_prep_openat() via the
    * AIO backend here so that we can multiplex without hitting the
    * GIO async aio threadpool. That will require additions to
@@ -107,7 +119,6 @@ request_fiber (gpointer user_data)
   if (file_type == G_FILE_TYPE_REGULAR)
     {
       SoupMessageBody *body = soup_server_message_get_response_body (request->message);
-      SoupMessageHeaders *headers = soup_server_message_get_response_headers (request->message);
       goffset to_read = g_file_info_get_size (file_info);
       GInputStream *stream;
       gsize buflen = to_read;
@@ -154,6 +165,8 @@ request_fiber (gpointer user_data)
                                            &error)))
         goto respond_404;
 
+      soup_server_message_set_status (request->message, SOUP_STATUS_OK, NULL);
+
       body = g_string_new (NULL);
       g_string_append_printf (body, "<html><body><h1>/%s</h1><ul>",
                               g_str_equal (path, ".") ? "" : path);
@@ -198,6 +211,7 @@ respond_404:
                                         strlen (errbody));
     }
 
+unpause:
   request_unpause (request);
 
   g_clear_object (&file_info);
@@ -215,12 +229,15 @@ handle_message (SoupServer        *server,
                 gpointer           user_data)
 {
   Request *request;
+  const char *method;
 
   g_assert (SOUP_IS_SERVER (server));
   g_assert (SOUP_IS_SERVER_MESSAGE (message));
   g_assert (path != NULL);
 
-  if (soup_server_message_get_method (message) != SOUP_METHOD_GET)
+  method = soup_server_message_get_method (message);
+
+  if (method != SOUP_METHOD_GET && method != SOUP_METHOD_HEAD)
     {
       soup_server_message_set_status (message, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
       return;
