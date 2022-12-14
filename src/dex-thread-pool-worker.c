@@ -160,6 +160,16 @@ dex_thread_pool_worker_get_main_context (DexScheduler *scheduler)
   return thread_pool_worker->main_context;
 }
 
+static DexAioContext *
+dex_thread_pool_worker_get_aio_context (DexScheduler *scheduler)
+{
+  DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (scheduler);
+
+  g_assert (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
+
+  return thread_pool_worker->aio_context;
+}
+
 static void
 dex_thread_pool_worker_spawn (DexScheduler *scheduler,
                               DexFiber     *fiber)
@@ -182,6 +192,7 @@ dex_thread_pool_worker_class_init (DexThreadPoolWorkerClass *thread_pool_worker_
   scheduler_class->push = dex_thread_pool_worker_push;
   scheduler_class->get_main_context = dex_thread_pool_worker_get_main_context;
   scheduler_class->spawn = dex_thread_pool_worker_spawn;
+  scheduler_class->get_aio_context = dex_thread_pool_worker_get_aio_context;
 }
 
 static void
@@ -199,6 +210,7 @@ dex_thread_pool_worker_thread_func (gpointer data)
 
   storage->scheduler = DEX_SCHEDULER (thread_pool_worker);
   storage->worker = thread_pool_worker;
+  storage->aio_context = thread_pool_worker->aio_context;
 
   g_main_context_push_thread_default (thread_pool_worker->main_context);
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_RUNNING;
@@ -233,6 +245,7 @@ dex_thread_pool_worker_thread_func (gpointer data)
 
   storage->worker = NULL;
   storage->scheduler = NULL;
+  storage->aio_context = NULL;
 
   return NULL;
 }
