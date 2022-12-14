@@ -82,9 +82,8 @@ worker_thread_func (gpointer data)
   return NULL;
 }
 
-int
-main (int argc,
-      char *argv[])
+static void
+test_semaphore_threaded (void)
 {
   DexSemaphore *semaphore = dex_semaphore_new ();
   WorkerState state[N_THREADS] = {{0}};
@@ -125,6 +124,14 @@ main (int argc,
 
       g_test_message ("Thread %d handled %d items", i, state[i].handled);
     }
+}
 
-  return 0;
+int
+main (int argc,
+      char *argv[])
+{
+  dex_init ();
+  g_test_init (&argc, &argv, NULL);
+  g_test_add_func ("/Dex/TestSuite/Semaphore/threaded", test_semaphore_threaded);
+  return g_test_run ();
 }
