@@ -136,8 +136,8 @@ main (int   argc,
 
   if (!cat_init (&cat, &argc, &argv, &error) ||
       !cat_run (&cat,
-                dex_scheduler_spawn (NULL, cat_read_fiber, &cat, NULL),
-                dex_scheduler_spawn (NULL, cat_write_fiber, &cat, NULL),
+                dex_scheduler_spawn (NULL, 0, cat_read_fiber, &cat, NULL),
+                dex_scheduler_spawn (NULL, 0, cat_write_fiber, &cat, NULL),
                 &error))
     {
       g_printerr ("cat: %s\n", error->message);

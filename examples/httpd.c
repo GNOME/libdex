@@ -251,7 +251,7 @@ handle_message (SoupServer        *server,
 
   request_pause (request);
 
-  dex_scheduler_spawn (NULL, request_fiber, request, request_free);
+  dex_scheduler_spawn (NULL, 0, request_fiber, request, request_free);
 }
 
 static void

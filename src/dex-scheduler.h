@@ -54,6 +54,7 @@ void          dex_scheduler_push               (DexScheduler     *scheduler,
                                                 gpointer          func_data);
 DEX_AVAILABLE_IN_ALL
 DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
+                                                gsize             stack_size,
                                                 DexFiberFunc      func,
                                                 gpointer          func_data,
                                                 GDestroyNotify    func_data_destroy);

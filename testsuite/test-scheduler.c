@@ -63,7 +63,9 @@ test_fiber_func (gpointer user_data)
   GPtrArray *all = g_ptr_array_new_with_free_func (dex_unref);
 
   for (guint i = 0; i < 1000; i++)
-    g_ptr_array_add (all, dex_scheduler_spawn (dex_scheduler_get_thread_default (), test_fiber2_func, user_data, NULL));
+    g_ptr_array_add (all, dex_scheduler_spawn (dex_scheduler_get_thread_default (),
+                                               dex_get_min_stack_size (),
+                                               test_fiber2_func, user_data, NULL));
 
   dex_await (dex_future_allv ((DexFuture **)all->pdata, all->len), NULL);
 
@@ -90,8 +92,13 @@ test_thread_pool_scheduler_spawn (void)
 
   main_loop = g_main_loop_new (NULL, FALSE);
 
+  g_test_message ("Spawning with stack size %u",
+                  (guint)dex_get_min_stack_size ());
+
   for (guint i = 0; i < 1000; i++)
-    g_ptr_array_add (all, dex_scheduler_spawn (scheduler, test_fiber_func, &count, NULL));
+    g_ptr_array_add (all, dex_scheduler_spawn (scheduler,
+                                               dex_get_min_stack_size (),
+                                               test_fiber_func, &count, NULL));
 
   future = dex_future_allv ((DexFuture **)(gpointer)all->pdata, all->len);
   future = dex_future_finally (future, quit_cb, NULL, NULL);

@@ -166,6 +166,7 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
 /**
  * dex_scheduler_spawn:
  * @scheduler: (nullable): a #DexScheduler
+ * @stack_size: stack size in bytes or 0
  * @func: (scope async): a #DexFiberFunc
  * @func_data: closure data for @func
  * @func_data_destroy: closure notify for @func_data
@@ -175,11 +176,15 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
  * The fiber will have it's own stack and cooperatively schedules among other
  * fibers sharing the schaeduler.
  *
+ * If @stack_size is 0, it will set to a sensible default. Otherwise, it is
+ * rounded up to the nearest page size.
+ *
  * Returns: (transfer full): a #DexFuture that will resolve or reject when
  *   @func completes (or it's resulting #DexFuture completes).
  */
 DexFuture *
 dex_scheduler_spawn (DexScheduler   *scheduler,
+                     gsize           stack_size,
                      DexFiberFunc    func,
                      gpointer        func_data,
                      GDestroyNotify  func_data_destroy)
@@ -192,7 +197,7 @@ dex_scheduler_spawn (DexScheduler   *scheduler,
   if (scheduler == NULL)
     scheduler = dex_scheduler_get_default ();
 
-  fiber = dex_fiber_new (func, func_data, func_data_destroy, 0);
+  fiber = dex_fiber_new (func, func_data, func_data_destroy, stack_size);
   DEX_SCHEDULER_GET_CLASS (scheduler)->spawn (scheduler, fiber);
   return DEX_FUTURE (fiber);
 }

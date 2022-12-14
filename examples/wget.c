@@ -157,7 +157,7 @@ main (int argc,
   main_loop = g_main_loop_new (NULL, FALSE);
 
   /* Spawn a fiber */
-  future = dex_scheduler_spawn (NULL, wget, NULL, NULL);
+  future = dex_scheduler_spawn (NULL, 0, wget, NULL, NULL);
 
   /* Handle resolve/reject of future and exit */
   future = dex_future_finally (future, fiber_completed, NULL, NULL);
