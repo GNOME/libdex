@@ -410,16 +410,27 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
 {
   DexThreadPoolWorker *thread_pool_worker;
   DexAioBackend *aio_backend;
+  DexAioContext *aio_context;
   GSource *source;
 
   g_return_val_if_fail (work_queue != NULL, NULL);
   g_return_val_if_fail (set != NULL, NULL);
 
   aio_backend = dex_aio_backend_get_default ();
+  aio_context = dex_aio_backend_create_context (aio_backend);
+
+  /* If we fail to create an aio context for the backend, then
+   * it's likely we're over a limit imposed by things like io_uring.
+   *
+   * Instead of falling back to DexPosixAioBackend, it's better to just
+   * run fewer workers so we're pinned closer to the physical core count.
+   */
+  if (aio_context == NULL)
+    return NULL;
 
   thread_pool_worker = (DexThreadPoolWorker *)g_type_create_instance (DEX_TYPE_THREAD_POOL_WORKER);
   thread_pool_worker->main_context = g_main_context_new ();
-  thread_pool_worker->aio_context = dex_aio_backend_create_context (aio_backend);
+  thread_pool_worker->aio_context = aio_context;
   thread_pool_worker->global_work_queue = dex_ref (work_queue);
   thread_pool_worker->work_stealing_queue = dex_work_stealing_queue_new (255);
   thread_pool_worker->set = set;
