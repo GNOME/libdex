@@ -108,7 +108,7 @@ main (int argc,
       g_atomic_int_set (&total_count, 0);
       dex_semaphore_post_many (semaphore, count);
       g_usleep (G_USEC_PER_SEC);
-      g_print ("Expected %u, got %u\n", count, g_atomic_int_get (&total_count));
+      g_test_message ("Expected %u, got %u", count, g_atomic_int_get (&total_count));
       g_assert_cmpint (g_atomic_int_get (&total_count), ==, count);
     }
 
@@ -123,7 +123,7 @@ main (int argc,
     {
       g_thread_join (state[i].thread);
 
-      g_print ("Thread %d handled %d items\n", i, state[i].handled);
+      g_test_message ("Thread %d handled %d items", i, state[i].handled);
     }
 
   return 0;
