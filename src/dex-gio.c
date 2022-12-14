@@ -383,3 +383,147 @@ dex_output_stream_splice (GOutputStream            *output,
 
   return DEX_FUTURE (async_pair);
 }
+
+static void
+dex_file_query_info_cb (GObject      *object,
+                        GAsyncResult *result,
+                        gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+  GFileInfo *info;
+
+  info = g_file_query_info_finish (G_FILE (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_object (async_pair, info);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_file_query_info (GFile               *file,
+                     const char          *attributes,
+                     GFileQueryInfoFlags  flags,
+                     int                  io_priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_FILE (file), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_file_query_info_async (file,
+                           attributes,
+                           flags,
+                           io_priority,
+                           async_pair->cancellable,
+                           dex_file_query_info_cb,
+                           dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_file_enumerate_children_cb (GObject      *object,
+                                GAsyncResult *result,
+                                gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+  GFileEnumerator *enumerator;
+
+  enumerator = g_file_enumerate_children_finish (G_FILE (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_object (async_pair, enumerator);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_file_enumerate_children (GFile               *file,
+                             const char          *attributes,
+                             GFileQueryInfoFlags  flags,
+                             int                  io_priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_FILE (file), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_file_enumerate_children_async (file,
+                                   attributes,
+                                   flags,
+                                   io_priority,
+                                   async_pair->cancellable,
+                                   dex_file_enumerate_children_cb,
+                                   dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_file_enumerator_next_files_cb (GObject      *object,
+                                   GAsyncResult *result,
+                                   gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+  GList *infos;
+
+  infos = g_file_enumerator_next_files_finish (G_FILE_ENUMERATOR (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_boxed (async_pair, DEX_TYPE_FILE_INFO_LIST, infos);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_file_enumerator_next_files (GFileEnumerator *file_enumerator,
+                                int              num_files,
+                                int              io_priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_FILE_ENUMERATOR (file_enumerator), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_file_enumerator_next_files_async (file_enumerator,
+                                      num_files,
+                                      io_priority,
+                                      async_pair->cancellable,
+                                      dex_file_enumerator_next_files_cb,
+                                      dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+typedef struct _DexFileInfoList DexFileInfoList;
+
+static DexFileInfoList *
+dex_file_info_copy (DexFileInfoList *list)
+{
+  return (DexFileInfoList *)g_list_copy_deep ((GList *)list, (GCopyFunc)g_object_ref, NULL);
+}
+
+static void
+dex_file_info_free (DexFileInfoList *list)
+{
+  GList *real_list = (GList *)list;
+  g_list_free_full (real_list, g_object_unref);
+}
+
+G_DEFINE_BOXED_TYPE (DexFileInfoList,
+                     dex_file_info_list,
+                     dex_file_info_copy,
+                     dex_file_info_free)

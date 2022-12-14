@@ -27,43 +27,61 @@
 
 G_BEGIN_DECLS
 
+#define DEX_TYPE_FILE_INFO_LIST (dex_file_info_list_get_type())
+
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_file_read                 (GFile                    *file,
-                                          int                       priority);
+GType      dex_file_info_list_get_type    (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_file_replace              (GFile                    *file,
-                                          const char               *etag,
-                                          gboolean                  make_backup,
-                                          GFileCreateFlags          flags,
-                                          int                       priority);
+DexFuture *dex_file_read                  (GFile                    *file,
+                                           int                       priority);
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_input_stream_close        (GInputStream             *self,
-                                          int                       priority);
+DexFuture *dex_file_query_info            (GFile                    *file,
+                                           const char               *attributes,
+                                           GFileQueryInfoFlags       flags,
+                                           int                       io_priority);
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_input_stream_read         (GInputStream             *self,
-                                          gpointer                  buffer,
-                                          gsize                     count,
-                                          int                       priority);
+DexFuture *dex_file_replace               (GFile                    *file,
+                                           const char               *etag,
+                                           gboolean                  make_backup,
+                                           GFileCreateFlags          flags,
+                                           int                       priority);
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_input_stream_read_bytes   (GInputStream             *self,
-                                          gsize                     count,
-                                          int                       priority);
+DexFuture *dex_file_enumerate_children    (GFile                    *file,
+                                           const char               *attributes,
+                                           GFileQueryInfoFlags       flags,
+                                           int                       io_priority);
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_output_stream_close       (GOutputStream            *self,
-                                          int                       priority);
+DexFuture *dex_file_enumerator_next_files (GFileEnumerator          *file_enumerator,
+                                           int                       num_files,
+                                           int                       io_priority);
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_output_stream_splice      (GOutputStream            *output,
-                                          GInputStream             *input,
-                                          GOutputStreamSpliceFlags  flags,
-                                          int                       io_priority);
+DexFuture *dex_input_stream_close         (GInputStream             *self,
+                                           int                       priority);
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_output_stream_write       (GOutputStream            *self,
-                                          gconstpointer             buffer,
-                                          gsize                     count,
-                                          int                       priority);
+DexFuture *dex_input_stream_read          (GInputStream             *self,
+                                           gpointer                  buffer,
+                                           gsize                     count,
+                                           int                       priority);
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_output_stream_write_bytes (GOutputStream            *self,
-                                          GBytes                   *bytes,
-                                          int                       priority);
+DexFuture *dex_input_stream_read_bytes    (GInputStream             *self,
+                                           gsize                     count,
+                                           int                       priority);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_output_stream_close        (GOutputStream            *self,
+                                           int                       priority);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_output_stream_splice       (GOutputStream            *output,
+                                           GInputStream             *input,
+                                           GOutputStreamSpliceFlags  flags,
+                                           int                       io_priority);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_output_stream_write        (GOutputStream            *self,
+                                           gconstpointer             buffer,
+                                           gsize                     count,
+                                           int                       priority);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_output_stream_write_bytes  (GOutputStream            *self,
+                                           GBytes                   *bytes,
+                                           int                       priority);
 
 G_END_DECLS
