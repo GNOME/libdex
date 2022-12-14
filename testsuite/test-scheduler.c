@@ -49,6 +49,62 @@ test_main_scheduler_simple (void)
   g_assert_cmpint (count, ==, 123);
 }
 
+static DexFuture *
+test_fiber2_func (gpointer user_data)
+{
+  guint *count = user_data;
+  g_atomic_int_inc (count);
+  return dex_future_new_for_boolean (TRUE);
+}
+
+static DexFuture *
+test_fiber_func (gpointer user_data)
+{
+  GPtrArray *all = g_ptr_array_new_with_free_func (dex_unref);
+
+  for (guint i = 0; i < 1000; i++)
+    g_ptr_array_add (all, dex_scheduler_spawn (dex_scheduler_get_thread_default (), test_fiber2_func, user_data, NULL));
+
+  dex_await (dex_future_allv ((DexFuture **)all->pdata, all->len), NULL);
+
+  g_ptr_array_unref (all);
+
+  return NULL;
+}
+
+static DexFuture *
+quit_cb (DexFuture *completed,
+         gpointer   user_data)
+{
+  g_main_loop_quit (main_loop);
+  return NULL;
+}
+
+static void
+test_thread_pool_scheduler_spawn (void)
+{
+  DexScheduler *scheduler = dex_thread_pool_scheduler_new ();
+  GPtrArray *all = g_ptr_array_new_with_free_func (dex_unref);
+  DexFuture *future;
+  guint count = 0;
+
+  main_loop = g_main_loop_new (NULL, FALSE);
+
+  for (guint i = 0; i < 1000; i++)
+    g_ptr_array_add (all, dex_scheduler_spawn (scheduler, test_fiber_func, &count, NULL));
+
+  future = dex_future_allv ((DexFuture **)(gpointer)all->pdata, all->len);
+  future = dex_future_finally (future, quit_cb, NULL, NULL);
+
+  g_main_loop_run (main_loop);
+
+  g_assert_cmpint (count, ==, 1000*1000);
+
+  g_ptr_array_unref (all);
+  dex_unref (future);
+  dex_unref (scheduler);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -56,5 +112,6 @@ main (int   argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/MainScheduler/simple", test_main_scheduler_simple);
+  g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/1_000_000_fibers", test_thread_pool_scheduler_spawn);
   return g_test_run ();
 }
