@@ -20,6 +20,7 @@
 
 #include <libdex.h>
 
+static DexScheduler *thread_pool;
 static GMainLoop *main_loop;
 
 static void
@@ -75,9 +76,27 @@ test_fiber_func (gpointer user_data)
 }
 
 static DexFuture *
+spawner (gpointer user_data)
+{
+  GPtrArray *all = g_ptr_array_new_with_free_func (dex_unref);
+
+  for (guint i = 0; i < 1000; i++)
+    g_ptr_array_add (all, dex_scheduler_spawn (thread_pool,
+                                               dex_get_min_stack_size (),
+                                               test_fiber_func, user_data, NULL));
+
+  dex_await (dex_future_allv ((DexFuture **)(gpointer)all->pdata, all->len), NULL);
+
+  g_ptr_array_unref (all);
+
+  return NULL;
+}
+
+static DexFuture *
 quit_cb (DexFuture *completed,
          gpointer   user_data)
 {
+  g_test_message ("Quiting main loop");
   g_main_loop_quit (main_loop);
   return NULL;
 }
@@ -85,31 +104,25 @@ quit_cb (DexFuture *completed,
 static void
 test_thread_pool_scheduler_spawn (void)
 {
-  DexScheduler *scheduler = dex_thread_pool_scheduler_new ();
-  GPtrArray *all = g_ptr_array_new_with_free_func (dex_unref);
   DexFuture *future;
   guint count = 0;
 
+  thread_pool = dex_thread_pool_scheduler_new ();
   main_loop = g_main_loop_new (NULL, FALSE);
 
   g_test_message ("Spawning with stack size %u",
                   (guint)dex_get_min_stack_size ());
 
-  for (guint i = 0; i < 1000; i++)
-    g_ptr_array_add (all, dex_scheduler_spawn (scheduler,
-                                               dex_get_min_stack_size (),
-                                               test_fiber_func, &count, NULL));
-
-  future = dex_future_allv ((DexFuture **)(gpointer)all->pdata, all->len);
+  future = dex_scheduler_spawn (NULL, 0, spawner, &count, NULL);
   future = dex_future_finally (future, quit_cb, NULL, NULL);
 
+  g_test_message ("Running main loop");
   g_main_loop_run (main_loop);
 
   g_assert_cmpint (count, ==, 10*1000);
 
-  g_ptr_array_unref (all);
   dex_unref (future);
-  dex_unref (scheduler);
+  dex_unref (thread_pool);
 }
 
 int
