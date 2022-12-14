@@ -68,8 +68,14 @@ struct _DexFiber
   GDestroyNotify func_data_destroy;
 
 #ifdef G_OS_UNIX
-  /* Context for the fiber */
+  /* Context for the fiber. Use inline access if possible without breaking
+   * alignment expectations of what can be allocated by the type system.
+   */
+# if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
+  ucontext_t *context;
+# else
   ucontext_t context;
+# endif
 #endif
 
   /* If the fiber is runnable */
@@ -96,8 +102,11 @@ struct _DexFiberScheduler
   GQueue waiting;
 
 #ifdef G_OS_UNIX
-  /* Saved context when entering first fiber */
+# if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
+  ucontext_t *context;
+# else
   ucontext_t context;
+# endif
 #endif
 
   /* If the scheduler is currently running */
@@ -111,5 +120,15 @@ DexFiber          *dex_fiber_new           (DexFiberFunc       func,
                                             gsize              stack_size);
 void               dex_fiber_migrate_to    (DexFiber          *fiber,
                                             DexFiberScheduler *fiber_scheduler);
+
+static inline ucontext_t *
+DEX_FIBER_CONTEXT (DexFiber *fiber)
+{
+#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
+  return fiber->context;
+#else
+  return &fiber->context;
+#endif
+}
 
 G_END_DECLS
