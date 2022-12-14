@@ -149,19 +149,40 @@ dex_thread_pool_scheduler_new (void)
 {
   DexThreadPoolScheduler *thread_pool_scheduler;
   guint n_procs;
+  guint n_workers;
 
   thread_pool_scheduler = (DexThreadPoolScheduler *)g_type_create_instance (DEX_TYPE_THREAD_POOL_SCHEDULER);
 
   /* TODO: let this be dynamic and tunable, as well as thread pinning */
+
   n_procs = g_get_num_processors ();
 
-  for (guint i = 0; i < n_procs; i++)
+  /* Couple things here, which we should take a look at in the future to
+   * see how we can tune them correctly, but:
+   *
+   * Remove one as the main thread has an AIO context too and we don't want
+   * to create contention there. Also, io_uring may limit us in the number
+   * of io_uring we can create.
+   *
+   * g_get_num_processors() includes hyperthreads, so take the result and
+   * cut it in half. It would be nicer to actually verify this on the system
+   * for cases where we don't have that.
+   *
+   * Additionally, bail if the worker fails to be created.
+   */
+  n_workers = MAX (1, (n_procs/2));
+
+  for (guint i = 0; i < n_workers; i++)
     {
       DexThreadPoolWorker *thread_pool_worker;
 
       thread_pool_worker = dex_thread_pool_worker_new (thread_pool_scheduler->global_work_queue,
                                                        thread_pool_scheduler->set);
-      g_ptr_array_add (thread_pool_scheduler->workers, g_steal_pointer (&thread_pool_worker));
+
+      if (thread_pool_worker != NULL)
+        g_ptr_array_add (thread_pool_scheduler->workers, g_steal_pointer (&thread_pool_worker));
+      else
+        break;
     }
 
   return DEX_SCHEDULER (thread_pool_scheduler);
