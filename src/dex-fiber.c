@@ -394,6 +394,11 @@ dex_fiber_migrate_to (DexFiber          *fiber,
 {
   g_return_if_fail (DEX_IS_FIBER (fiber));
 
+  /* Currently we only support migrating to the initial scheduler.
+   * But thread migrations are plannedin the future.
+   */
+  g_return_if_fail (fiber->fiber_scheduler == NULL || fiber_scheduler == NULL);
+
   dex_ref (fiber);
   dex_object_lock (fiber);
 
