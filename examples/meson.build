@@ -4,6 +4,7 @@ libsoup_dep = dependency('libsoup-3.0', required: false, disabler: true)
 examples = {
             'cat': {'dependencies': libgio_unix_dep},
         'cat-aio': {},
+             'cp': {},
           'httpd': {'dependencies': libsoup_dep},
   'infinite-loop': {},
            'wget': {'dependencies': libsoup_dep},
