@@ -20,7 +20,10 @@
 
 #include "config.h"
 
+#include <errno.h>
 #include <sys/eventfd.h>
+#include <sys/utsname.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include <liburing.h>
@@ -54,6 +57,39 @@ typedef struct _DexUringAioContext
 } DexUringAioContext;
 
 DEX_DEFINE_FINAL_TYPE (DexUringAioBackend, dex_uring_aio_backend, DEX_TYPE_AIO_BACKEND)
+
+G_GNUC_UNUSED static gboolean
+dex_uring_check_kernel_version (int major,
+                                int minor)
+{
+  static gsize initialized;
+  static int kernel_major;
+  static int kernel_minor;
+
+  if (g_once_init_enter (&initialized))
+    {
+      static struct utsname u;
+
+      if (uname (&u) == 0)
+        {
+          int maj, min;
+
+          if (sscanf (u.release, "%u.%u.", &maj, &min) == 2)
+            {
+              kernel_major = maj;
+              kernel_minor = min;
+            }
+        }
+
+      g_once_init_leave (&initialized, TRUE);
+    }
+
+  if (kernel_major == 0)
+    return FALSE;
+
+  return major >= kernel_major ||
+         (major == kernel_major && minor >= kernel_minor);
+}
 
 static gboolean
 dex_uring_aio_context_dispatch (GSource     *source,
@@ -231,17 +267,14 @@ dex_uring_aio_backend_create_context (DexAioBackend *aio_backend)
   aio_context->parent.aio_backend = dex_ref (aio_backend);
   g_mutex_init (&aio_context->mutex);
 
-#ifdef IORING_SETUP_COOP_TASKRUN
-  uring_flags |= IORING_SETUP_COOP_TASKRUN;
+#if DEX_URING_CHECK_VERSION(2, 2)
+  if (dex_uring_check_kernel_version (5, 19))
+    uring_flags |= IORING_SETUP_COOP_TASKRUN;
 #endif
 
-#if 0
-  /* TODO: We need to do system checks with io_uring_queue_init_params() or
-   * similar to be able to detect if the feature is available.
-   */
-#ifdef IORING_SETUP_SINGLE_ISSUER
-  uring_flags |= IORING_SETUP_SINGLE_ISSUER;
-#endif
+#if DEX_URING_CHECK_VERSION(2, 3)
+  if (dex_uring_check_kernel_version (6, 0))
+    uring_flags |= IORING_SETUP_SINGLE_ISSUER;
 #endif
 
   aio_context->eventfd = -1;
