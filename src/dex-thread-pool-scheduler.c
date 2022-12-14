@@ -144,7 +144,7 @@ dex_thread_pool_scheduler_init (DexThreadPoolScheduler *thread_pool_scheduler)
  *
  * Returns: (transfer full): a #DexThreadPoolScheduler
  */
-DexThreadPoolScheduler *
+DexScheduler *
 dex_thread_pool_scheduler_new (void)
 {
   DexThreadPoolScheduler *thread_pool_scheduler;
@@ -164,5 +164,5 @@ dex_thread_pool_scheduler_new (void)
       g_ptr_array_add (thread_pool_scheduler->workers, g_steal_pointer (&thread_pool_worker));
     }
 
-  return thread_pool_scheduler;
+  return DEX_SCHEDULER (thread_pool_scheduler);
 }
