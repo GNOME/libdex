@@ -32,6 +32,9 @@ G_BEGIN_DECLS
 DEX_AVAILABLE_IN_ALL
 GType      dex_file_info_list_get_type    (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
+DexFuture *dex_file_make_directory        (GFile                    *file,
+                                           int                       io_priority);
+DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_read                  (GFile                    *file,
                                            int                       priority);
 DEX_AVAILABLE_IN_ALL

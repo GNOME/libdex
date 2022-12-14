@@ -427,6 +427,43 @@ dex_file_query_info (GFile               *file,
 }
 
 static void
+dex_file_make_directory_cb (GObject      *object,
+                            GAsyncResult *result,
+                            gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+
+  g_file_make_directory_finish (G_FILE (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_boolean (async_pair, TRUE);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_file_make_directory (GFile *file,
+                         int    io_priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_FILE (file), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_file_make_directory_async (file,
+                               io_priority,
+                               async_pair->cancellable,
+                               dex_file_make_directory_cb,
+                               dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
 dex_file_enumerate_children_cb (GObject      *object,
                                 GAsyncResult *result,
                                 gpointer      user_data)
