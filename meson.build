@@ -40,7 +40,10 @@ if get_option('sysprof')
   config_h.set10('HAVE_SYSPROF', true)
 endif
 
-if host_machine.system() != 'windows'
+if host_machine.system() == 'darwin'
+  # known alignment for darwin where we're using helpers
+  config_h.set('ALIGN_OF_UCONTEXT', 8)
+elif host_machine.system() != 'windows'
   # Check alignment of ucontext_t
   config_h.set('ALIGN_OF_UCONTEXT', cc.alignment('ucontext_t', prefix: '#include <ucontext.h>'))
 endif
