@@ -62,7 +62,7 @@ test_fiber_func (gpointer user_data)
 {
   GPtrArray *all = g_ptr_array_new_with_free_func (dex_unref);
 
-  for (guint i = 0; i < 1000; i++)
+  for (guint i = 0; i < 10; i++)
     g_ptr_array_add (all, dex_scheduler_spawn (dex_scheduler_get_thread_default (),
                                                dex_get_min_stack_size (),
                                                test_fiber2_func, user_data, NULL));
@@ -105,7 +105,7 @@ test_thread_pool_scheduler_spawn (void)
 
   g_main_loop_run (main_loop);
 
-  g_assert_cmpint (count, ==, 1000*1000);
+  g_assert_cmpint (count, ==, 10*1000);
 
   g_ptr_array_unref (all);
   dex_unref (future);
@@ -119,6 +119,6 @@ main (int   argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/MainScheduler/simple", test_main_scheduler_simple);
-  g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/1_000_000_fibers", test_thread_pool_scheduler_spawn);
+  g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/10_000_fibers", test_thread_pool_scheduler_spawn);
   return g_test_run ();
 }
