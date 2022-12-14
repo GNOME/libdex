@@ -20,6 +20,10 @@
 
 #pragma once
 
+#ifndef PACKAGE_VERSION
+# error "config.h must be included before dex-fiber-private.h"
+#endif
+
 #include <glib.h>
 
 #ifdef G_OS_UNIX
