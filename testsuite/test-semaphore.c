@@ -102,7 +102,7 @@ main (int argc,
 
   g_usleep (G_USEC_PER_SEC/2);
 
-  for (guint i = 0; i < 10; i++)
+  for (guint i = 0; i < 3; i++)
     {
       int count = 10000;
       g_atomic_int_set (&total_count, 0);
