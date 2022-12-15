@@ -28,9 +28,12 @@
 G_BEGIN_DECLS
 
 #define DEX_TYPE_FILE_INFO_LIST (dex_file_info_list_get_type())
+#define DEX_TYPE_INET_ADDRESS_LIST (dex_inet_address_list_get_type())
 
 DEX_AVAILABLE_IN_ALL
 GType      dex_file_info_list_get_type    (void) G_GNUC_CONST;
+DEX_AVAILABLE_IN_ALL
+GType      dex_inet_address_list_get_type (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_make_directory        (GFile                    *file,
                                            int                       io_priority);
@@ -99,5 +102,8 @@ DexFuture *dex_socket_client_connect      (GSocketClient            *socket_clie
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_io_stream_close            (GIOStream                *io_stream,
                                            int                       io_priority);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_resolver_lookup_by_name    (GResolver                *resolver,
+                                           const char               *address);
 
 G_END_DECLS

@@ -28,19 +28,36 @@
 typedef struct _DexFileInfoList DexFileInfoList;
 
 static DexFileInfoList *
-dex_file_info_copy (DexFileInfoList *list)
+dex_file_info_list_copy (DexFileInfoList *list)
 {
   return (DexFileInfoList *)g_list_copy_deep ((GList *)list, (GCopyFunc)g_object_ref, NULL);
 }
 
 static void
-dex_file_info_free (DexFileInfoList *list)
+dex_file_info_list_free (DexFileInfoList *list)
 {
   GList *real_list = (GList *)list;
   g_list_free_full (real_list, g_object_unref);
 }
 
-G_DEFINE_BOXED_TYPE (DexFileInfoList, dex_file_info_list, dex_file_info_copy, dex_file_info_free)
+typedef struct _DexInetAddressList DexInetAddressList;
+
+G_DEFINE_BOXED_TYPE (DexFileInfoList, dex_file_info_list, dex_file_info_list_copy, dex_file_info_list_free)
+
+static DexInetAddressList *
+dex_inet_address_list_copy (DexInetAddressList *list)
+{
+  return (DexInetAddressList *)g_list_copy_deep ((GList *)list, (GCopyFunc)g_object_ref, NULL);
+}
+
+static void
+dex_inet_address_list_free (DexInetAddressList *list)
+{
+  GList *real_list = (GList *)list;
+  g_list_free_full (real_list, g_object_unref);
+}
+
+G_DEFINE_BOXED_TYPE (DexInetAddressList, dex_inet_address_list, dex_inet_address_list_copy, dex_inet_address_list_free)
 
 static void
 dex_input_stream_read_bytes_cb (GObject      *object,
@@ -713,6 +730,45 @@ dex_io_stream_close (GIOStream *io_stream,
                            async_pair->cancellable,
                            dex_io_stream_close_cb,
                            dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_resolver_lookup_by_name_cb (GObject      *object,
+                                GAsyncResult *result,
+                                gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+  GList *list;
+
+  list = g_resolver_lookup_by_name_finish (G_RESOLVER (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_boxed (async_pair, DEX_TYPE_INET_ADDRESS_LIST, list);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_resolver_lookup_by_name (GResolver  *resolver,
+                             const char *address)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_RESOLVER (resolver), NULL);
+  g_return_val_if_fail (address != NULL, NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_resolver_lookup_by_name_async (resolver,
+                                   address,
+                                   async_pair->cancellable,
+                                   dex_resolver_lookup_by_name_cb,
+                                   dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
 }
