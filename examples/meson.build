@@ -6,6 +6,7 @@ examples = {
         'cat-aio': {},
              'cp': {},
      'echo-bench': {},
+           'host': {},
           'httpd': {'dependencies': libsoup_dep},
   'infinite-loop': {},
        'tcp-echo': {},
