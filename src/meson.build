@@ -29,7 +29,6 @@ libdex_sources = [
   'dex-thread-pool-worker.c',
   'dex-thread-storage.c',
   'dex-timeout.c',
-  'dex-ucontext.c',
   'dex-work-queue.c',
   'dex-work-stealing-queue.c',
 ]
@@ -59,11 +58,19 @@ libdex_headers = [
   'libdex.h',
 ]
 
+libdex_deps = [
+  cc.find_library('atomic', required: false),
+  glib_dep,
+]
+
+
 if liburing_dep.found()
   libdex_sources += [
     'dex-uring-aio-backend.c',
     'dex-uring-future.c',
   ]
+
+  libdex_deps += [liburing_dep]
 
   liburing_version_split = liburing_dep.version().split('.')
   liburing_version_conf = configuration_data()
@@ -78,9 +85,12 @@ if liburing_dep.found()
   )
 endif
 
-if host_machine.system() != 'windows'
+if host_machine.system() == 'windows'
+  # TODO: 
+else
   libdex_sources += ['dex-unix-signal.c']
   libdex_headers += ['dex-unix-signal.h']
+  libdex_headers += ['dex-ucontext.c']
 endif
 
 version_split = meson.project_version().split('.')
@@ -97,12 +107,6 @@ configure_file(
         install: true,
     install_dir: join_paths(get_option('includedir'), 'libdex-@0@'.format(api_version))
 )
-
-libdex_deps = [
-  cc.find_library('atomic', required: false),
-  liburing_dep,
-  glib_dep,
-]
 
 if get_option('sysprof')
   libdex_deps += [libsysprof_capture_dep]

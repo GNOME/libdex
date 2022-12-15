@@ -27,12 +27,16 @@ glib_req_version = '2.68'
 glib_req = '>= @0@'.format(glib_req_version)
 glib_dep = dependency('gio-2.0', version: glib_req)
 
-liburing_req_version = '0.7'
-liburing_req = '>= @0@'.format(liburing_req_version)
-liburing_dep = dependency('liburing', version: liburing_req, required: false)
+if host_machine.system() == 'linux'
+  liburing_req_version = '0.7'
+  liburing_req = '>= @0@'.format(liburing_req_version)
+  liburing_dep = dependency('liburing', version: liburing_req, required: false)
 
-if liburing_dep.found()
-  config_h.set10('HAVE_LIBURING', true)
+  if liburing_dep.found()
+    config_h.set10('HAVE_LIBURING', true)
+  endif
+else
+  liburing_dep = disabler()
 endif
 
 if get_option('sysprof')
@@ -43,7 +47,9 @@ endif
 if host_machine.system() == 'darwin'
   # known alignment for darwin where we're using helpers
   config_h.set('ALIGN_OF_UCONTEXT', 8)
-elif host_machine.system() != 'windows'
+elif host_machine.system() == 'windows'
+  # TODO
+else
   # Check alignment of ucontext_t
   config_h.set('ALIGN_OF_UCONTEXT', cc.alignment('ucontext_t', prefix: '#include <ucontext.h>'))
 endif
