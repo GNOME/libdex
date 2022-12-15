@@ -25,6 +25,23 @@
 #include "dex-future-private.h"
 #include "dex-gio.h"
 
+typedef struct _DexFileInfoList DexFileInfoList;
+
+static DexFileInfoList *
+dex_file_info_copy (DexFileInfoList *list)
+{
+  return (DexFileInfoList *)g_list_copy_deep ((GList *)list, (GCopyFunc)g_object_ref, NULL);
+}
+
+static void
+dex_file_info_free (DexFileInfoList *list)
+{
+  GList *real_list = (GList *)list;
+  g_list_free_full (real_list, g_object_unref);
+}
+
+G_DEFINE_BOXED_TYPE (DexFileInfoList, dex_file_info_list, dex_file_info_copy, dex_file_info_free)
+
 static void
 dex_input_stream_read_bytes_cb (GObject      *object,
                                 GAsyncResult *result,
@@ -545,22 +562,45 @@ dex_file_enumerator_next_files (GFileEnumerator *file_enumerator,
   return DEX_FUTURE (async_pair);
 }
 
-typedef struct _DexFileInfoList DexFileInfoList;
-
-static DexFileInfoList *
-dex_file_info_copy (DexFileInfoList *list)
-{
-  return (DexFileInfoList *)g_list_copy_deep ((GList *)list, (GCopyFunc)g_object_ref, NULL);
-}
-
 static void
-dex_file_info_free (DexFileInfoList *list)
+dex_file_copy_cb (GObject      *object,
+                  GAsyncResult *result,
+                  gpointer      user_data)
 {
-  GList *real_list = (GList *)list;
-  g_list_free_full (real_list, g_object_unref);
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+
+  g_file_copy_finish (G_FILE (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_boolean (async_pair, TRUE);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
 }
 
-G_DEFINE_BOXED_TYPE (DexFileInfoList,
-                     dex_file_info_list,
-                     dex_file_info_copy,
-                     dex_file_info_free)
+DexFuture *
+dex_file_copy (GFile          *source,
+               GFile          *destination,
+               GFileCopyFlags  flags,
+               int             io_priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_FILE (source), NULL);
+  g_return_val_if_fail (G_IS_FILE (destination), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_file_copy_async (source,
+                     destination,
+                     flags,
+                     io_priority,
+                     async_pair->cancellable,
+                     NULL, NULL, /* TODO: Progress support */
+                     dex_file_copy_cb,
+                     dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}

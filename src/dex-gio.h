@@ -35,8 +35,13 @@ DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_make_directory        (GFile                    *file,
                                            int                       io_priority);
 DEX_AVAILABLE_IN_ALL
+DexFuture *dex_file_copy                  (GFile                    *source,
+                                           GFile                    *destination,
+                                           GFileCopyFlags            flags,
+                                           int                       io_priority);
+DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_read                  (GFile                    *file,
-                                           int                       priority);
+                                           int                       io_priority);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_query_info            (GFile                    *file,
                                            const char               *attributes,
@@ -47,7 +52,7 @@ DexFuture *dex_file_replace               (GFile                    *file,
                                            const char               *etag,
                                            gboolean                  make_backup,
                                            GFileCreateFlags          flags,
-                                           int                       priority);
+                                           int                       io_priority);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_enumerate_children    (GFile                    *file,
                                            const char               *attributes,
@@ -59,19 +64,19 @@ DexFuture *dex_file_enumerator_next_files (GFileEnumerator          *file_enumer
                                            int                       io_priority);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_close         (GInputStream             *self,
-                                           int                       priority);
+                                           int                       io_priority);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_read          (GInputStream             *self,
                                            gpointer                  buffer,
                                            gsize                     count,
-                                           int                       priority);
+                                           int                       io_priority);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_read_bytes    (GInputStream             *self,
                                            gsize                     count,
-                                           int                       priority);
+                                           int                       io_priority);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_close        (GOutputStream            *self,
-                                           int                       priority);
+                                           int                       io_priority);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_splice       (GOutputStream            *output,
                                            GInputStream             *input,
@@ -81,10 +86,10 @@ DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_write        (GOutputStream            *self,
                                            gconstpointer             buffer,
                                            gsize                     count,
-                                           int                       priority);
+                                           int                       io_priority);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_write_bytes  (GOutputStream            *self,
                                            GBytes                   *bytes,
-                                           int                       priority);
+                                           int                       io_priority);
 
 G_END_DECLS
