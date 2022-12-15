@@ -679,3 +679,40 @@ dex_socket_client_connect (GSocketClient      *socket_client,
 
   return DEX_FUTURE (async_pair);
 }
+
+static void
+dex_io_stream_close_cb (GObject      *object,
+                        GAsyncResult *result,
+                        gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+
+  g_io_stream_close_finish (G_IO_STREAM (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_boolean (async_pair, TRUE);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_io_stream_close (GIOStream *io_stream,
+                     int        io_priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_IO_STREAM (io_stream), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_io_stream_close_async (io_stream,
+                           io_priority,
+                           async_pair->cancellable,
+                           dex_io_stream_close_cb,
+                           dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}

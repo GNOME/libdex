@@ -96,5 +96,8 @@ DexFuture *dex_socket_listener_accept     (GSocketListener          *listener);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_socket_client_connect      (GSocketClient            *socket_client,
                                            GSocketConnectable       *socket_connectable);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_io_stream_close            (GIOStream                *io_stream,
+                                           int                       io_priority);
 
 G_END_DECLS
