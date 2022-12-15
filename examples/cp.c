@@ -32,6 +32,7 @@
 static DexFuture *copy (gpointer user_data);
 
 static DexScheduler *thread_pool;
+static gboolean verbose;
 static GMainLoop *main_loop;
 
 typedef struct
@@ -69,7 +70,8 @@ copy_regular (Copy *cp)
   GError *error = NULL;
   G_GNUC_UNUSED gssize len;
 
-  g_printerr ("%s => %s\n", g_file_peek_path (cp->from), g_file_peek_path (cp->to));
+  if (verbose)
+    g_printerr ("%s => %s\n", g_file_peek_path (cp->from), g_file_peek_path (cp->to));
 
   input = dex_await_object (dex_file_read (cp->from, G_PRIORITY_DEFAULT), &error);
   return_if_error (error);
@@ -104,7 +106,9 @@ copy_directory (Copy *cp)
                                  &error);
   return_if_error (error);
 
-  g_printerr ("%s/ => %s/\n", g_file_peek_path (cp->from), g_file_peek_path (cp->to));
+  if (verbose)
+    g_printerr ("%s/ => %s/\n", g_file_peek_path (cp->from), g_file_peek_path (cp->to));
+
   dex_await (dex_file_make_directory (cp->to, G_PRIORITY_DEFAULT), &error);
   return_if_error (error);
 
@@ -207,6 +211,7 @@ main (int   argc,
   gboolean recursive = FALSE;
   GOptionEntry entries[] = {
     { "recursive", 'r', 0, G_OPTION_ARG_NONE, &recursive, "Copy directory recursively" },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Explain what is being done" },
     { NULL }
   };
   GOptionContext *context;
