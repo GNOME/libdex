@@ -5,6 +5,7 @@ examples = {
             'cat': {'dependencies': libgio_unix_dep},
         'cat-aio': {},
              'cp': {},
+     'echo-bench': {},
           'httpd': {'dependencies': libsoup_dep},
   'infinite-loop': {},
        'tcp-echo': {},
