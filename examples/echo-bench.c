@@ -222,7 +222,7 @@ main (int   argc,
   address = g_socket_connectable_to_string (socket_address);
 
   g_printerr ("Benchmarking: %s\n", address);
-  g_printerr ("%u clients, running %u bytes, %u sec.\n", number, duration, length);
+  g_printerr ("%u clients, running %u bytes, %u sec.\n", number, length, duration);
 
   /* Space for the workers to track information */
   n_workers = number;
