@@ -61,9 +61,9 @@ dex_fiber_propagate (DexFuture *future,
 
   dex_object_lock (fiber);
 
-  if (fiber->status == DEX_FIBER_STATUS_WAITING)
+  if (fiber->flags == DEX_FIBER_FLAGS_WAITING)
     {
-      fiber->status = DEX_FIBER_STATUS_READY;
+      fiber->flags = DEX_FIBER_FLAGS_READY;
 
       if (fiber->fiber_scheduler != NULL)
         {
@@ -81,11 +81,11 @@ dex_fiber_propagate (DexFuture *future,
 
       ret = TRUE;
     }
-  else if (fiber->status == DEX_FIBER_STATUS_EXITED)
+  else if (fiber->flags == DEX_FIBER_FLAGS_EXITED)
     {
       g_warn_if_reached ();
     }
-  else if (fiber->status == DEX_FIBER_STATUS_READY)
+  else if (fiber->flags == DEX_FIBER_FLAGS_READY)
     {
       g_warn_if_reached ();
     }
@@ -156,7 +156,7 @@ dex_fiber_start (DexFiber *fiber)
     }
 
   /* Mark fiber as exited */
-  fiber->status = DEX_FIBER_STATUS_EXITED;
+  fiber->flags = DEX_FIBER_FLAGS_EXITED;
 
   /* Free func data if necessary */
   if (fiber->func_data_destroy)
@@ -263,7 +263,7 @@ dex_fiber_scheduler_dispatch (GSource     *source,
       swapcontext (DEX_FIBER_SCHEDULER_CONTEXT (fiber_scheduler), DEX_FIBER_CONTEXT (fiber));
       fiber_scheduler->current = NULL;
 
-      if (fiber->status == DEX_FIBER_STATUS_EXITED &&
+      if (fiber->flags == DEX_FIBER_FLAGS_EXITED &&
           fiber->fiber_scheduler == fiber_scheduler)
         {
           g_queue_unlink (&fiber->fiber_scheduler->ready, &fiber->link);
@@ -405,9 +405,9 @@ dex_fiber_migrate_to (DexFiber          *fiber,
   if (fiber->fiber_scheduler != NULL)
     {
       g_rec_mutex_lock (&fiber->fiber_scheduler->rec_mutex);
-      if (fiber->status == DEX_FIBER_STATUS_READY)
+      if (fiber->flags == DEX_FIBER_FLAGS_READY)
         g_queue_unlink (&fiber->fiber_scheduler->ready, &fiber->link);
-      else if (fiber->status == DEX_FIBER_STATUS_WAITING)
+      else if (fiber->flags == DEX_FIBER_FLAGS_WAITING)
         g_queue_unlink (&fiber->fiber_scheduler->waiting, &fiber->link);
       g_rec_mutex_unlock (&fiber->fiber_scheduler->rec_mutex);
 
@@ -415,14 +415,14 @@ dex_fiber_migrate_to (DexFiber          *fiber,
       dex_unref (fiber);
     }
 
-  if (fiber->status != DEX_FIBER_STATUS_EXITED && fiber_scheduler != NULL)
+  if (fiber->flags != DEX_FIBER_FLAGS_EXITED && fiber_scheduler != NULL)
     {
       dex_fiber_ensure_stack (fiber, fiber_scheduler);
 
       g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
-      if (fiber->status == DEX_FIBER_STATUS_READY)
+      if (fiber->flags == DEX_FIBER_FLAGS_READY)
         g_queue_push_tail_link (&fiber_scheduler->ready, &fiber->link);
-      else if (fiber->status == DEX_FIBER_STATUS_WAITING)
+      else if (fiber->flags == DEX_FIBER_FLAGS_WAITING)
         g_queue_push_tail_link (&fiber_scheduler->waiting, &fiber->link);
       g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
 
@@ -452,7 +452,7 @@ dex_fiber_await (DexFiber  *fiber,
   /* Move from ready to waiting queue and update status */
   dex_object_lock (fiber);
   g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
-  fiber->status = DEX_FIBER_STATUS_WAITING;
+  fiber->flags = DEX_FIBER_FLAGS_WAITING;
   g_queue_unlink (&fiber_scheduler->ready, &fiber->link);
   g_queue_push_tail_link (&fiber_scheduler->waiting, &fiber->link);
   g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);

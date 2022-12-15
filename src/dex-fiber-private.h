@@ -39,12 +39,12 @@ G_BEGIN_DECLS
 
 typedef struct _DexFiberScheduler DexFiberScheduler;
 
-typedef enum _DexFiberState
+typedef enum _DexFiberFlags
 {
-  DEX_FIBER_STATUS_READY,
-  DEX_FIBER_STATUS_WAITING,
-  DEX_FIBER_STATUS_EXITED,
-} DexFiberState;
+  DEX_FIBER_FLAGS_READY     = 0,
+  DEX_FIBER_FLAGS_WAITING   = 1,
+  DEX_FIBER_FLAGS_EXITED    = 1 << 1,
+} DexFiberFlags;
 
 struct _DexFiber
 {
@@ -79,7 +79,7 @@ struct _DexFiber
 #endif
 
   /* If the fiber is runnable */
-  DexFiberState status : 2;
+  DexFiberFlags flags : 3;
 };
 
 struct _DexFiberScheduler
