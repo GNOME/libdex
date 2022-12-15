@@ -179,5 +179,7 @@ dex_stack_mark_unused (DexStack *stack)
   g_assert (stack != NULL);
   g_assert (stack->link.data == stack);
 
+#ifdef HAVE_MADVISE
   madvise (stack->ptr, stack->size, MADV_DONTNEED);
+#endif
 }

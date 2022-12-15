@@ -176,6 +176,7 @@ add_project_arguments('-I' + meson.project_build_root(), language: 'c')
 functions = [
   'eventfd',
   'posix_fadvise',
+  'madvise',
 ]
 
 foreach f : functions
