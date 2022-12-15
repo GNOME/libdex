@@ -177,6 +177,7 @@ functions = [
   'eventfd',
   'posix_fadvise',
   'madvise',
+  'mprotect',
 ]
 
 foreach f : functions

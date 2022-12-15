@@ -131,12 +131,14 @@ dex_stack_new (gsize size)
 #endif
 
   /* Setup guard page to fault */
+#if HAVE_MPROTECT
   if (mprotect (guard, page_size, PROT_NONE) != 0)
     {
       int errsv = errno;
       g_error ("Failed to protect stack guard page: %s",
                g_strerror (errsv));
     }
+#endif
 
   stack = g_new0 (DexStack, 1);
   stack->link.data = stack;
