@@ -115,6 +115,8 @@ main (int   argc,
   if (!g_socket_listener_add_inet_port (socket_listener, port, NULL, &error))
     g_error ("Failed to listen on port %u: %s", port, error->message);
 
+  g_print ("Listening on 0.0.0.0:%u\n", port);
+
   /* Spawn a fiber on current thread for socket loop */
   future = dex_scheduler_spawn (NULL, 0,
                                 socket_listener_fiber,
