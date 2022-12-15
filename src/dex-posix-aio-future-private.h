@@ -28,19 +28,20 @@ G_BEGIN_DECLS
 #define DEX_POSIX_AIO_FUTURE(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_POSIX_AIO_FUTURE, DexPosixAioFuture))
 #define DEX_IS_POSIX_AIO_FUTURE(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_POSIX_AIO_FUTURE))
 
-GType               dex_posix_aio_future_get_type        (void) G_GNUC_CONST;
-DexPosixAioFuture  *dex_posix_aio_future_new_read        (DexPosixAioContext  *posix_aio_context,
-                                                          int                  fd,
-                                                          gpointer             buffer,
-                                                          gsize                count,
-                                                          goffset              offset);
-DexPosixAioFuture  *dex_posix_aio_future_new_write       (DexPosixAioContext  *posix_aio_context,
-                                                          int                  fd,
-                                                          gconstpointer        buffer,
-                                                          gsize                count,
-                                                          goffset              offset);
-void                dex_posix_aio_future_run             (DexPosixAioFuture   *posix_aio_future);
-void                dex_posix_aio_future_complete        (DexPosixAioFuture   *posix_aio_future);
-DexPosixAioContext *dex_posix_aio_future_get_aio_context (DexPosixAioFuture *posix_aio_future);
+GType               dex_posix_aio_future_get_type         (void) G_GNUC_CONST;
+DexPosixAioFuture  *dex_posix_aio_future_new_read         (DexPosixAioContext  *posix_aio_context,
+                                                           int                  fd,
+                                                           gpointer             buffer,
+                                                           gsize                count,
+                                                           goffset              offset);
+DexPosixAioFuture  *dex_posix_aio_future_new_write        (DexPosixAioContext  *posix_aio_context,
+                                                           int                  fd,
+                                                           gconstpointer        buffer,
+                                                           gsize                count,
+                                                           goffset              offset);
+void                dex_posix_aio_future_run              (DexPosixAioFuture   *posix_aio_future);
+void                dex_posix_aio_future_complete         (DexPosixAioFuture   *posix_aio_future);
+DexPosixAioContext *dex_posix_aio_future_get_aio_context  (DexPosixAioFuture *posix_aio_future);
+GMainContext       *dex_posix_aio_future_get_main_context (DexPosixAioFuture *posix_aio_future);
 
 G_END_DECLS

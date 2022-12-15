@@ -38,6 +38,7 @@ typedef enum _DexPosixAioFutureKind
 struct _DexPosixAioFuture
 {
   DexFuture              parent_instance;
+  GMainContext          *main_context;
   DexPosixAioContext    *aio_context;
   DexPosixAioFutureKind  kind;
   int                    errsv;
@@ -75,6 +76,7 @@ dex_posix_aio_future_finalize (DexObject *object)
   DexPosixAioFuture *posix_aio_future = DEX_POSIX_AIO_FUTURE (object);
 
   g_clear_pointer ((GSource **)&posix_aio_future->aio_context, g_source_unref);
+  g_clear_pointer (&posix_aio_future->main_context, g_main_context_unref);
 
   DEX_OBJECT_CLASS (dex_posix_aio_future_parent_class)->finalize (object);
 }
@@ -97,10 +99,15 @@ dex_posix_aio_future_new (DexPosixAioFutureKind  kind,
                           DexPosixAioContext    *aio_context)
 {
   DexPosixAioFuture *posix_aio_future;
+  GMainContext *main_context;
+
+  if ((main_context = g_source_get_context ((GSource *)aio_context)))
+    g_main_context_ref (main_context);
 
   posix_aio_future = (DexPosixAioFuture *)g_type_create_instance (DEX_TYPE_POSIX_AIO_FUTURE);
   posix_aio_future->kind = kind;
   posix_aio_future->aio_context = (DexPosixAioContext *)g_source_ref ((GSource *)aio_context);
+  posix_aio_future->main_context = main_context;
 
   return posix_aio_future;
 }
@@ -231,4 +238,12 @@ dex_posix_aio_future_get_aio_context (DexPosixAioFuture *posix_aio_future)
   g_return_val_if_fail (DEX_IS_POSIX_AIO_FUTURE (posix_aio_future), NULL);
 
   return posix_aio_future->aio_context;
+}
+
+GMainContext *
+dex_posix_aio_future_get_main_context (DexPosixAioFuture *posix_aio_future)
+{
+  g_return_val_if_fail (DEX_IS_POSIX_AIO_FUTURE (posix_aio_future), NULL);
+
+  return posix_aio_future->main_context;
 }

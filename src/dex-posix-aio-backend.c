@@ -77,11 +77,11 @@ dex_posix_aio_context_take (DexPosixAioContext *posix_aio_context,
 
   g_mutex_lock (&posix_aio_context->mutex);
   g_queue_push_tail (&posix_aio_context->completed, posix_aio_future);
-  main_context = g_main_context_ref (g_source_get_context ((GSource *)posix_aio_context));
+  main_context = dex_posix_aio_future_get_main_context (posix_aio_future);
   g_mutex_unlock (&posix_aio_context->mutex);
 
-  g_main_context_wakeup (main_context);
-  g_main_context_unref (main_context);
+  if (main_context)
+    g_main_context_wakeup (main_context);
 }
 
 static inline void
