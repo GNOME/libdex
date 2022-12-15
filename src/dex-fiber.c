@@ -54,49 +54,35 @@ dex_fiber_propagate (DexFuture *future,
                      DexFuture *completed)
 {
   DexFiber *fiber = DEX_FIBER (future);
-  gboolean ret = FALSE;
+  GSource *source = NULL;
 
   g_assert (DEX_IS_FIBER (fiber));
   g_assert (DEX_IS_FUTURE (completed));
 
   dex_object_lock (fiber);
+  g_mutex_lock (&fiber->fiber_scheduler->mutex);
 
-  if (fiber->flags == DEX_FIBER_FLAGS_WAITING)
-    {
-      fiber->flags = DEX_FIBER_FLAGS_READY;
+  g_assert (!fiber->runnable);
+  g_assert (!fiber->exited);
 
-      if (fiber->fiber_scheduler != NULL)
-        {
-          gboolean do_wakeup;
+  fiber->runnable = TRUE;
 
-          g_rec_mutex_lock (&fiber->fiber_scheduler->rec_mutex);
-          g_queue_unlink (&fiber->fiber_scheduler->waiting, &fiber->link);
-          do_wakeup = !fiber->fiber_scheduler->running;
-          g_queue_push_head_link (&fiber->fiber_scheduler->ready, &fiber->link);
-          g_rec_mutex_unlock (&fiber->fiber_scheduler->rec_mutex);
+  g_queue_unlink (&fiber->fiber_scheduler->blocked, &fiber->link);
+  g_queue_push_tail_link (&fiber->fiber_scheduler->runnable, &fiber->link);
 
-          if (do_wakeup)
-            g_main_context_wakeup (g_source_get_context ((GSource *)fiber->fiber_scheduler));
-        }
+  if (dex_thread_storage_get ()->fiber_scheduler != fiber->fiber_scheduler)
+    source = g_source_ref ((GSource *)fiber->fiber_scheduler);
 
-      ret = TRUE;
-    }
-  else if (fiber->flags == DEX_FIBER_FLAGS_EXITED)
-    {
-      g_warn_if_reached ();
-    }
-  else if (fiber->flags == DEX_FIBER_FLAGS_READY)
-    {
-      g_warn_if_reached ();
-    }
-  else
-    {
-      g_assert_not_reached ();
-    }
-
+  g_mutex_unlock (&fiber->fiber_scheduler->mutex);
   dex_object_unlock (fiber);
 
-  return ret;
+  if (source != NULL)
+    {
+      g_main_context_wakeup (g_source_get_context (source));
+      g_source_unref (source);
+    }
+
+  return TRUE;
 }
 
 static void
@@ -104,10 +90,11 @@ dex_fiber_finalize (DexObject *object)
 {
   DexFiber *fiber = DEX_FIBER (object);
 
-  if (fiber->fiber_scheduler != NULL)
-    dex_fiber_migrate_to (fiber, NULL);
-
-  g_clear_pointer (&fiber->stack, dex_stack_free);
+  g_assert (fiber->fiber_scheduler == NULL);
+  g_assert (fiber->link.data == fiber);
+  g_assert (fiber->link.prev == NULL);
+  g_assert (fiber->link.next == NULL);
+  g_assert (fiber->stack == NULL);
 
 #if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
   g_clear_pointer (&fiber->context, g_aligned_free);
@@ -140,6 +127,7 @@ dex_fiber_start (DexFiber *fiber)
 
   future = fiber->func (fiber->func_data);
 
+  /* Await any future returned from the fiber */
   if (future != NULL)
     {
       dex_await_borrowed (future, NULL);
@@ -155,10 +143,14 @@ dex_fiber_start (DexFiber *fiber)
                                                 "The fiber exited without a result"));
     }
 
-  /* Mark fiber as exited */
-  fiber->flags = DEX_FIBER_FLAGS_EXITED;
+  /* Mark the fiber as exited */
+  fiber->exited = TRUE;
 
-  /* Free func data if necessary */
+  /* Free func data if necessary
+   *
+   * TODO: We probably want to be able associate this data with a maincontext that
+   * will free it up so things like GtkWidget are freed on main thread.
+   */
   if (fiber->func_data_destroy)
     {
       GDestroyNotify func_data_destroy = fiber->func_data_destroy;
@@ -216,22 +208,72 @@ dex_fiber_new (DexFiberFunc   func,
 }
 
 static gboolean
-dex_fiber_scheduler_prepare (GSource *source,
-                             int     *timeout)
+dex_fiber_scheduler_check (GSource *source)
 {
-  DexFiberScheduler *scheduler = (DexFiberScheduler *)source;
+  DexFiberScheduler *fiber_scheduler = (DexFiberScheduler *)source;
+  gboolean ret;
 
-  *timeout = -1;
+  g_mutex_lock (&fiber_scheduler->mutex);
+  ret = fiber_scheduler->runnable.length != 0;
+  g_mutex_unlock (&fiber_scheduler->mutex);
 
-  return scheduler->ready.length > 0;
+  return ret;
 }
 
 static gboolean
-dex_fiber_scheduler_check (GSource *source)
+dex_fiber_scheduler_prepare (GSource *source,
+                             int     *timeout)
 {
-  DexFiberScheduler *scheduler = (DexFiberScheduler *)source;
+  *timeout = -1;
+  return dex_fiber_scheduler_check (source);
+}
 
-  return scheduler->ready.length > 0;
+static gboolean
+dex_fiber_scheduler_iteration (DexFiberScheduler *fiber_scheduler)
+{
+  DexFiber *fiber;
+  gboolean exited = FALSE;
+
+  g_assert (fiber_scheduler != NULL);
+
+  g_mutex_lock (&fiber_scheduler->mutex);
+  if ((fiber = g_queue_peek_head (&fiber_scheduler->runnable)))
+    {
+      dex_ref (fiber);
+      fiber->running = TRUE;
+      fiber_scheduler->running = fiber;
+    }
+  g_mutex_unlock (&fiber_scheduler->mutex);
+
+  swapcontext (DEX_FIBER_SCHEDULER_CONTEXT (fiber_scheduler), DEX_FIBER_CONTEXT (fiber));
+
+  g_mutex_lock (&fiber_scheduler->mutex);
+  if (fiber != NULL)
+    {
+      fiber->running = FALSE;
+      fiber_scheduler->running = NULL;
+
+      if ((exited = fiber->exited))
+        {
+          fiber->fiber_scheduler = NULL;
+
+          g_queue_unlink (&fiber_scheduler->runnable, &fiber->link);
+
+          if (fiber->stack->size == fiber_scheduler->stack_pool->stack_size)
+            dex_stack_pool_release (fiber_scheduler->stack_pool,
+                                    g_steal_pointer (&fiber->stack));
+          else
+            g_clear_pointer (&fiber->stack, dex_stack_free);
+        }
+    }
+  g_mutex_unlock (&fiber_scheduler->mutex);
+
+  if (exited)
+    dex_unref (fiber);
+
+  dex_clear (&fiber);
+
+  return fiber != NULL;
 }
 
 static gboolean
@@ -243,47 +285,9 @@ dex_fiber_scheduler_dispatch (GSource     *source,
 
   g_assert (fiber_scheduler != NULL);
 
-  g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
-
   dex_thread_storage_get ()->fiber_scheduler = fiber_scheduler;
-
-  fiber_scheduler->running = TRUE;
-
-  while (fiber_scheduler->ready.length > 0)
-    {
-      DexFiber *fiber = g_queue_pop_head_link (&fiber_scheduler->ready)->data;
-
-      g_assert (DEX_IS_FIBER (fiber));
-
-      dex_ref (fiber);
-
-      g_queue_push_tail_link (&fiber_scheduler->ready, &fiber->link);
-
-      fiber_scheduler->current = fiber;
-      swapcontext (DEX_FIBER_SCHEDULER_CONTEXT (fiber_scheduler), DEX_FIBER_CONTEXT (fiber));
-      fiber_scheduler->current = NULL;
-
-      if (fiber->flags == DEX_FIBER_FLAGS_EXITED &&
-          fiber->fiber_scheduler == fiber_scheduler)
-        {
-          g_queue_unlink (&fiber->fiber_scheduler->ready, &fiber->link);
-          fiber->fiber_scheduler = NULL;
-
-          if (fiber->stack->size == fiber_scheduler->stack_pool->stack_size)
-            dex_stack_pool_release (fiber_scheduler->stack_pool,
-                                    g_steal_pointer (&fiber->stack));
-          else
-            g_clear_pointer (&fiber->stack, dex_stack_free);
-        }
-
-      dex_unref (fiber);
-    }
-
+  while (dex_fiber_scheduler_iteration (fiber_scheduler)) { }
   dex_thread_storage_get ()->fiber_scheduler = NULL;
-
-  fiber_scheduler->running = FALSE;
-
-  g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
 
   return G_SOURCE_CONTINUE;
 }
@@ -293,8 +297,8 @@ dex_fiber_scheduler_finalize (GSource *source)
 {
   DexFiberScheduler *fiber_scheduler = (DexFiberScheduler *)source;
 
-  g_rec_mutex_clear (&fiber_scheduler->rec_mutex);
   g_clear_pointer (&fiber_scheduler->stack_pool, dex_stack_pool_free);
+  g_mutex_clear (&fiber_scheduler->mutex);
 
 #if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
   g_clear_pointer (&fiber_scheduler->context, g_aligned_free);
@@ -327,7 +331,7 @@ dex_fiber_scheduler_new (void)
 
   fiber_scheduler = (DexFiberScheduler *)g_source_new (&funcs, sizeof *fiber_scheduler);
   _g_source_set_static_name ((GSource *)fiber_scheduler, "[dex-fiber-scheduler]");
-  g_rec_mutex_init (&fiber_scheduler->rec_mutex);
+  g_mutex_init (&fiber_scheduler->mutex);
   fiber_scheduler->stack_pool = dex_stack_pool_new (0, 0, 0);
 
 #if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
@@ -337,7 +341,6 @@ dex_fiber_scheduler_new (void)
   return fiber_scheduler;
 }
 
-#ifdef G_OS_UNIX
 static void
 dex_fiber_ensure_stack (DexFiber          *fiber,
                         DexFiberScheduler *fiber_scheduler)
@@ -347,6 +350,7 @@ dex_fiber_ensure_stack (DexFiber          *fiber,
 
   if (fiber->stack == NULL)
     {
+#ifdef G_OS_UNIX
 #if GLIB_SIZEOF_VOID_P == 8
       guint lo;
       guint hi;
@@ -381,64 +385,40 @@ dex_fiber_ensure_stack (DexFiber          *fiber,
                    2, lo, hi
 #endif
                   );
-
+#endif
     }
 }
-#else /* G_OS_WIN32 */
-# error "Windows is not yet supported"
-#endif
 
 void
-dex_fiber_migrate_to (DexFiber          *fiber,
-                      DexFiberScheduler *fiber_scheduler)
+dex_fiber_scheduler_register (DexFiberScheduler *fiber_scheduler,
+                              DexFiber          *fiber)
 {
+  g_return_if_fail (fiber_scheduler != NULL);
   g_return_if_fail (DEX_IS_FIBER (fiber));
-
-  /* Currently we only support migrating to the initial scheduler.
-   * But thread migrations are plannedin the future.
-   */
-  g_return_if_fail (fiber->fiber_scheduler == NULL || fiber_scheduler == NULL);
+  g_return_if_fail (fiber->link.data == fiber);
+  g_return_if_fail (fiber->fiber_scheduler == NULL);
+  g_return_if_fail (fiber->exited == FALSE);
+  g_return_if_fail (fiber->running == FALSE);
+  g_return_if_fail (fiber->runnable == FALSE);
 
   dex_ref (fiber);
-  dex_object_lock (fiber);
 
-  if (fiber->fiber_scheduler != NULL)
-    {
-      g_rec_mutex_lock (&fiber->fiber_scheduler->rec_mutex);
-      if (fiber->flags == DEX_FIBER_FLAGS_READY)
-        g_queue_unlink (&fiber->fiber_scheduler->ready, &fiber->link);
-      else if (fiber->flags == DEX_FIBER_FLAGS_WAITING)
-        g_queue_unlink (&fiber->fiber_scheduler->waiting, &fiber->link);
-      g_rec_mutex_unlock (&fiber->fiber_scheduler->rec_mutex);
+  g_mutex_lock (&fiber_scheduler->mutex);
+  dex_fiber_ensure_stack (fiber, fiber_scheduler);
+  fiber->fiber_scheduler = fiber_scheduler;
+  fiber->runnable = TRUE;
+  g_queue_push_tail_link (&fiber_scheduler->runnable, &fiber->link);
+  g_mutex_unlock (&fiber_scheduler->mutex);
 
-      fiber->fiber_scheduler = NULL;
-      dex_unref (fiber);
-    }
-
-  if (fiber->flags != DEX_FIBER_FLAGS_EXITED && fiber_scheduler != NULL)
-    {
-      dex_fiber_ensure_stack (fiber, fiber_scheduler);
-
-      g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
-      if (fiber->flags == DEX_FIBER_FLAGS_READY)
-        g_queue_push_tail_link (&fiber_scheduler->ready, &fiber->link);
-      else if (fiber->flags == DEX_FIBER_FLAGS_WAITING)
-        g_queue_push_tail_link (&fiber_scheduler->waiting, &fiber->link);
-      g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
-
-      fiber->fiber_scheduler = fiber_scheduler;
-      dex_ref (fiber);
-    }
-
-  dex_object_unlock (fiber);
-  dex_unref (fiber);
+  if (dex_thread_storage_get ()->fiber_scheduler != fiber_scheduler)
+    g_main_context_wakeup (g_source_get_context ((GSource *)fiber_scheduler));
 }
 
 static DexFiber *
 dex_fiber_current (void)
 {
   DexFiberScheduler *fiber_scheduler = dex_thread_storage_get ()->fiber_scheduler;
-  return fiber_scheduler ? fiber_scheduler->current : NULL;
+  return fiber_scheduler ? fiber_scheduler->running : NULL;
 }
 
 static inline void
@@ -449,14 +429,12 @@ dex_fiber_await (DexFiber  *fiber,
 
   g_assert (DEX_IS_FIBER (fiber));
 
-  /* Move from ready to waiting queue and update status */
-  dex_object_lock (fiber);
-  g_rec_mutex_lock (&fiber_scheduler->rec_mutex);
-  fiber->flags = DEX_FIBER_FLAGS_WAITING;
-  g_queue_unlink (&fiber_scheduler->ready, &fiber->link);
-  g_queue_push_tail_link (&fiber_scheduler->waiting, &fiber->link);
-  g_rec_mutex_unlock (&fiber_scheduler->rec_mutex);
-  dex_object_unlock (fiber);
+  /* Move fiber from runnable to blocked queue */
+  g_mutex_lock (&fiber_scheduler->mutex);
+  fiber->runnable = FALSE;
+  g_queue_unlink (&fiber_scheduler->runnable, &fiber->link);
+  g_queue_push_tail_link (&fiber_scheduler->blocked, &fiber->link);
+  g_mutex_unlock (&fiber_scheduler->mutex);
 
   /* Now request the future notify us of completion */
   dex_future_chain (future, DEX_FUTURE (fiber));

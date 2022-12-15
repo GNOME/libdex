@@ -61,7 +61,7 @@ test_fiber_scheduler_basic (void)
 
   test_arg = 0;
   dex_future_set_static_name (DEX_FUTURE (fiber), "fiber_func");
-  dex_fiber_migrate_to (fiber, fiber_scheduler);
+  dex_fiber_scheduler_register (fiber_scheduler, fiber);
   while (g_main_context_pending (NULL))
     g_main_context_iteration (NULL, FALSE);
   g_assert_cmpint (test_arg, ==, 99);
@@ -73,7 +73,7 @@ test_fiber_scheduler_basic (void)
 
   fiber = dex_fiber_new (scheduler_fiber_error, NULL, NULL, 0);
   dex_future_set_static_name (DEX_FUTURE (fiber), "fiber_error");
-  dex_fiber_migrate_to (fiber, fiber_scheduler);
+  dex_fiber_scheduler_register (fiber_scheduler, fiber);
   while (g_main_context_pending (NULL))
     g_main_context_iteration (NULL, FALSE);
   ASSERT_ERROR (fiber, DEX_ERROR, DEX_ERROR_FIBER_EXITED);
@@ -141,8 +141,8 @@ test_fiber_scheduler_await (void)
   dex_future_set_static_name (DEX_FUTURE (fiber1), "fiber1");
   dex_future_set_static_name (DEX_FUTURE (fiber2), "fiber2");
 
-  dex_fiber_migrate_to (fiber2, fiber_scheduler);
-  dex_fiber_migrate_to (fiber1, fiber_scheduler);
+  dex_fiber_scheduler_register (fiber_scheduler, fiber2);
+  dex_fiber_scheduler_register (fiber_scheduler, fiber1);
 
   g_source_attach ((GSource *)fiber_scheduler, NULL);
 

@@ -178,13 +178,7 @@ dex_thread_pool_worker_spawn (DexScheduler *scheduler,
 
   g_assert (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
 
-  dex_fiber_migrate_to (fiber, (DexFiberScheduler *)thread_pool_worker->fiber_scheduler);
-
-  /* Wakeup the context in case it's blocked. If we're running
-   * from within the scheduler, nothing needs to be done.
-   */
-  if (dex_thread_storage_get ()->scheduler != scheduler)
-    g_main_context_wakeup (thread_pool_worker->main_context);
+  dex_fiber_scheduler_register ((DexFiberScheduler *)thread_pool_worker->fiber_scheduler, fiber);
 }
 
 static void

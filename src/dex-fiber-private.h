@@ -39,13 +39,6 @@ G_BEGIN_DECLS
 
 typedef struct _DexFiberScheduler DexFiberScheduler;
 
-typedef enum _DexFiberFlags
-{
-  DEX_FIBER_FLAGS_READY     = 0,
-  DEX_FIBER_FLAGS_WAITING   = 1,
-  DEX_FIBER_FLAGS_EXITED    = 1 << 1,
-} DexFiberFlags;
-
 struct _DexFiber
 {
   DexFuture parent_instance;
@@ -55,16 +48,23 @@ struct _DexFiber
    */
   GList link;
 
+  /* Various flags for the fiber */
+  guint running : 1;
+  guint runnable : 1;
+  guint exited : 1;
+
+  /* The requested stack size */
+  gsize stack_size;
+
   /* The assigned stack */
   DexStack *stack;
-  gsize stack_size;
 
   /* The scheduler affinity */
   DexFiberScheduler *fiber_scheduler;
 
   /* Origin function/data for the fiber */
-  DexFiberFunc func;
-  gpointer func_data;
+  DexFiberFunc   func;
+  gpointer       func_data;
   GDestroyNotify func_data_destroy;
 
 #ifdef G_OS_UNIX
@@ -77,30 +77,23 @@ struct _DexFiber
   ucontext_t context;
 # endif
 #endif
-
-  /* If the fiber is runnable */
-  DexFiberFlags flags : 3;
 };
 
 struct _DexFiberScheduler
 {
   GSource source;
 
-  /* Mutex held while running */
-  GRecMutex rec_mutex;
+  /* All fibers are in either runnable or blocked. A pointer to the
+   * running fiber (which is also in runnable until it yields) is
+   * provided to allow getting the current fiber from internal code.
+   */
+  GMutex    mutex;
+  DexFiber *running;
+  GQueue    runnable;
+  GQueue    blocked;
 
   /* Pooling of unused thread stacks */
   DexStackPool *stack_pool;
-
-  /* The running fiber */
-  DexFiber *current;
-
-  /* Queue of fibers ready to run */
-  GQueue ready;
-
-  /* Queue of fibers scheduled to run */
-  GQueue waiting;
-
 #ifdef G_OS_UNIX
 # if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
   ucontext_t *context;
@@ -108,18 +101,15 @@ struct _DexFiberScheduler
   ucontext_t context;
 # endif
 #endif
-
-  /* If the scheduler is currently running */
-  guint running : 1;
 };
 
-DexFiberScheduler *dex_fiber_scheduler_new (void);
-DexFiber          *dex_fiber_new           (DexFiberFunc       func,
-                                            gpointer           func_data,
-                                            GDestroyNotify     func_data_destroy,
-                                            gsize              stack_size);
-void               dex_fiber_migrate_to    (DexFiber          *fiber,
-                                            DexFiberScheduler *fiber_scheduler);
+DexFiberScheduler *dex_fiber_scheduler_new      (void);
+DexFiber          *dex_fiber_new                (DexFiberFunc       func,
+                                                 gpointer           func_data,
+                                                 GDestroyNotify     func_data_destroy,
+                                                 gsize              stack_size);
+void               dex_fiber_scheduler_register (DexFiberScheduler *fiber_scheduler,
+                                                 DexFiber          *fiber);
 
 static inline ucontext_t *
 DEX_FIBER_CONTEXT (DexFiber *fiber)

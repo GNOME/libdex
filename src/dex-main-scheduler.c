@@ -160,7 +160,7 @@ dex_main_scheduler_spawn (DexScheduler *scheduler,
 
   g_assert (DEX_IS_MAIN_SCHEDULER (main_scheduler));
 
-  dex_fiber_migrate_to (fiber, (DexFiberScheduler *)main_scheduler->fiber_scheduler);
+  dex_fiber_scheduler_register ((DexFiberScheduler *)main_scheduler->fiber_scheduler, fiber);
 }
 
 static void
