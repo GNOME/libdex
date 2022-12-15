@@ -31,9 +31,11 @@ struct _DexStack
 {
   GList    link;
   gsize    size;
+#ifdef G_OS_UNIX
   gpointer base;
   gpointer guard;
   gpointer ptr;
+#endif
 };
 
 struct _DexStackPool

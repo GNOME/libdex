@@ -85,11 +85,9 @@ dex_stack_pool_free (DexStackPool *stack_pool)
 DexStack *
 dex_stack_new (gsize size)
 {
-#ifdef G_OS_WIN32
-# error "Stack creation is not yet supported"
-#else
   gsize page_size = dex_get_page_size ();
   DexStack *stack;
+#ifdef G_OS_UNIX
   gpointer map;
   gpointer guard;
   int flags = 0;
@@ -139,10 +137,13 @@ dex_stack_new (gsize size)
                g_strerror (errsv));
     }
 #endif
+#endif
 
   stack = g_new0 (DexStack, 1);
   stack->link.data = stack;
   stack->size = size;
+
+#ifdef G_OS_UNIX
   stack->base = map;
   stack->guard = guard;
 
@@ -150,31 +151,31 @@ dex_stack_new (gsize size)
     stack->ptr = (gpointer)((gintptr)map + page_size);
   else
     stack->ptr = map;
+#endif
 
   return stack;
-#endif
 }
 
 void
 dex_stack_free (DexStack *stack)
 {
+#ifdef G_OS_UNIX
   guint page_size = dex_get_page_size ();
 
   g_assert (stack->link.data == stack);
   g_assert (stack->link.prev == NULL);
   g_assert (stack->link.next == NULL);
 
-#ifdef G_OS_UNIX
   if (stack->base != MAP_FAILED)
     munmap (stack->base, stack->size + page_size);
   stack->base = MAP_FAILED;
   stack->guard = MAP_FAILED;
-#endif
 
   stack->size = 0;
   stack->link.data = NULL;
 
   g_free (stack);
+#endif
 }
 
 void
