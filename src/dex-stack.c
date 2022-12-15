@@ -162,11 +162,13 @@ dex_stack_free (DexStack *stack)
   g_assert (stack->link.prev == NULL);
   g_assert (stack->link.next == NULL);
 
+#ifdef G_OS_UNIX
   if (stack->base != MAP_FAILED)
     munmap (stack->base, stack->size + page_size);
-
   stack->base = MAP_FAILED;
   stack->guard = MAP_FAILED;
+#endif
+
   stack->size = 0;
   stack->link.data = NULL;
 
