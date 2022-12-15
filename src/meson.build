@@ -18,8 +18,6 @@ libdex_sources = [
   'dex-main-scheduler.c',
   'dex-object.c',
   'dex-platform.c',
-  'dex-posix-aio-backend.c',
-  'dex-posix-aio-future.c',
   'dex-promise.c',
   'dex-scheduler.c',
   'dex-semaphore.c',
@@ -86,9 +84,16 @@ if liburing_dep.found()
 endif
 
 if host_machine.system() == 'windows'
-  # TODO: 
+  libdex_sources += [
+    'dex-win32-aio-backend.c',
+    'dex-win32-aio-future.c',
+  ]
 else
-  libdex_sources += ['dex-unix-signal.c']
+  libdex_sources += [
+    'dex-posix-aio-backend.c',
+    'dex-posix-aio-future.c',
+    'dex-unix-signal.c',
+  ]
   libdex_headers += ['dex-unix-signal.h']
   libdex_headers += ['dex-ucontext.c']
 endif
