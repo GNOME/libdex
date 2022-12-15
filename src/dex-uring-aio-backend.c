@@ -87,8 +87,8 @@ dex_uring_check_kernel_version (int major,
   if (kernel_major == 0)
     return FALSE;
 
-  return major >= kernel_major ||
-         (major == kernel_major && minor >= kernel_minor);
+  return kernel_major >= major ||
+         (kernel_major == major && kernel_minor >= minor);
 }
 
 static gboolean
