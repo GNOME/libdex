@@ -39,7 +39,9 @@ infinite_loop_cb (DexFuture *future,
   g_print ("Looping ...\n");
 
   return dex_future_first (dex_timeout_new_seconds (1),
+#ifdef G_OS_UNIX
                            dex_unix_signal_new (SIGINT),
+#endif
                            NULL);
 }
 
@@ -54,7 +56,9 @@ main (int   argc,
 
   main_loop = g_main_loop_new (NULL, FALSE);
   loop = dex_future_finally_loop (dex_future_first (dex_timeout_new_seconds (1),
+#ifdef G_OS_UNIX
                                                     dex_unix_signal_new (SIGINT),
+#endif
                                                     NULL),
                                   infinite_loop_cb,
                                   g_main_loop_ref (main_loop),
