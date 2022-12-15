@@ -7,6 +7,7 @@ examples = {
              'cp': {},
           'httpd': {'dependencies': libsoup_dep},
   'infinite-loop': {},
+       'tcp-echo': {},
            'wget': {'dependencies': libsoup_dep},
 }
 
