@@ -22,8 +22,6 @@
 
 #include <libdex.h>
 
-#include "dex-semaphore-private.h"
-
 typedef struct _Worker
 {
   gint64 conn_attempts;
@@ -35,7 +33,6 @@ typedef struct _Worker
 } Worker;
 
 static DexScheduler *thread_pool;
-static DexSemaphore *semaphore;
 static GSocketConnectable *socket_address;
 static gchar *buf;
 static gsize buflen;
@@ -49,30 +46,21 @@ static DexFuture *
 worker_fiber (gpointer user_data)
 {
   g_autoptr(GSocketClient) client = NULL;
-  g_autoptr(DexFuture) shutdown = NULL;
   Worker *worker = user_data;
   g_autofree char *inbuf = g_malloc (buflen);
 
   client = g_socket_client_new ();
-  shutdown = dex_semaphore_wait (semaphore);
 
-  for (;;)
+  while (!g_atomic_int_get (&in_shutdown))
     {
       g_autoptr(GSocketConnection) connection = NULL;
-      g_autoptr(DexFuture) connect = dex_socket_client_connect (client, socket_address);
-      g_autoptr(DexFuture) send = NULL;
-      g_autoptr(DexFuture) recv = NULL;
       GOutputStream *output;
       GInputStream *input;
       gssize len;
 
       worker->conn_attempts++;
 
-      dex_await (dex_future_first (dex_ref (shutdown), dex_ref (connect), NULL), NULL);
-      if (g_atomic_int_get (&in_shutdown))
-        break;
-
-      if (!(connection = dex_await_object (g_steal_pointer (&connect), NULL)))
+      if (!(connection = dex_await_object (dex_socket_client_connect (client, socket_address), NULL)))
         {
           worker->conn_failures++;
           break;
@@ -82,32 +70,16 @@ worker_fiber (gpointer user_data)
 
       output = g_io_stream_get_output_stream (G_IO_STREAM (connection));
       input = g_io_stream_get_input_stream (G_IO_STREAM (connection));
-      send = dex_output_stream_write (output, buf, buflen, G_PRIORITY_DEFAULT);
-      dex_await (dex_future_first (dex_ref (shutdown), dex_ref (send), NULL), NULL);
-      if (g_atomic_int_get (&in_shutdown))
-        break;
 
-      if ((len = dex_await_int64 (g_steal_pointer (&send), NULL)) <= 0)
+      if ((len = dex_await_int64 (dex_output_stream_write (output, buf, buflen, G_PRIORITY_DEFAULT), NULL)) <= 0)
         break;
-
       worker->bytes_sent += len;
 
-      recv = dex_input_stream_read (input, inbuf, buflen, G_PRIORITY_DEFAULT);
-      dex_await (dex_future_first (dex_ref (shutdown), dex_ref (recv), NULL), NULL);
-      if (g_atomic_int_get (&in_shutdown))
+      if ((len = dex_await_int64 (dex_input_stream_read (input, inbuf, buflen, G_PRIORITY_DEFAULT), NULL)) <= 0)
         break;
-
-      if ((len = dex_await_int64 (g_steal_pointer (&recv), NULL)) <= 0)
-        break;
-
       worker->bytes_received += len;
 
-      dex_await (dex_future_first (dex_ref (shutdown),
-                                   dex_io_stream_close (G_IO_STREAM (connection), G_PRIORITY_DEFAULT),
-                                   NULL),
-                 NULL);
-      if (g_atomic_int_get (&in_shutdown))
-        break;
+      dex_await (dex_io_stream_close (G_IO_STREAM (connection), G_PRIORITY_DEFAULT), NULL);
     }
 
   return NULL;
@@ -119,10 +91,9 @@ shutdown_cb (DexFuture *completed,
 {
   /* Signal to workers they should complete */
   g_atomic_int_set (&in_shutdown, TRUE);
-  dex_semaphore_post_many (semaphore, n_workers*2);
 
-  /* Wait for all fibers to complete */
-  return dex_future_allv ((DexFuture **)fibers->pdata, fibers->len);
+  /* No need to wait for workers */
+  return NULL;
 }
 
 static DexFuture *
@@ -239,9 +210,6 @@ main (int   argc,
   thread_pool = dex_thread_pool_scheduler_new ();
   timer = g_timer_new ();
 
-  /* The semaphore will flag all of the workers to exit */
-  semaphore = dex_semaphore_new ();
-
   /* Hold a reference to the fibers so we can join them */
   fibers = g_ptr_array_new_with_free_func (dex_unref);
   for (int i = 0; i < number; i++)
@@ -251,7 +219,7 @@ main (int   argc,
   /* After @duration seconds, reject */
   future = dex_timeout_new_seconds (duration);
 
-  /* Handle that by shutting down gracefully (post to semaphore) */
+  /* Handle that by shutting down somewhat gracefully */
   future = dex_future_finally (future, shutdown_cb, NULL, NULL);
 
   /* When that completes, quit the main loop */
@@ -267,7 +235,6 @@ main (int   argc,
   /* Cleanup state */
   g_object_unref (socket_address);
   g_ptr_array_unref (fibers);
-  dex_unref (semaphore);
   g_free (workers);
   g_free (buf);
 
