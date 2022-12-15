@@ -183,11 +183,18 @@ dex_fiber_context_init (DexFiberContext *context,
                         GCallback        start_func,
                         gpointer         start_data)
 {
-  *context = CreateFiberEx (dex_get_min_stack_size (),
-                            stack->size,
-                            FIBER_FLAG_FLOAT_SWITCH,
-                            (LPFIBER_START_ROUTINE)start_func,
-                            start_data);
+  g_assert (context != NULL);
+
+  if (stack == NULL)
+    *context = ConvertThreadToFiber (NULL);
+  else
+    *context = CreateFiberEx (dex_get_min_stack_size (),
+                              stack->size,
+                              FIBER_FLAG_FLOAT_SWITCH,
+                              (LPFIBER_START_ROUTINE)start_func,
+                              start_data);
+
+  g_assert (*context != NULL);
 }
 
 static inline void
