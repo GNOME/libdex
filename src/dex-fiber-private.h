@@ -31,6 +31,7 @@
 #endif
 
 #include "dex-fiber.h"
+#include "dex-fiber-context-private.h"
 #include "dex-future-private.h"
 #include "dex-scheduler.h"
 #include "dex-stack-private.h"
@@ -68,16 +69,11 @@ struct _DexFiber
   gpointer       func_data;
   GDestroyNotify func_data_destroy;
 
-#ifdef G_OS_UNIX
-  /* Context for the fiber. Use inline access if possible without breaking
-   * alignment expectations of what can be allocated by the type system.
+  /* The saved context for switching. This is abstracted in
+   * dex-fiber-context-private.h for the particular platform
+   * and alignment constraints.
    */
-# if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-  ucontext_t *context;
-# else
-  ucontext_t context;
-# endif
-#endif
+  DexFiberContext context;
 };
 
 struct _DexFiberScheduler
@@ -95,13 +91,11 @@ struct _DexFiberScheduler
 
   /* Pooling of unused thread stacks */
   DexStackPool *stack_pool;
-#ifdef G_OS_UNIX
-# if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-  ucontext_t *context;
-# else
-  ucontext_t context;
-# endif
-#endif
+
+  /* The saved context for the thread, which we return to when a
+   * fiber yields back to the scheduler.
+   */
+  DexFiberContext context;
 };
 
 DexFiberScheduler *dex_fiber_scheduler_new      (void);
@@ -111,15 +105,5 @@ DexFiber          *dex_fiber_new                (DexFiberFunc       func,
                                                  gsize              stack_size);
 void               dex_fiber_scheduler_register (DexFiberScheduler *fiber_scheduler,
                                                  DexFiber          *fiber);
-
-static inline ucontext_t *
-DEX_FIBER_CONTEXT (DexFiber *fiber)
-{
-#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-  return fiber->context;
-#else
-  return &fiber->context;
-#endif
-}
 
 G_END_DECLS

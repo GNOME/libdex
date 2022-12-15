@@ -39,16 +39,6 @@ DEX_DEFINE_FINAL_TYPE (DexFiber, dex_fiber, DEX_TYPE_FUTURE)
 #undef DEX_TYPE_FIBER
 #define DEX_TYPE_FIBER dex_fiber_type
 
-static inline ucontext_t *
-DEX_FIBER_SCHEDULER_CONTEXT (DexFiberScheduler *fiber_scheduler)
-{
-#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-  return fiber_scheduler->context;
-#else
-  return &fiber_scheduler->context;
-#endif
-}
-
 static gboolean
 dex_fiber_propagate (DexFuture *future,
                      DexFuture *completed)
@@ -96,9 +86,7 @@ dex_fiber_finalize (DexObject *object)
   g_assert (fiber->link.next == NULL);
   g_assert (fiber->stack == NULL);
 
-#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-  g_clear_pointer (&fiber->context, g_aligned_free);
-#endif
+  dex_fiber_context_clear (&fiber->context);
 
   DEX_OBJECT_CLASS (dex_fiber_parent_class)->finalize (object);
 }
@@ -164,30 +152,9 @@ dex_fiber_start (DexFiber *fiber)
 
       func_data_destroy (func_data);
     }
-}
-
-static void
-dex_fiber_start_ (guint lo,
-                  guint hi)
-{
-  DexFiber *fiber;
-
-#if GLIB_SIZEOF_VOID_P == 4
-  fiber = GSIZE_TO_POINTER (lo);
-#else
-  gintptr ptr = hi;
-  ptr <<= 32;
-  ptr |= lo;
-  fiber = (DexFiber *)ptr;
-#endif
-
-  g_assert (DEX_IS_FIBER (fiber));
-
-  dex_fiber_start (fiber);
 
   /* Now suspend, resuming the scheduler */
-  swapcontext (DEX_FIBER_CONTEXT (fiber),
-               DEX_FIBER_SCHEDULER_CONTEXT (fiber->fiber_scheduler));
+  dex_fiber_context_switch (&fiber->context, &fiber->fiber_scheduler->context);
 }
 
 DexFiber *
@@ -252,7 +219,7 @@ dex_fiber_scheduler_iteration (DexFiberScheduler *fiber_scheduler)
   if (fiber == NULL)
     return FALSE;
 
-  swapcontext (DEX_FIBER_SCHEDULER_CONTEXT (fiber_scheduler), DEX_FIBER_CONTEXT (fiber));
+  dex_fiber_context_switch (&fiber_scheduler->context, &fiber->context);
 
   g_mutex_lock (&fiber_scheduler->mutex);
   fiber->running = FALSE;
@@ -302,10 +269,7 @@ dex_fiber_scheduler_finalize (GSource *source)
 
   g_clear_pointer (&fiber_scheduler->stack_pool, dex_stack_pool_free);
   g_mutex_clear (&fiber_scheduler->mutex);
-
-#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-  g_clear_pointer (&fiber_scheduler->context, g_aligned_free);
-#endif
+  dex_fiber_context_clear (&fiber_scheduler->context);
 }
 
 /**
@@ -337,9 +301,7 @@ dex_fiber_scheduler_new (void)
   g_mutex_init (&fiber_scheduler->mutex);
   fiber_scheduler->stack_pool = dex_stack_pool_new (0, 0, 0);
 
-#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-  fiber_scheduler->context = g_aligned_alloc0 (1, sizeof (ucontext_t), ALIGN_OF_UCONTEXT);
-#endif
+  dex_fiber_context_init (&fiber_scheduler->context, NULL, NULL, NULL);
 
   return fiber_scheduler;
 }
@@ -353,42 +315,16 @@ dex_fiber_ensure_stack (DexFiber          *fiber,
 
   if (fiber->stack == NULL)
     {
-#ifdef G_OS_UNIX
-#if GLIB_SIZEOF_VOID_P == 8
-      guint lo;
-      guint hi;
-#endif
-
       if (fiber->stack_size == 0 ||
           fiber->stack_size == fiber_scheduler->stack_pool->stack_size)
         fiber->stack = dex_stack_pool_acquire (fiber_scheduler->stack_pool);
       else
         fiber->stack = dex_stack_new (fiber->stack_size);
 
-#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-      fiber->context = g_aligned_alloc0 (1, sizeof (ucontext_t), ALIGN_OF_UCONTEXT);
-#endif
-
-      getcontext (DEX_FIBER_CONTEXT (fiber));
-
-      DEX_FIBER_CONTEXT (fiber)->uc_stack.ss_size = fiber->stack->size;
-      DEX_FIBER_CONTEXT (fiber)->uc_stack.ss_sp = fiber->stack->ptr;
-      DEX_FIBER_CONTEXT (fiber)->uc_link = 0;
-
-#if GLIB_SIZEOF_VOID_P == 8
-      lo = GPOINTER_TO_SIZE (fiber) & 0xFFFFFFFFF;
-      hi = (GPOINTER_TO_SIZE (fiber) >> 32) & 0xFFFFFFFFF;
-#endif
-
-      makecontext (DEX_FIBER_CONTEXT (fiber),
-                   G_CALLBACK (dex_fiber_start_),
-#if GLIB_SIZEOF_VOID_P == 4
-                   2, GPOINTER_TO_UINT (fiber), 0
-#else
-                   2, lo, hi
-#endif
-                  );
-#endif
+      dex_fiber_context_init (&fiber->context,
+                              fiber->stack,
+                              (GCallback)dex_fiber_start,
+                              fiber);
     }
 }
 
@@ -444,7 +380,7 @@ dex_fiber_await (DexFiber  *fiber,
   dex_future_chain (future, DEX_FUTURE (fiber));
 
   /* Swap to the scheduler to continue processing fibers */
-  swapcontext (DEX_FIBER_CONTEXT (fiber), DEX_FIBER_SCHEDULER_CONTEXT (fiber_scheduler));
+  dex_fiber_context_switch (&fiber->context, &fiber_scheduler->context);
 }
 
 const GValue *
