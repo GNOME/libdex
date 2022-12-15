@@ -152,6 +152,7 @@ main (int   argc,
   g_autoptr(DexFuture) future = NULL;
   g_autoptr(GError) error = NULL;
   g_autofree char *address = NULL;
+  g_autofree char *message = NULL;
   int length = 0;
   int duration = 0;
   int number = 0;
@@ -161,6 +162,7 @@ main (int   argc,
     { "length", 'l', 0, G_OPTION_ARG_INT, &length, "Target message length.", "BYTES" },
     { "duration", 'd', 0, G_OPTION_ARG_INT, &duration, "Test duration in seconds.", "SECONDS" },
     { "number", 'c', 0, G_OPTION_ARG_INT, &number, "Number of concurrent connections.", "CONNECTIONS" },
+    { "message", 'm', 0, G_OPTION_ARG_STRING, &message, "A custom message to send.", "MSG" },
     { NULL }
   };
 
@@ -192,16 +194,31 @@ main (int   argc,
   g_free (address);
   address = g_socket_connectable_to_string (socket_address);
 
+  /* The message to send */
+  if (message != NULL)
+    {
+      buf = g_steal_pointer (&message);
+      buflen = strlen (buf);
+      length = buflen;
+
+      g_printerr ("Using custom message:\n\n"
+                  "================================\n"
+                  "%s\n"
+                  "================================\n",
+                  buf);
+    }
+  else
+    {
+      buflen = length;
+      buf = g_strnfill (buflen, 'X');
+    }
+
   g_printerr ("Benchmarking: %s\n", address);
   g_printerr ("%u clients, running %u bytes, %u sec.\n", number, length, duration);
 
   /* Space for the workers to track information */
   n_workers = number;
   workers = g_new0 (Worker, n_workers);
-
-  /* The message to send */
-  buflen = length;
-  buf = g_strnfill (buflen, 'X');
 
   /* Setup main loop for this thread and thread pool for the others
    * where we'll push fibers for clients.
