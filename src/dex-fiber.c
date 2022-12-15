@@ -127,6 +127,8 @@ dex_fiber_start (DexFiber *fiber)
 
   future = fiber->func (fiber->func_data);
 
+  g_assert (future != (DexFuture *)fiber);
+
   /* Await any future returned from the fiber */
   if (future != NULL)
     {
@@ -232,7 +234,6 @@ static gboolean
 dex_fiber_scheduler_iteration (DexFiberScheduler *fiber_scheduler)
 {
   DexFiber *fiber;
-  gboolean exited = FALSE;
 
   g_assert (fiber_scheduler != NULL);
 
@@ -240,40 +241,42 @@ dex_fiber_scheduler_iteration (DexFiberScheduler *fiber_scheduler)
   if ((fiber = g_queue_peek_head (&fiber_scheduler->runnable)))
     {
       dex_ref (fiber);
+
+      g_assert (fiber->fiber_scheduler == fiber_scheduler);
+
       fiber->running = TRUE;
       fiber_scheduler->running = fiber;
     }
   g_mutex_unlock (&fiber_scheduler->mutex);
 
+  if (fiber == NULL)
+    return FALSE;
+
   swapcontext (DEX_FIBER_SCHEDULER_CONTEXT (fiber_scheduler), DEX_FIBER_CONTEXT (fiber));
 
   g_mutex_lock (&fiber_scheduler->mutex);
-  if (fiber != NULL)
+  fiber->running = FALSE;
+  fiber_scheduler->running = NULL;
+  if (!fiber->released && fiber->exited)
     {
-      fiber->running = FALSE;
-      fiber_scheduler->running = NULL;
+      g_queue_unlink (&fiber_scheduler->runnable, &fiber->link);
 
-      if ((exited = fiber->exited))
-        {
-          fiber->fiber_scheduler = NULL;
+      if (fiber->stack->size == fiber_scheduler->stack_pool->stack_size)
+        dex_stack_pool_release (fiber_scheduler->stack_pool,
+                                g_steal_pointer (&fiber->stack));
+      else
+        g_clear_pointer (&fiber->stack, dex_stack_free);
 
-          g_queue_unlink (&fiber_scheduler->runnable, &fiber->link);
+      fiber->fiber_scheduler = NULL;
+      fiber->released = TRUE;
 
-          if (fiber->stack->size == fiber_scheduler->stack_pool->stack_size)
-            dex_stack_pool_release (fiber_scheduler->stack_pool,
-                                    g_steal_pointer (&fiber->stack));
-          else
-            g_clear_pointer (&fiber->stack, dex_stack_free);
-        }
+      dex_unref (fiber);
     }
   g_mutex_unlock (&fiber_scheduler->mutex);
 
-  if (exited)
-    dex_unref (fiber);
+  dex_unref (fiber);
 
-  dex_clear (&fiber);
-
-  return fiber != NULL;
+  return TRUE;
 }
 
 static gboolean
@@ -400,6 +403,7 @@ dex_fiber_scheduler_register (DexFiberScheduler *fiber_scheduler,
   g_return_if_fail (fiber->exited == FALSE);
   g_return_if_fail (fiber->running == FALSE);
   g_return_if_fail (fiber->runnable == FALSE);
+  g_return_if_fail (fiber->released == FALSE);
 
   dex_ref (fiber);
 
