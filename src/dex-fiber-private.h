@@ -96,6 +96,12 @@ struct _DexFiberScheduler
    * fiber yields back to the scheduler.
    */
   DexFiberContext context;
+
+  /* We delay initialization until first iteration so that we don't
+   * have to call ConvertThreadToFiber() from _start() (as that fails
+   * on wine64).
+   */
+  guint has_initialized : 1;
 };
 
 DexFiberScheduler *dex_fiber_scheduler_new      (void);
