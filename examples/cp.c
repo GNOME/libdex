@@ -191,7 +191,7 @@ quit_cb (DexFuture *future,
 {
   GError *error = NULL;
 
-  if (!dex_await (future, &error))
+  if (!dex_await (dex_ref (future), &error))
     g_error ("%s", error->message);
 
   g_main_loop_quit (main_loop);

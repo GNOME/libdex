@@ -115,7 +115,7 @@ fiber_completed (DexFuture *completed,
    * or rejected future. Otherwise, dex_await() only works on a fiber
    * to be able to suspend execution until the result is ready.
    */
-  len = dex_await_int64 (completed, &error);
+  len = dex_await_int64 (dex_ref (completed), &error);
 
   /* Give the user some information on success/failure */
   if (error != NULL)
