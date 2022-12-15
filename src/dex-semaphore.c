@@ -114,11 +114,9 @@ struct _DexSemaphore
   DexObject parent_instance;
 #ifdef HAVE_EVENTFD
   int eventfd;
-#elif defined(G_OS_UNIX)
+#else
   gint64 counter;
   GQueue waiters;
-#else
-# error "DexSemaphore is not yet supported on your platform"
 #endif
 };
 
