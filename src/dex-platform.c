@@ -59,6 +59,8 @@ dex_get_min_stack_size (void)
        */
       min_stack_size = 4096*16;
 #else
+      long sc_thread_stack_min;
+
       /* On FreeBSD we can get 2048 for min-stack-size which
        * doesn't really work well for pretty much anything.
        * Even when we round up to 4096 we trivially hit the
@@ -67,8 +69,11 @@ dex_get_min_stack_size (void)
        * we shouldn't, but the easiest thing to do right now
        * is to just enforce 2+pages + guard page.
        */
-      min_stack_size = MAX (sysconf (_SC_THREAD_STACK_MIN),
-                            dex_get_page_size () * 2);
+      min_stack_size = dex_get_page_size () * 2;
+
+      sc_thread_stack_min = sysconf (_SC_THREAD_STACK_MIN);
+      if (sc_thread_stack_min != -1 && sc_thread_stack_min > min_stack_size)
+        min_stack_size = sc_thread_stack_min;
 #endif
     }
 

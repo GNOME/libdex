@@ -383,7 +383,7 @@ dex_fiber_ensure_stack (DexFiber          *fiber,
       makecontext (DEX_FIBER_CONTEXT (fiber),
                    G_CALLBACK (dex_fiber_start_),
 #if GLIB_SIZEOF_VOID_P == 4
-                   2, GPOINTER_TO_UINT (fiber), 0,
+                   2, GPOINTER_TO_UINT (fiber), 0
 #else
                    2, lo, hi
 #endif

@@ -101,6 +101,10 @@ dex_stack_new (gsize size)
   if ((size & (page_size-1)) != 0)
     size = (size + page_size) & ~(page_size-1);
 
+  /* Make sure the stack size we're about to allocate is reasonable */
+  g_assert_cmpuint (size, >=, page_size);
+  g_assert_cmpuint (size, <, G_MAXUINT32);
+
   flags = MAP_PRIVATE | MAP_ANONYMOUS;
 #if defined(__OpenBSD__)
   flags |= MAP_STACK;
