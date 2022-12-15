@@ -31,6 +31,7 @@
 
 static DexFuture *copy (gpointer user_data);
 
+static DexScheduler *thread_pool;
 static GMainLoop *main_loop;
 
 typedef struct
@@ -123,7 +124,7 @@ copy_directory (Copy *cp)
           GFileInfo *info = iter->data;
 
           g_ptr_array_add (futures,
-                           dex_scheduler_spawn (NULL,
+                           dex_scheduler_spawn (thread_pool,
                                                 0,
                                                 copy,
                                                 copy_new (g_file_enumerator_get_child (enumerator, info),
@@ -226,6 +227,7 @@ main (int   argc,
     }
 
   main_loop = g_main_loop_new (NULL, FALSE);
+  thread_pool = dex_thread_pool_scheduler_new ();
   future = dex_scheduler_spawn (NULL,
                                 0,
                                 copy,
