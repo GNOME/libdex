@@ -91,6 +91,9 @@ dex_aio_backend_get_default (void)
       if (backend == NULL)
         backend = dex_posix_aio_backend_new ();
 
+      g_debug ("Using AIO backend %s",
+               DEX_OBJECT_TYPE_NAME (backend));
+
       g_once_init_leave (&instance, backend);
     }
 
