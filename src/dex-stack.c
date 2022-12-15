@@ -91,6 +91,7 @@ dex_stack_new (gsize size)
   gpointer map;
   gpointer guard;
   int flags = 0;
+#endif
 
   if (size < dex_get_min_stack_size ())
     size = DEFAULT_STACK_SIZE;
@@ -103,6 +104,7 @@ dex_stack_new (gsize size)
   g_assert_cmpuint (size, >=, page_size);
   g_assert_cmpuint (size, <, G_MAXUINT32);
 
+#ifdef G_OS_UNIX
   flags = MAP_PRIVATE | MAP_ANONYMOUS;
 #if defined(__OpenBSD__)
   flags |= MAP_STACK;
