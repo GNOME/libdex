@@ -143,7 +143,7 @@ dex_fiber_context_init (DexFiberContext *context,
                         gpointer         start_data)
 {
 #if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-  *context = g_aligned_new (1, sizeof (ucontext_t), ALIGN_OF_UCONTEXT);
+  *context = g_aligned_alloc (1, sizeof (ucontext_t), ALIGN_OF_UCONTEXT);
 #endif
 
   /* If stack is NULL, then this is a context used to save state
