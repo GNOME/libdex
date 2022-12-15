@@ -113,7 +113,9 @@ test_c_args = [
   ['-Werror=format-security', '-Werror=format=2'],
 ]
 if get_option('buildtype') != 'plain'
-  test_c_args += '-fstack-protector-strong'
+  if host_machine.system() != 'windows'
+    test_c_args += '-fstack-protector-strong'
+  endif
 endif
 foreach arg: test_c_args
   if cc.has_multi_arguments(arg)
