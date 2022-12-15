@@ -23,6 +23,7 @@
 #include <glib.h>
 
 #include "dex-compat-private.h"
+#include "dex-platform.h"
 #include "dex-stack-private.h"
 
 #ifdef G_OS_UNIX
@@ -170,6 +171,36 @@ dex_fiber_context_switch (DexFiberContext *old_context,
 #else
   swapcontext (old_context, new_context);
 #endif
+}
+#endif
+
+#ifdef G_OS_WIN32
+typedef LPVOID DexFiberContext;
+
+static inline void
+dex_fiber_context_init (DexFiberContext *context,
+                        DexStack        *stack,
+                        GCallback        start_func,
+                        gpointer         start_data)
+{
+  *context = CreateFiberEx (dex_get_min_stack_size (),
+                            stack->size,
+                            FIBER_FLAG_FLOAT_SWITCH,
+                            (LPFIBER_START_ROUTINE)start_func,
+                            start_data);
+}
+
+static inline void
+dex_fiber_context_clear (DexFiberContext *context)
+{
+  *context = NULL;
+}
+
+static inline void
+dex_fiber_context_switch (DexFiberContext *old_context,
+                          DexFiberContext *new_context)
+{
+  SwitchToFiber (*new_context);
 }
 #endif
 
