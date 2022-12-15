@@ -34,10 +34,6 @@
 
 #include <gio/gio.h>
 
-#ifdef G_OS_UNIX
-# include <glib-unix.h>
-#endif
-
 #include "dex-aio-private.h"
 #include "dex-block-private.h"
 #include "dex-error.h"
