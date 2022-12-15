@@ -435,6 +435,9 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
   thread_pool_worker->work_stealing_queue = dex_work_stealing_queue_new (255);
   thread_pool_worker->set = set;
 
+  /* Attach our AIO source to complete AIO work */
+  g_source_attach ((GSource *)aio_context, thread_pool_worker->main_context);
+
   /* Attach a GSource that will process items from the worker threads
    * work queue.
    */
