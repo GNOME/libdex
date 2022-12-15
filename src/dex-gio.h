@@ -93,5 +93,8 @@ DexFuture *dex_output_stream_write_bytes  (GOutputStream            *self,
                                            int                       io_priority);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_socket_listener_accept     (GSocketListener          *listener);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_socket_client_connect      (GSocketClient            *socket_client,
+                                           GSocketConnectable       *socket_connectable);
 
 G_END_DECLS

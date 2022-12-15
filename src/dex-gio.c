@@ -640,3 +640,42 @@ dex_socket_listener_accept (GSocketListener *listener)
 
   return DEX_FUTURE (async_pair);
 }
+
+static void
+dex_socket_client_connect_cb (GObject      *object,
+                              GAsyncResult *result,
+                              gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GSocketConnection *conn;
+  GError *error = NULL;
+
+  conn = g_socket_client_connect_finish (G_SOCKET_CLIENT (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_object (async_pair, conn);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_socket_client_connect (GSocketClient      *socket_client,
+                           GSocketConnectable *socket_connectable)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_SOCKET_CLIENT (socket_client), NULL);
+  g_return_val_if_fail (G_IS_SOCKET_CONNECTABLE (socket_connectable), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_socket_client_connect_async (socket_client,
+                                 socket_connectable,
+                                 async_pair->cancellable,
+                                 dex_socket_client_connect_cb,
+                                 dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
