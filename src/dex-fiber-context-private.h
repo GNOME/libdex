@@ -163,6 +163,18 @@ dex_fiber_context_clear (DexFiberContext *context)
 }
 
 static inline void
+dex_fiber_context_init_main (DexFiberContext *context)
+{
+  dex_fiber_context_init (context, NULL, NULL, NULL);
+}
+
+static inline void
+dex_fiber_context_clear_main (DexFiberContext *context)
+{
+  dex_fiber_context_clear (context);
+}
+
+static inline void
 dex_fiber_context_switch (DexFiberContext *old_context,
                           DexFiberContext *new_context)
 {
@@ -178,29 +190,40 @@ dex_fiber_context_switch (DexFiberContext *old_context,
 typedef LPVOID DexFiberContext;
 
 static inline void
+dex_fiber_context_init_main (DexFiberContext *context)
+{
+  *context = ConvertThreadToFiber (0);
+}
+
+static inline void
+dex_fiber_context_clear_main (DexFiberContext *context)
+{
+  *context = NULL;
+  ConvertFiberToThread ();
+}
+
+static inline void
 dex_fiber_context_init (DexFiberContext *context,
                         DexStack        *stack,
                         GCallback        start_func,
                         gpointer         start_data)
 {
-  g_assert (context != NULL);
+  *context = CreateFiberEx (dex_get_min_stack_size (),
+                            stack->size,
+                            FIBER_FLAG_FLOAT_SWITCH,
+                            (LPFIBER_START_ROUTINE)start_func,
+                            start_data);
 
-  if (stack == NULL)
-    *context = ConvertThreadToFiber (NULL);
-  else
-    *context = CreateFiberEx (dex_get_min_stack_size (),
-                              stack->size,
-                              FIBER_FLAG_FLOAT_SWITCH,
-                              (LPFIBER_START_ROUTINE)start_func,
-                              start_data);
-
-  g_assert (*context != NULL);
+  if (*context == NULL)
+    g_printerr ("Failed to create fiber (stack %u) (start_func %p): %s",
+                (guint)stack->size, start_func,
+                g_strerror (GetLastError ()));
 }
 
 static inline void
 dex_fiber_context_clear (DexFiberContext *context)
 {
-  *context = NULL;
+  DeleteFiber (*context);
 }
 
 static inline void

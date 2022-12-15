@@ -269,7 +269,7 @@ dex_fiber_scheduler_finalize (GSource *source)
 
   g_clear_pointer (&fiber_scheduler->stack_pool, dex_stack_pool_free);
   g_mutex_clear (&fiber_scheduler->mutex);
-  dex_fiber_context_clear (&fiber_scheduler->context);
+  dex_fiber_context_clear_main (&fiber_scheduler->context);
 }
 
 /**
@@ -301,7 +301,7 @@ dex_fiber_scheduler_new (void)
   g_mutex_init (&fiber_scheduler->mutex);
   fiber_scheduler->stack_pool = dex_stack_pool_new (0, 0, 0);
 
-  dex_fiber_context_init (&fiber_scheduler->context, NULL, NULL, NULL);
+  dex_fiber_context_init_main (&fiber_scheduler->context);
 
   return fiber_scheduler;
 }
