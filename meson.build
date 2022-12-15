@@ -138,6 +138,7 @@ global_link_args = []
 test_link_args = [
   '-Wl,-z,relro',
   '-Wl,-z,now',
+  '-Wl,-z,noexecstack',
 ]
 if not get_option('debug')
   add_global_arguments('-DG_DISABLE_CAST_CHECKS', language: 'c')
