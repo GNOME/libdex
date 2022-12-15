@@ -306,7 +306,7 @@ G_PASTE (test_async_pair_, T) (void) \
 
 ASYNC_TEST (gboolean, G_TYPE_BOOLEAN, BOOLEAN, boolean, boolean, TRUE, cmpint)
 ASYNC_TEST (int, G_TYPE_INT, INT, int, int, 123, cmpint)
-ASYNC_TEST (uint, G_TYPE_UINT, UINT, int, uint, 321, cmpint)
+ASYNC_TEST (guint, G_TYPE_UINT, UINT, int, uint, 321, cmpint)
 ASYNC_TEST (gint64, G_TYPE_INT64, INT64, int, int64, -123123123L, cmpint)
 ASYNC_TEST (guint64, G_TYPE_UINT64, UINT64, int, uint64, 123123123L, cmpint)
 ASYNC_TEST (glong, G_TYPE_LONG, LONG, int, long, -123123, cmpint)
@@ -909,7 +909,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Timeout/timed-out", test_timeout);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/boolean", test_async_pair_gboolean);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/int", test_async_pair_int);
-  g_test_add_func ("/Dex/TestSuite/AsyncPair/uint", test_async_pair_uint);
+  g_test_add_func ("/Dex/TestSuite/AsyncPair/uint", test_async_pair_guint);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/long", test_async_pair_glong);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/ulong", test_async_pair_gulong);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/int64", test_async_pair_gint64);
