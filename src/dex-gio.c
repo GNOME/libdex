@@ -604,3 +604,39 @@ dex_file_copy (GFile          *source,
 
   return DEX_FUTURE (async_pair);
 }
+
+static void
+dex_socket_listener_accept_cb (GObject      *object,
+                               GAsyncResult *result,
+                               gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GSocketConnection *conn;
+  GError *error = NULL;
+
+  conn = g_socket_listener_accept_finish (G_SOCKET_LISTENER (object), result, NULL, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_object (async_pair, conn);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_socket_listener_accept (GSocketListener *listener)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_SOCKET_LISTENER (listener), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_socket_listener_accept_async (listener,
+                                  async_pair->cancellable,
+                                  dex_socket_listener_accept_cb,
+                                  dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
