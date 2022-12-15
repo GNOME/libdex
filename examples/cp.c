@@ -150,8 +150,19 @@ copy_directory (Copy *cp)
 static DexFuture *
 copy_fallback (Copy *cp)
 {
-  /* skip for now */
-  return dex_future_new_for_boolean (TRUE);
+  if (verbose)
+    g_print ("%s => %s\n", g_file_peek_path (cp->from), g_file_peek_path (cp->to));
+
+  /* Fallback to internal GIO copying semantics, which can't handle
+   * directories or things of that nature.
+   *
+   * This returns a future, which the fiber scheduler will yield for
+   * us as part of fiber completion.
+   */
+ return dex_file_copy (cp->from,
+                       cp->to,
+                       G_FILE_COPY_NOFOLLOW_SYMLINKS | G_FILE_COPY_ALL_METADATA,
+                       G_PRIORITY_DEFAULT);
 }
 
 static DexFuture *
