@@ -163,12 +163,14 @@ if get_option('introspection').enabled()
 
   libdex_dep_sources += [libdex_gir]
 
-  dex_vapi = gnome.generate_vapi('libdex',
-          sources: libdex_gir.get(0),
-          install: true,
-      install_dir: join_paths(datadir, 'vala', 'vapi'),
-         packages: ['gio-2.0'],
-  )
+  if get_option('vapi')
+    dex_vapi = gnome.generate_vapi('libdex',
+            sources: libdex_gir.get(0),
+            install: true,
+        install_dir: join_paths(datadir, 'vala', 'vapi'),
+           packages: ['gio-2.0'],
+    )
+  endif
 endif
 
 libdex_dep = declare_dependency(
