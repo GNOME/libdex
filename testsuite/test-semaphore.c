@@ -28,7 +28,7 @@
 #define N_THREADS 32
 
 static guint total_count;
-static gboolean shutdown;
+static gboolean in_shutdown;
 static guint done;
 
 typedef struct
@@ -49,7 +49,7 @@ worker_thread_callback (DexFuture *future,
   g_atomic_int_inc (&total_count);
   state->handled++;
 
-  if (!g_atomic_int_get (&shutdown))
+  if (!g_atomic_int_get (&in_shutdown))
     return dex_semaphore_wait (state->semaphore);
 
   return NULL;
@@ -66,7 +66,7 @@ worker_thread_func (gpointer data)
   future = dex_semaphore_wait (state->semaphore);
   future = dex_future_then_loop (future, worker_thread_callback, state, NULL);
 
-  while (!g_atomic_int_get (&shutdown))
+  while (!g_atomic_int_get (&in_shutdown))
     g_main_context_iteration (main_context, TRUE);
 
   dex_unref (future);
@@ -111,7 +111,7 @@ test_semaphore_threaded (void)
       g_assert_cmpint (g_atomic_int_get (&total_count), ==, count);
     }
 
-  g_atomic_int_set (&shutdown, TRUE);
+  g_atomic_int_set (&in_shutdown, TRUE);
 
   while (g_atomic_int_get (&done) < N_THREADS)
     dex_semaphore_post (semaphore);
