@@ -117,8 +117,6 @@ pread (int      fd,
   DWORD n_read = 0;
   HANDLE hFile;
 
-  g_print ("PREAD\n");
-
   hFile = (HANDLE)_get_osfhandle (fd);
 
   ov.OffsetHigh = (offset & 0xFFFFFFFF00000000LL) >> 32;
@@ -149,8 +147,6 @@ pwrite (int           fd,
   OVERLAPPED ov = {0};
   DWORD n_written = 0;
   HANDLE hFile;
-
-  g_print ("PWRITE\n");
 
   hFile = (HANDLE)_get_osfhandle (fd);
 
