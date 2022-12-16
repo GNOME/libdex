@@ -75,7 +75,7 @@
  * the dex.h header.
 
  * The definition should be one of the predefined Builder version
- * macros: %DEX_VERSION_1_0, %DEX_VERSION_44,...
+ * macros: %DEX_VERSION_1_0, %DEX_VERSION_1_2,...
  *
  * This macro defines the upper bound for the DEX API to use.
  *
