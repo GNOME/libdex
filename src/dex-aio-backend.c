@@ -26,13 +26,7 @@
 # include "dex-uring-aio-backend-private.h"
 #endif
 
-#ifdef G_OS_UNIX
-# include "dex-posix-aio-backend-private.h"
-#endif
-
-#ifdef G_OS_WIN32
-# include "dex-win32-aio-backend-private.h"
-#endif
+#include "dex-posix-aio-backend-private.h"
 
 DEX_DEFINE_ABSTRACT_TYPE (DexAioBackend, dex_aio_backend, DEX_TYPE_OBJECT)
 
@@ -95,15 +89,8 @@ dex_aio_backend_get_default (void)
       backend = dex_uring_aio_backend_new ();
 #endif
 
-#ifdef G_OS_UNIX
       if (backend == NULL)
         backend = dex_posix_aio_backend_new ();
-#endif
-
-#ifdef G_OS_WIN32
-      if (backend == NULL)
-        backend = dex_win32_aio_backend_new ();
-#endif
 
       g_debug ("Using AIO backend %s",
                DEX_OBJECT_TYPE_NAME (backend));
