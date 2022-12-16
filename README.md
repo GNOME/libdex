@@ -1,22 +1,65 @@
 # Dex
 
-**This library is unfinished and still being created, Don't use it**
-
-Dex is a library supporting "(D)eferred (Ex)ecution" with the explicit goal
+Dex is a library supporting "Deferred Execution" with the explicit goal
 of integrating with GNOME and GTK-based applications.
 
 It provides primatives for supporting futures in a variety of ways with both
 read-only and writable views. Additionally, integration with existing
 asynchronous-based APIs is provided through the use of wrapper promises.
 
+"Fibers" are implemented which allows for writing synchronous looking code
+which calls asynchronous APIs from GIO underneath.
+
 Dex is licensed as LGPL-2.1+.
+
+## Building
+
+Dex requires GLib 2.68 or newer but can likely be ported to older versions.
+For those interested, you can add missing API to `dex-compat-private.h`.
+
+Some examples require additional libraries but will not be compiled if the
+libraries are unavailable while building.
+
+Use Meson to build the project.
+
+```sh
+$ cd libdex/
+$ meson setup build . --prefix=/usr
+$ cd build/
+$ ninja
+$ ninja test
+```
+
+You can build for Windows using mingw which is easy on Fedora Linux.
+
+```sh
+$ sudo dnf install mingw64-gcc mingw64-glib2
+$ cd libdex/
+$ meson setup build-win64 . --cross-file=/usr/share/mingw/toolchain-mingw64.meson
+$ cd build/
+$ ninja
+
+# You can test using wine, but will need access to libraries
+$ cd /usr/x86_64-w64-mingw32/sys-root/mingw/bin/
+$ wine $builddir/examples/tcp-echo.exe
+```
+
+## Supported Platforms
+
+ * Linux
+ * macOS
+ * FreeBSD
+ * Windows
+ * Illumos
 
 ## More Information
 
 You can read about why this is being created and what led to it over the
 past two decades of contributing to GNOME and GTK.
 
-https://blogs.gnome.org/chergert/2022/11/24/concurrency-parallelism-i-o-scheduling-thread-pooling-and-work-stealing/
+ * https://blogs.gnome.org/chergert/2022/11/24/concurrency-parallelism-i-o-scheduling-thread-pooling-and-work-stealing/
+ * https://blogs.gnome.org/chergert/2022/12/13/threading-fibers/
+ * https://blogs.gnome.org/chergert/2022/12/16/dex-examples-and-windows-support/
 
 ## Implementation Notes
 
@@ -43,8 +86,6 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
    provided an error which can be read by the consumer.
  * **Promise** is a **Future** that allows user code to set the resolved
    or rejected value once.
- * **Parameter** contain type information and position to a **Callable**
- * **Arguments** are the values for **Parameters**
 
 ## Types
 
@@ -53,12 +94,13 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
      * DexAsyncPair (Final)
      * DexBlock (Final)
      * DexCancellable (Final)
+     * DexDelayed (Final)
+     * DexFiber (Final)
      * DexFutureSet (Final)
      * DexPromise (Final)
-     * DexTasklet (Final)
+     * DexStaticFuture (Final)
      * DexTimeout (Final)
      * DexUnixSignal (Final)
-     * DexDelayed (Final)
    * DexScheduler (Abstract)
      * DexMainScheduler (Final)
      * DexThreadPoolScheduler (Final)
@@ -66,19 +108,3 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
    * DexChannel (Final)
  * DexAsyncResult (Final)
 
-## Internal Types
-
-  * DexWorkQueue
-  * DexWorkStealingQueue
-  * DexSemaphore
-  * DexAioBackend
-    * DexUringAioBackend
-  * GSource
-    * DexAioContext
-  * DexStackPool
-  * DexStack
-  * DexChannelReceiver
-
-Currently, libdex is not trying to abstract the AIO models and it is used
-internally only for some features. However, that could be expanded in the
-future if there is sufficient use for it such as with GFile streams.
