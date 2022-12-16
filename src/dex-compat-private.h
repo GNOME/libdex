@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <errno.h>
+
 #include <glib-object.h>
 
 #if !GLIB_CHECK_VERSION(2, 72, 0)
@@ -28,6 +30,11 @@
 # endif
 # include <stdlib.h>
 # include <string.h>
+#endif
+
+#ifdef G_OS_WIN32
+# include <windows.h>
+# include <io.h>
 #endif
 
 G_BEGIN_DECLS
@@ -96,6 +103,69 @@ static inline void
 g_aligned_free (gpointer mem)
 {
   free (mem);
+}
+#endif
+
+#ifdef G_OS_WIN32
+static inline gsize
+pread (int      fd,
+       gpointer buf,
+       gsize    count,
+       goffset  offset)
+{
+  OVERLAPPED ov = {0};
+  DWORD n_read = 0;
+  HANDLE hFile;
+
+  g_print ("PREAD\n");
+
+  hFile = (HANDLE)_get_osfhandle (fd);
+
+  ov.OffsetHigh = (offset & 0xFFFFFFFF00000000LL) >> 32;
+  ov.Offset = (offset & 0xFFFFFFFFLL);
+
+  SetLastError (0);
+
+  if (!ReadFile (hFile, buf, count, &n_read, &ov))
+    {
+      int errsv = GetLastError ();
+
+      if (errsv != ERROR_HANDLE_EOF)
+        {
+          errno = errsv;
+          return -1;
+        }
+    }
+
+  return n_read;
+}
+
+static inline gsize
+pwrite (int           fd,
+        gconstpointer buf,
+        gsize         count,
+        goffset       offset)
+{
+  OVERLAPPED ov = {0};
+  DWORD n_written = 0;
+  HANDLE hFile;
+
+  g_print ("PWRITE\n");
+
+  hFile = (HANDLE)_get_osfhandle (fd);
+
+  ov.OffsetHigh = (offset & 0xFFFFFFFF00000000LL) >> 32;
+  ov.Offset = (offset & 0xFFFFFFFFLL);
+
+  SetLastError (0);
+
+  if (!WriteFile (hFile, buf, count, &n_written, &ov))
+    {
+      errno = GetLastError ();
+      return -1;
+    }
+
+  return n_written;
 }
 #endif
 
