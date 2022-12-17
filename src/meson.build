@@ -55,6 +55,7 @@ libdex_headers = [
   'dex-static-future.h',
   'dex-thread-pool-scheduler.h',
   'dex-timeout.h',
+  'dex-version-macros.h',
   'libdex.h',
 ]
 
