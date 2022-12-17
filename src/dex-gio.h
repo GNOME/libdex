@@ -46,6 +46,8 @@ DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_read                  (GFile                    *file,
                                            int                       io_priority);
 DEX_AVAILABLE_IN_ALL
+DexFuture *dex_file_load_contents_bytes   (GFile                    *file);
+DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_query_info            (GFile                    *file,
                                            const char               *attributes,
                                            GFileQueryInfoFlags       flags,

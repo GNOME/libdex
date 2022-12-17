@@ -772,3 +772,40 @@ dex_resolver_lookup_by_name (GResolver  *resolver,
 
   return DEX_FUTURE (async_pair);
 }
+
+static void
+dex_file_load_contents_bytes_cb (GObject      *object,
+                                 GAsyncResult *result,
+                                 gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+  char *contents = NULL;
+  gsize len = 0;
+
+  g_file_load_contents_finish (G_FILE (object), result, &contents, &len, NULL, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_boxed (async_pair, G_TYPE_BYTES, g_bytes_new_take (contents, len));
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+DexFuture *
+dex_file_load_contents_bytes (GFile *file)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_FILE (file), NULL);
+
+  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_file_load_contents_async (file,
+                              async_pair->cancellable,
+                              dex_file_load_contents_bytes_cb,
+                              dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
