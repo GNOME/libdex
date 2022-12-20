@@ -1,5 +1,4 @@
 libdex_sources = [
-  'asm.S',
   'dex-aio.c',
   'dex-aio-backend.c',
   'dex-async-pair.c',
@@ -87,6 +86,9 @@ if liburing_dep.found()
 endif
 
 if host_machine.system() != 'windows'
+  # Not really used on Windows now, see also
+  # https://github.com/mesonbuild/meson/issues/4366
+  libdex_sources += ['asm.S']
   libdex_sources += ['dex-unix-signal.c']
   libdex_headers += ['dex-unix-signal.h']
   libdex_headers += ['dex-ucontext.c']

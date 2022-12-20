@@ -111,6 +111,7 @@ test_c_args = [
   '-Wunused',
   '-fno-strict-aliasing',
   ['-Werror=format-security', '-Werror=format=2'],
+  '-FImsvc_recommended_pragmas.h',
 ]
 if get_option('buildtype') != 'plain'
   if host_machine.system() != 'windows'
