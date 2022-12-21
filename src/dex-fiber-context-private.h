@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <errno.h>
 #include <string.h>
 
 #include <glib.h>
@@ -182,10 +183,19 @@ static inline void
 dex_fiber_context_switch (DexFiberContext *old_context,
                           DexFiberContext *new_context)
 {
+  int r;
+
 #if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-  swapcontext (*old_context, *new_context);
+  r = swapcontext (*old_context, *new_context);
 #else
-  swapcontext (old_context, new_context);
+  r = swapcontext (old_context, new_context);
+#endif
+
+#ifndef G_DISABLE_ASSERT
+  if G_UNLIKELY (r != 0)
+    g_error ("swapcontext(): %s", g_strerror (errno));
+#else
+  (void)r;
 #endif
 }
 #endif
