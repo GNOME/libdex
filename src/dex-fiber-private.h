@@ -69,6 +69,9 @@ struct _DexFiber
   gpointer       func_data;
   GDestroyNotify func_data_destroy;
 
+  /* Used to hook into the fiber during creation */
+  DexFiberContextStart hook;
+
   /* The saved context for switching. This is abstracted in
    * dex-fiber-context-private.h for the particular platform
    * and alignment constraints.

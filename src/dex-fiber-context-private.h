@@ -39,6 +39,12 @@
 
 G_BEGIN_DECLS
 
+typedef struct _DexFiberContextStart
+{
+  GHookFunc func;
+  gpointer  data;
+} DexFiberContextStart;
+
 #ifdef G_OS_UNIX
 /* If the system we're on has an alignment requirement of > sizeof(void*)
  * then we will allocate aligned memory for the ucontext_t instead of
@@ -49,7 +55,7 @@ G_BEGIN_DECLS
  * This is an issue, at minimum, on FreeBSD where x86_64 has a 16-bytes
  * alignment requirement for ucontext_t.
  */
-# if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
+#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
 typedef ucontext_t *DexFiberContext;
 #else
 typedef ucontext_t DexFiberContext;
@@ -59,91 +65,59 @@ static inline void
 dex_fiber_context_switch (DexFiberContext *old_context,
                           DexFiberContext *new_context);
 
-#if GLIB_SIZEOF_VOID_P == 4
 static inline void
-dex_fiber_context_start (guint start_func,
-                         guint start_data)
+dex_fiber_context_start (guint start_lo,
+                         guint start_hi)
 {
-  GHookFunc func = (GHookFunc)GUINT_TO_POINTER (start_func);
-  gpointer data = GUINT_TO_POINTER (start_data);
+  union {
+    guintptr uval;
+    DexFiberContextStart *ptr;
+  } u;
 
-  func (data);
-}
-#elif GLIB_SIZEOF_VOID_P == 8
-static inline void
-dex_fiber_context_start (guint start_func_lo,
-                         guint start_func_hi,
-                         guint start_data_lo,
-                         guint start_data_hi)
-{
-  gintptr ifunc;
-  gintptr idata;
-  GHookFunc func;
-  gpointer data;
-
-  ifunc = start_func_hi;
-  ifunc <<= 32;
-  ifunc |= start_func_lo;
-
-  idata = start_data_hi;
-  idata <<= 32;
-  idata |= start_data_lo;
-
-  func = (GHookFunc)(gpointer)ifunc;
-  data = (gpointer)idata;
-
-  func (data);
-}
+  u.uval = 0;
+#if GLIB_SIZEOF_VOID_P == 8
+  u.uval |= start_hi;
+  u.uval <<= 32;
 #endif
+  u.uval |= start_lo;
+
+  u.ptr->func (u.ptr->data);
+}
 
 static inline void
-_dex_fiber_context_makecontext (ucontext_t *ucontext,
-                                DexStack   *stack,
-                                GCallback   start_func,
-                                gpointer    start_data)
+_dex_fiber_context_makecontext (ucontext_t           *ucontext,
+                                DexStack             *stack,
+                                DexFiberContextStart *start)
 {
-  guint start_func_lo;
-  guint start_data_lo;
-# if GLIB_SIZEOF_VOID_P == 8
-  guint start_func_hi;
-  guint start_data_hi;
-# endif
+  guint start_lo;
+  guint start_hi = 0;
 
   ucontext->uc_stack.ss_size = stack->size;
   ucontext->uc_stack.ss_sp = stack->ptr;
   ucontext->uc_link = 0;
 
-  start_func_lo = GPOINTER_TO_SIZE (start_func) & 0xFFFFFFFFF;
-  start_data_lo = GPOINTER_TO_SIZE (start_data) & 0xFFFFFFFFF;
-
 #if GLIB_SIZEOF_VOID_P == 8
-  start_func_hi = (GPOINTER_TO_SIZE (start_func) >> 32) & 0xFFFFFFFFF;
-  start_data_hi = (GPOINTER_TO_SIZE (start_data) >> 32) & 0xFFFFFFFFF;
+  start_lo = GPOINTER_TO_SIZE (start) & 0xFFFFFFFFF;
+  start_hi = (GPOINTER_TO_SIZE (start) >> 32) & 0xFFFFFFFFF;
+#else
+  start_lo = GPOINTER_TO_SIZE (start);
+  start_hi = 0;
 #endif
 
   makecontext (ucontext,
                G_CALLBACK (dex_fiber_context_start),
-#if GLIB_SIZEOF_VOID_P == 4
-               2, start_func_lo, start_data_lo
-#elif GLIB_SIZEOF_VOID_P == 8
-               4, start_func_lo, start_func_hi, start_data_lo, start_data_hi
-#endif
-              );
+               2, start_lo, start_hi);
 }
 
 static inline void
-dex_fiber_context_init (DexFiberContext *context,
-                        DexStack        *stack,
-                        GCallback        start_func,
-                        gpointer         start_data)
+dex_fiber_context_init (DexFiberContext      *context,
+                        DexStack             *stack,
+                        DexFiberContextStart *start)
 {
   ucontext_t *ucontext;
 
 #if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
   *context = g_aligned_alloc (1, sizeof (ucontext_t), ALIGN_OF_UCONTEXT);
-#endif
-
-#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
   ucontext = *context;
 #else
   ucontext = context;
@@ -156,7 +130,7 @@ dex_fiber_context_init (DexFiberContext *context,
    * such as from the original stack in the fiber scheduler.
    */
   if (stack != NULL)
-    _dex_fiber_context_makecontext (ucontext, stack, start_func, start_data);
+    _dex_fiber_context_makecontext (ucontext, stack, start);
 }
 
 static inline void
@@ -170,7 +144,7 @@ dex_fiber_context_clear (DexFiberContext *context)
 static inline void
 dex_fiber_context_init_main (DexFiberContext *context)
 {
-  dex_fiber_context_init (context, NULL, NULL, NULL);
+  dex_fiber_context_init (context, NULL, NULL);
 }
 
 static inline void
@@ -217,20 +191,19 @@ dex_fiber_context_clear_main (DexFiberContext *context)
 }
 
 static inline void
-dex_fiber_context_init (DexFiberContext *context,
-                        DexStack        *stack,
-                        GCallback        start_func,
-                        gpointer         start_data)
+dex_fiber_context_init (DexFiberContext      *context,
+                        DexStack             *stack,
+                        DexFiberContextStart *start)
 {
   *context = CreateFiberEx (dex_get_min_stack_size (),
                             stack->size,
                             FIBER_FLAG_FLOAT_SWITCH,
-                            (LPFIBER_START_ROUTINE)start_func,
-                            start_data);
+                            (LPFIBER_START_ROUTINE)start->func,
+                            start->data);
 
   if (*context == NULL)
     g_printerr ("Failed to create fiber (stack %u) (start_func %p): %s",
-                (guint)stack->size, start_func,
+                (guint)stack->size, start->func,
                 g_strerror (GetLastError ()));
 }
 

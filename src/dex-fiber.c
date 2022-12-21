@@ -39,6 +39,8 @@ DEX_DEFINE_FINAL_TYPE (DexFiber, dex_fiber, DEX_TYPE_FUTURE)
 #undef DEX_TYPE_FIBER
 #define DEX_TYPE_FIBER dex_fiber_type
 
+static void dex_fiber_start (DexFiber *fiber);
+
 static gboolean
 dex_fiber_propagate (DexFuture *future,
                      DexFuture *completed)
@@ -106,6 +108,8 @@ static void
 dex_fiber_init (DexFiber *fiber)
 {
   fiber->link.data = fiber;
+  fiber->hook.func = (GHookFunc)dex_fiber_start;
+  fiber->hook.data = fiber;
 }
 
 static void
@@ -197,10 +201,7 @@ dex_fiber_ensure_stack (DexFiber          *fiber,
       else
         fiber->stack = dex_stack_new (fiber->stack_size);
 
-      dex_fiber_context_init (&fiber->context,
-                              fiber->stack,
-                              (GCallback)dex_fiber_start,
-                              fiber);
+      dex_fiber_context_init (&fiber->context, fiber->stack, &fiber->hook);
     }
 }
 
