@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <string.h>
+
 #include <glib.h>
 
 #include "dex-compat-private.h"
@@ -94,26 +96,17 @@ dex_fiber_context_start (guint start_func_lo,
 #endif
 
 static inline void
-_dex_fiber_context_makecontext (DexFiberContext *context,
-                                DexStack        *stack,
-                                GCallback        start_func,
-                                gpointer         start_data)
+_dex_fiber_context_makecontext (ucontext_t *ucontext,
+                                DexStack   *stack,
+                                GCallback   start_func,
+                                gpointer    start_data)
 {
-  ucontext_t *ucontext;
   guint start_func_lo;
   guint start_data_lo;
 # if GLIB_SIZEOF_VOID_P == 8
   guint start_func_hi;
   guint start_data_hi;
 # endif
-
-#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
-  ucontext = *context;
-#else
-  ucontext = context;
-#endif
-
-  getcontext (ucontext);
 
   ucontext->uc_stack.ss_size = stack->size;
   ucontext->uc_stack.ss_sp = stack->ptr;
@@ -143,15 +136,26 @@ dex_fiber_context_init (DexFiberContext *context,
                         GCallback        start_func,
                         gpointer         start_data)
 {
+  ucontext_t *ucontext;
+
 #if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
   *context = g_aligned_alloc (1, sizeof (ucontext_t), ALIGN_OF_UCONTEXT);
 #endif
+
+#if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
+  ucontext = *context;
+#else
+  ucontext = context;
+#endif
+
+  memset (ucontext, 0, sizeof *ucontext);
+  getcontext (ucontext);
 
   /* If stack is NULL, then this is a context used to save state
    * such as from the original stack in the fiber scheduler.
    */
   if (stack != NULL)
-    _dex_fiber_context_makecontext (context, stack, start_func, start_data);
+    _dex_fiber_context_makecontext (ucontext, stack, start_func, start_data);
 }
 
 static inline void
