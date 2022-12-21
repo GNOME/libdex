@@ -88,10 +88,12 @@ endif
 if host_machine.system() != 'windows'
   # Not really used on Windows now, see also
   # https://github.com/mesonbuild/meson/issues/4366
-  libdex_sources += ['asm.S']
-  libdex_sources += ['dex-unix-signal.c']
+  libdex_sources += [
+    'asm.S',
+    'dex-unix-signal.c',
+    'dex-ucontext.c',
+  ]
   libdex_headers += ['dex-unix-signal.h']
-  libdex_headers += ['dex-ucontext.c']
 endif
 
 version_split = meson.project_version().split('.')
