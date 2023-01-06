@@ -39,6 +39,9 @@ DEX_DEFINE_ABSTRACT_TYPE (DexFuture, dex_future, DEX_TYPE_OBJECT)
 #undef DEX_TYPE_FUTURE
 #define DEX_TYPE_FUTURE dex_future_type
 
+static gsize      static_booleans_init;
+static DexFuture *static_booleans[2];
+
 typedef struct _DexChainedFuture
 {
   GList      link;
@@ -813,15 +816,22 @@ DexFuture *
 DexFuture *
 (dex_future_new_for_boolean) (gboolean v_bool)
 {
-  GValue value = G_VALUE_INIT;
-  DexFuture *future;
+  if G_UNLIKELY (g_once_init_enter (&static_booleans_init))
+    {
+      GValue value = G_VALUE_INIT;
 
-  g_value_init (&value, G_TYPE_BOOLEAN);
-  g_value_set_boolean (&value, v_bool);
-  future = (dex_future_new_for_value) (&value);
-  g_value_unset (&value);
+      g_value_init (&value, G_TYPE_BOOLEAN);
 
-  return future;
+      g_value_set_boolean (&value, FALSE);
+      static_booleans[FALSE] = dex_static_future_new_resolved (&value);
+
+      g_value_set_boolean (&value, TRUE);
+      static_booleans[TRUE] = dex_static_future_new_resolved (&value);
+
+      g_once_init_leave (&static_booleans_init, TRUE);
+    }
+
+  return dex_ref (static_booleans[!!v_bool]);
 }
 
 /**
