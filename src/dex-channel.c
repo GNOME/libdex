@@ -21,6 +21,8 @@
 
 #include "config.h"
 
+#include <gio/gio.h>
+
 #include "dex-error.h"
 #include "dex-channel.h"
 #include "dex-future-private.h"
@@ -52,6 +54,24 @@ typedef struct _DexChannelReceiverClass
 GType dex_channel_receiver_get_type (void) G_GNUC_CONST;
 
 DEX_DEFINE_FINAL_TYPE (DexChannelReceiver, dex_channel_receiver, DEX_TYPE_FUTURE)
+
+static inline guint
+steal_uint (guint *value)
+{
+  guint ret = *value;
+  *value = 0;
+  return ret;
+}
+
+static inline GQueue
+steal_queue (GQueue *queue)
+{
+  return (GQueue) {
+    .head = g_steal_pointer (&queue->head),
+    .tail = g_steal_pointer (&queue->tail),
+    .length = steal_uint (&queue->length),
+  };
+}
 
 static void
 dex_channel_receiver_class_init (DexChannelReceiverClass *channel_receiver_class)
@@ -390,22 +410,64 @@ reject_receive:
   return DEX_FUTURE (recv);
 }
 
-static inline guint
-steal_uint (guint *value)
+/**
+ * dex_channel_try_receive_all:
+ * @self: a #DexChannel
+ *
+ * Will attempt to receive all items in the channel as a #DexResultSet.
+ *
+ * If the receive side of the channel is closed, then the future will
+ * reject with an error.
+ *
+ * If there are items in the queue, then they will be returned as part
+ * of a #DexResultSet containing each of the futures.
+ *
+ * Otherwise, a #DexFutureSet will be returned which will resolve or
+ * reject when the next item is available in the channel (or the send
+ * or receive sides are closed).
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
+DexFuture *
+dex_channel_receive_all (DexChannel *channel)
 {
-  guint ret = *value;
-  *value = 0;
-  return ret;
-}
+  g_autoptr(GPtrArray) ret = NULL;
+  GQueue stolen = G_QUEUE_INIT;
 
-static inline GQueue
-steal_queue (GQueue *queue)
-{
-  return (GQueue) {
-    .head = g_steal_pointer (&queue->head),
-    .tail = g_steal_pointer (&queue->tail),
-    .length = steal_uint (&queue->length),
-  };
+  g_return_val_if_fail (DEX_IS_CHANNEL (channel), NULL);
+
+  ret = g_ptr_array_new_with_free_func (dex_unref);
+
+  dex_object_lock (channel);
+
+  if ((channel->flags & DEX_CHANNEL_STATE_CAN_RECEIVE) == 0)
+    goto reject_receive;
+
+  if(channel->queue.length == 0)
+    goto wait_for_result;
+
+  stolen = steal_queue (&channel->queue);
+
+  for (const GList *iter = stolen.head; iter; iter = iter->next)
+    {
+      DexChannelItem *item = iter->data;
+      g_ptr_array_add (ret, g_steal_pointer (&item->future));
+    }
+
+  dex_object_unlock (channel);
+
+  while (stolen.length > 0)
+    dex_channel_item_free (g_queue_pop_head_link (&stolen)->data);
+
+  return dex_future_allv ((DexFuture **)ret->pdata, ret->len);
+
+reject_receive:
+  dex_object_unlock (channel);
+  return dex_future_new_for_error (g_error_copy (&channel_closed_error));
+
+wait_for_result:
+  dex_object_unlock (channel);
+  return dex_future_all (dex_channel_receive (channel), NULL);
 }
 
 static void

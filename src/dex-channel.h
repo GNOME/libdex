@@ -41,6 +41,8 @@ DexFuture  *dex_channel_send              (DexChannel *channel,
 DEX_AVAILABLE_IN_ALL
 DexFuture  *dex_channel_receive           (DexChannel *channel) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
+DexFuture  *dex_channel_receive_all       (DexChannel *channel) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
 void        dex_channel_close_send        (DexChannel *channel);
 DEX_AVAILABLE_IN_ALL
 void        dex_channel_close_receive     (DexChannel *channel);
