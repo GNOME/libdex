@@ -380,32 +380,37 @@ void
 dex_async_result_await (DexAsyncResult *async_result,
                         DexFuture      *future)
 {
+  DexFuture *new_future = NULL;
+
   g_return_if_fail (DEX_IS_ASYNC_RESULT (async_result));
   g_return_if_fail (DEX_IS_FUTURE (future));
 
   g_mutex_lock (&async_result->mutex);
-
-  if (async_result->await_once == FALSE)
+  if G_UNLIKELY (async_result->await_once != FALSE)
     {
-      async_result->await_once = TRUE;
-
-      /* We have to be careful about ownership here and ensure we
-       * drop our references when the callback is executed.
-       */
-      async_result->future = dex_future_finally (future,
-                                                 dex_async_result_await_cb,
-                                                 g_object_ref (async_result),
-                                                 g_object_unref);
-    }
-  else
-    {
+      g_mutex_unlock (&async_result->mutex);
       g_critical ("%s() called more than once on %s @ %p [%s]",
                   G_STRFUNC, G_OBJECT_TYPE_NAME (async_result),
                   async_result,
                   async_result->name ? async_result->name : "unnamed task");
+      return;
     }
-
+  async_result->await_once = TRUE;
   g_mutex_unlock (&async_result->mutex);
+
+  /* We have to be careful about ownership here and ensure we
+   * drop our references when the callback is executed.
+   */
+  g_object_ref (async_result);
+  new_future = dex_future_finally (future,
+                                   dex_async_result_await_cb,
+                                   g_object_ref (async_result),
+                                   g_object_unref);
+  g_mutex_lock (&async_result->mutex);
+  g_assert (async_result->future == NULL);
+  async_result->future = g_steal_pointer (&new_future);
+  g_mutex_unlock (&async_result->mutex);
+  g_object_unref (async_result);
 }
 
 void
