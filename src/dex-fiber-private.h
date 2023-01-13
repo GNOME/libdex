@@ -54,6 +54,7 @@ struct _DexFiber
   guint runnable : 1;
   guint exited : 1;
   guint released : 1;
+  guint cancelled : 1;
 
   /* The requested stack size */
   gsize stack_size;

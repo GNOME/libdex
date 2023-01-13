@@ -41,6 +41,20 @@ DEX_DEFINE_FINAL_TYPE (DexFiber, dex_fiber, DEX_TYPE_FUTURE)
 
 static void dex_fiber_start (DexFiber *fiber);
 
+static DexFuture *cancelled_future;
+
+static void
+dex_fiber_discard (DexFuture *future)
+{
+  DexFiber *fiber = DEX_FIBER (future);
+
+  g_assert (DEX_IS_FIBER (fiber));
+
+  dex_object_lock (fiber);
+  fiber->cancelled = TRUE;
+  dex_object_unlock (fiber);
+}
+
 static gboolean
 dex_fiber_propagate (DexFuture *future,
                      DexFuture *completed)
@@ -101,7 +115,13 @@ dex_fiber_class_init (DexFiberClass *fiber_class)
 
   object_class->finalize = dex_fiber_finalize;
 
+  future_class->discard = dex_fiber_discard;
   future_class->propagate = dex_fiber_propagate;
+
+  if (cancelled_future == NULL)
+    cancelled_future = dex_future_new_reject (DEX_ERROR,
+                                              DEX_ERROR_FIBER_CANCELLED,
+                                              "The fiber was cancelled");
 }
 
 static void
@@ -385,18 +405,23 @@ dex_fiber_await (DexFiber  *fiber,
                  DexFuture *future)
 {
   DexFiberScheduler *fiber_scheduler = fiber->fiber_scheduler;
+  gboolean cancelled;
 
   g_assert (DEX_IS_FIBER (fiber));
 
   /* Move fiber from runnable to blocked queue */
   g_mutex_lock (&fiber_scheduler->mutex);
   fiber->runnable = FALSE;
+  cancelled = fiber->cancelled;
   g_queue_unlink (&fiber_scheduler->runnable, &fiber->link);
   g_queue_push_tail_link (&fiber_scheduler->blocked, &fiber->link);
   g_mutex_unlock (&fiber_scheduler->mutex);
 
   /* Now request the future notify us of completion */
-  dex_future_chain (future, DEX_FUTURE (fiber));
+  if (cancelled)
+    dex_future_chain (cancelled_future, DEX_FUTURE (fiber));
+  else
+    dex_future_chain (future, DEX_FUTURE (fiber));
 
   /* Swap to the scheduler to continue processing fibers */
   dex_fiber_context_switch (&fiber->context, &fiber_scheduler->context);
