@@ -26,6 +26,7 @@
 G_BEGIN_DECLS
 
 #define DEX_THREAD_POOL_WORKER_CURRENT (dex_thread_storage_get()->worker)
+#define DEX_DISPATCH_RECURSE_MAX       4
 
 typedef struct _DexAioContext DexAioContext;
 typedef struct _DexFiberScheduler DexFiberScheduler;
