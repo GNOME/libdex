@@ -28,7 +28,9 @@
 
 typedef struct _DexCancellable
 {
-  DexFuture parent_instance;
+  DexFuture     parent_instance;
+  GCancellable *cancellable;
+  gulong        handler;
 } DexCancellable;
 
 typedef struct _DexCancellableClass
@@ -39,8 +41,24 @@ typedef struct _DexCancellableClass
 DEX_DEFINE_FINAL_TYPE (DexCancellable, dex_cancellable, DEX_TYPE_FUTURE)
 
 static void
+dex_cancellable_finalize (DexObject *object)
+{
+  DexCancellable *self = (DexCancellable *)object;
+
+  if (self->handler)
+    g_cancellable_disconnect (self->cancellable, self->handler);
+
+  g_clear_object (&self->cancellable);
+
+  DEX_OBJECT_CLASS (dex_cancellable_parent_class)->finalize (object);
+}
+
+static void
 dex_cancellable_class_init (DexCancellableClass *cancellable_class)
 {
+  DexObjectClass *object_class = DEX_OBJECT_CLASS (cancellable_class);
+
+  object_class->finalize = dex_cancellable_finalize;
 }
 
 static void
@@ -52,6 +70,54 @@ DexCancellable *
 dex_cancellable_new (void)
 {
   return (DexCancellable *)g_type_create_instance (DEX_TYPE_CANCELLABLE);
+}
+
+static void
+dex_cancellable_cancelled_cb (GCancellable *cancellable,
+                              DexWeakRef   *wr)
+{
+  g_autoptr(DexCancellable) self = NULL;
+
+  g_assert (G_IS_CANCELLABLE (cancellable));
+  g_assert (wr != NULL);
+
+  if ((self = dex_weak_ref_get (wr)))
+    {
+      self->handler = 0;
+      dex_future_complete (DEX_FUTURE (self),
+                           NULL,
+                           g_error_new_literal (G_IO_ERROR,
+                                                G_IO_ERROR_CANCELLED,
+                                                "Operation cancelled"));
+    }
+}
+
+static void
+weak_ref_free (gpointer data)
+{
+  dex_weak_ref_clear (data);
+  g_free (data);
+}
+
+DexFuture *
+dex_cancellable_new_from_cancellable (GCancellable *cancellable)
+{
+  DexWeakRef *wr;
+  DexCancellable *ret;
+
+  g_return_val_if_fail (G_IS_CANCELLABLE (cancellable), NULL);
+
+  ret = dex_cancellable_new ();
+
+  wr = g_new0 (DexWeakRef, 1);
+  dex_weak_ref_init (wr, ret);
+
+  ret->cancellable = g_object_ref (cancellable);
+  ret->handler = g_cancellable_connect (cancellable,
+                                        G_CALLBACK (dex_cancellable_cancelled_cb),
+                                        wr, weak_ref_free);
+
+  return DEX_FUTURE (ret);
 }
 
 void

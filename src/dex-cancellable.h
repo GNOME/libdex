@@ -36,11 +36,13 @@ G_BEGIN_DECLS
 typedef struct _DexCancellable DexCancellable;
 
 DEX_AVAILABLE_IN_ALL
-GType           dex_cancellable_get_type (void) G_GNUC_CONST;
+GType           dex_cancellable_get_type             (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexCancellable *dex_cancellable_new      (void);
+DexCancellable *dex_cancellable_new                  (void);
 DEX_AVAILABLE_IN_ALL
-void            dex_cancellable_cancel   (DexCancellable *cancellable);
+DexFuture      *dex_cancellable_new_from_cancellable (GCancellable *cancellable);
+DEX_AVAILABLE_IN_ALL
+void            dex_cancellable_cancel               (DexCancellable *cancellable);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexCancellable, dex_unref)
 
