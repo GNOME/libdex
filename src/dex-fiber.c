@@ -283,11 +283,19 @@ dex_fiber_scheduler_dispatch (GSource     *source,
                               gpointer     user_data)
 {
   DexFiberScheduler *fiber_scheduler = (DexFiberScheduler *)source;
+  guint max_iterations;
 
   g_assert (fiber_scheduler != NULL);
 
+  /* Only process up to as many fibers that are currently in
+   * the queue so that we don't exhaust the main loop endlessly
+   * processing completed fibers w/o yielding to other GSource.
+   */
+  max_iterations = MAX (1, fiber_scheduler->runnable.length);
+
   dex_thread_storage_get ()->fiber_scheduler = fiber_scheduler;
-  while (dex_fiber_scheduler_iteration (fiber_scheduler)) { }
+  while (max_iterations && dex_fiber_scheduler_iteration (fiber_scheduler))
+    max_iterations--;
   dex_thread_storage_get ()->fiber_scheduler = NULL;
 
   return G_SOURCE_CONTINUE;
