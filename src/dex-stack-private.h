@@ -45,6 +45,7 @@ struct _DexStackPool
   gsize  stack_size;
   guint  min_pool_size;
   guint  max_pool_size;
+  guint  mark_unused : 1;
 };
 
 DexStackPool *dex_stack_pool_new    (gsize         stack_size,
@@ -86,8 +87,6 @@ dex_stack_pool_release (DexStackPool *stack_pool,
   g_assert (stack->link.prev == NULL);
   g_assert (stack->link.next == NULL);
 
-  dex_stack_mark_unused (stack);
-
   g_mutex_lock (&stack_pool->mutex);
   if (stack_pool->stacks.length > stack_pool->max_pool_size)
     {
@@ -96,6 +95,8 @@ dex_stack_pool_release (DexStackPool *stack_pool,
     }
   else
     {
+      if (stack_pool->mark_unused)
+        dex_stack_mark_unused (stack);
       g_queue_push_head_link (&stack_pool->stacks, &stack->link);
       g_mutex_unlock (&stack_pool->mutex);
     }
