@@ -187,3 +187,28 @@ dex_thread_pool_scheduler_new (void)
 
   return DEX_SCHEDULER (thread_pool_scheduler);
 }
+
+/**
+ * dex_thread_pool_scheduler_get_default:
+ *
+ * Gets the default thread pool scheduler for the instance.
+ *
+ * This function is useful to allow programs and libraries to share
+ * an off-main-thread scheduler without having to coordinate on where
+ * the scheduler instance is created or owned.
+ *
+ * Returns: (transfer none): a #DexScheduler
+ */
+DexScheduler *
+dex_thread_pool_scheduler_get_default (void)
+{
+  static DexScheduler *default_thread_pool;
+
+  if (g_once_init_enter (&default_thread_pool))
+    {
+      DexScheduler *instance = dex_thread_pool_scheduler_new ();
+      g_once_init_leave (&default_thread_pool, instance);
+    }
+
+  return default_thread_pool;
+}
