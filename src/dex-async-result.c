@@ -325,6 +325,8 @@ dex_async_result_complete_in_idle_cb (gpointer user_data)
                           G_ASYNC_RESULT (async_result),
                           g_steal_pointer (&async_result->user_data));
 
+  dex_clear (&async_result->future);
+
   return G_SOURCE_REMOVE;
 }
 
