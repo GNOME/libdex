@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include "dex-async-result.h"
+#include "dex-cancellable.h"
 #include "dex-compat-private.h"
 #include "dex-error.h"
 
@@ -381,6 +382,7 @@ dex_async_result_await (DexAsyncResult *async_result,
                         DexFuture      *future)
 {
   DexFuture *new_future = NULL;
+  DexFuture *cancellable;
 
   g_return_if_fail (DEX_IS_ASYNC_RESULT (async_result));
   g_return_if_fail (DEX_IS_FUTURE (future));
@@ -398,11 +400,16 @@ dex_async_result_await (DexAsyncResult *async_result,
   async_result->await_once = TRUE;
   g_mutex_unlock (&async_result->mutex);
 
+  if (async_result->cancellable == NULL)
+    cancellable = NULL;
+  else
+    cancellable = dex_cancellable_new_from_cancellable (async_result->cancellable);
+
   /* We have to be careful about ownership here and ensure we
    * drop our references when the callback is executed.
    */
   g_object_ref (async_result);
-  new_future = dex_future_finally (future,
+  new_future = dex_future_finally (dex_future_first (future, cancellable, NULL),
                                    dex_async_result_await_cb,
                                    g_object_ref (async_result),
                                    g_object_unref);
