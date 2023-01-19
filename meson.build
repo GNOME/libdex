@@ -4,7 +4,7 @@ project('libdex', 'c',
   default_options: [ 'warning_level=2', 'werror=false', 'c_std=gnu11', ],
 )
 
-api_version = '1.0'
+api_version = '1'
 
 cc = meson.get_compiler('c')
 gnome = import('gnome')
