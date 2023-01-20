@@ -1458,7 +1458,7 @@ dex_await_string (DexFuture  *future,
   if ((value = dex_await_check (future, G_TYPE_STRING, error)))
     ret = g_value_dup_string (value);
 
-  dex_unref (ret);
+  dex_unref (future);
 
   return ret;
 }
