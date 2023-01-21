@@ -136,7 +136,7 @@ cat_init (Cat      *cat,
     {
       g_unlink (output);
 
-      if (-1 == (cat->write_fd = open (output, O_WRONLY|O_CREAT)))
+      if (-1 == (cat->write_fd = open (output, O_WRONLY|O_CREAT, 0644)))
         goto cleanup;
     }
 
