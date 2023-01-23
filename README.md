@@ -93,24 +93,3 @@ You can see this elsewhere in both GStreamer and GTK 4's render nodes.
  * **Promise** is a **Future** that allows user code to set the resolved
    or rejected value once.
 
-## Types
-
- * DexObject (Abstract)
-   * DexFuture (Abstract)
-     * DexAsyncPair (Final)
-     * DexBlock (Final)
-     * DexCancellable (Final)
-     * DexDelayed (Final)
-     * DexFiber (Final)
-     * DexFutureSet (Final)
-     * DexPromise (Final)
-     * DexStaticFuture (Final)
-     * DexTimeout (Final)
-     * DexUnixSignal (Final)
-   * DexScheduler (Abstract)
-     * DexMainScheduler (Final)
-     * DexThreadPoolScheduler (Final)
-     * DexThreadPoolWorker (Final)
-   * DexChannel (Final)
- * DexAsyncResult (Final)
-
