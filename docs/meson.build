@@ -23,12 +23,12 @@ source_toml = configure_file(
   output: 'Dex.toml',
   configuration: toml_conf,
   install: true,
-  install_dir: docs_dir / 'dex',
+  install_dir: docs_dir / 'libdex-@0@'.format(api_version),
 )
 
 custom_target('dex-doc',
   input: [ source_toml, libdex_gir[0] ],
-  output: 'dex',
+  output: 'libdex-@0@'.format(api_version),
   command: [
     gidocgen,
     'generate',
