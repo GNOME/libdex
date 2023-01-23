@@ -12,6 +12,7 @@ reference:
     variables:
         MESON_FLAGS: "-Ddocs=true -Dexamples=false -Dvapi=false -Dintrospection=enabled -Dsysprof=false -Dtests=false"
     script:
+        - sudo dnf install -y libatomic liburing-devel
         - mkdir -p pfx/
         - meson ${MESON_FLAGS} --prefix=${PWD}/pfx _build
         - ninja -C _build install
