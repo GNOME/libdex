@@ -1,7 +1,7 @@
 /*
  * dex-channel.c
  *
- * Copyright 2022 Christian Hergert <chergert@redhat.com>
+ * Copyright 2022-2023 Christian Hergert <chergert@redhat.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -387,8 +387,8 @@ dex_channel_receive (DexChannel *channel)
     goto reject_receive;
 
   /* If no more items can be sent, and there are no items immediately
-   * to fullfil this request, then we have to reject as it can never
-   * be fullfilled.
+   * to fulfill this request, then we have to reject as it can never
+   * be fulfilled.
    */
   if ((channel->flags & DEX_CHANNEL_STATE_CAN_SEND) == 0)
     {
