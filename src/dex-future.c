@@ -1329,7 +1329,7 @@ dex_await_double (DexFuture  *future,
 
 /**
  * dex_await_float: (method) (skip)
- * @future: (transer full): a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the result as an float.
@@ -1437,7 +1437,7 @@ dex_await_boolean (DexFuture  *future,
 
 /**
  * dex_await_string: (method) (skip)
- * @future: (transer full): a #DexFuture
+ * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
  * Awaits on @future and returns the string result.

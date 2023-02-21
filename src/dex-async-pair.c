@@ -252,7 +252,7 @@ dex_async_pair_return_object (DexAsyncPair *async_pair,
 }
 
 /**
- * dex_async_pair_return_object:
+ * dex_async_pair_return_error:
  * @async_pair: a #DexAsyncPair
  * @error: (transfer full): a #GError
  *
