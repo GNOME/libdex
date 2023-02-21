@@ -117,26 +117,31 @@ endif
 
 libdex_c_args = [
   deprecated_c_args,
-  hidden_visibility_args,
+  release_args,
   '-DG_LOG_DOMAIN="Dex"',
   '-DDEX_COMPILATION',
 ]
 
-libdex = library('dex-@0@'.format(api_version), libdex_sources,
-  dependencies: libdex_deps,
-        c_args: libdex_c_args,
-       install: true,
+libdex_static = static_library('dex-@0@'.format(api_version), libdex_sources,
+           dependencies: libdex_deps,
+  gnu_symbol_visibility: 'hidden',
+                 c_args: libdex_c_args,
 )
 
-if get_option('default_library') == 'shared'
-  libdex_static = static_library('dex-@0@'.format(api_version),
-    objects: libdex.extract_all_objects(recursive: true),
-  )
-elif get_option('default_library') == 'static'
-  libdex_static = libdex
-elif get_option('default_library') == 'both'
-  libdex_static = libdex.get_static_lib()
-endif
+libdex_static_dep = declare_dependency(
+           link_whole: libdex_static,
+  include_directories: include_directories('.'),
+         dependencies: libdex_deps,
+)
+
+libdex = shared_library('dex-@0@'.format(api_version),
+           dependencies: libdex_deps + [libdex_static_dep],
+                 c_args: libdex_c_args,
+                install: true,
+  gnu_symbol_visibility: 'hidden',
+                version: '@0@.0.0'.format(api_version),
+        darwin_versions: '1.0',
+)
 
 libdex_dep_sources = []
 
@@ -152,7 +157,7 @@ pkg.generate(
 )
 
 if get_option('introspection').enabled()
-  libdex_gir = gnome.generate_gir(libdex,
+  libdex_gir = gnome.generate_gir(libdex_static,
                 sources: [libdex_sources, libdex_headers],
               nsversion: api_version,
               namespace: 'Dex',
@@ -183,12 +188,6 @@ libdex_dep = declare_dependency(
   include_directories: include_directories('.'),
          dependencies: libdex_deps,
               sources: [libdex_dep_sources],
-)
-
-libdex_static_dep = declare_dependency(
-           link_whole: libdex_static,
-  include_directories: include_directories('.'),
-         dependencies: libdex_deps,
 )
 
 meson.override_dependency('libdex-' + api_version, libdex_dep)
