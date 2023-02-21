@@ -1,14 +1,12 @@
 # Dex
 
-Dex is a library supporting "Deferred Execution" with the explicit goal
-of integrating with GNOME and GTK-based applications.
+Dex provides Future-based programming for GLib-based applications.
 
-It provides primatives for supporting futures in a variety of ways with both
-read-only and writable views. Additionally, integration with existing
-asynchronous-based APIs is provided through the use of wrapper promises.
+It both integrates with and brings new features for application and library
+authors who want to structure concurrent code in an easy to manage way.
 
-"Fibers" are implemented which allows for writing synchronous looking code
-which calls asynchronous APIs from GIO underneath.
+Dex also provides Fibers which allow writing synchronous looking code in C
+that uses asynchronous and future-based APIs.
 
 Dex is licensed as LGPL-2.1+.
 
