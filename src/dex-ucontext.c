@@ -29,16 +29,6 @@
 #define NEEDSWAPCONTEXT
 #endif
 
-#if defined(__linux__) && defined(__arm__)
-#define NEEDSWAPCONTEXT
-#define NEEDARMMAKECONTEXT
-#endif
-
-#if defined(__linux__) && defined(__mips__)
-#define	NEEDSWAPCONTEXT
-#define	NEEDMIPSMAKECONTEXT
-#endif
-
 #ifdef NEEDPOWERMAKECONTEXT
 void
 makecontext(ucontext_t *ucp, void (*func)(void), int argc, ...)
@@ -93,40 +83,6 @@ makecontext(ucontext_t *ucp, void (*func)(void), int argc, ...)
 	*--sp = 0;	/* return address */
 	ucp->uc_mcontext.mc_rip = (long)func;
 	ucp->uc_mcontext.mc_rsp = (long)sp;
-}
-#endif
-
-#ifdef NEEDARMMAKECONTEXT
-void
-makecontext(ucontext_t *uc, void (*fn)(void), int argc, ...)
-{
-	int i, *sp;
-	va_list arg;
-
-	sp = (int*)uc->uc_stack.ss_sp+uc->uc_stack.ss_size/4;
-	va_start(arg, argc);
-	for(i=0; i<4 && i<argc; i++)
-		uc->uc_mcontext.gregs[i] = va_arg(arg, unsigned);
-	va_end(arg);
-	uc->uc_mcontext.gregs[13] = (unsigned)sp;
-	uc->uc_mcontext.gregs[14] = (unsigned)fn;
-}
-#endif
-
-#ifdef NEEDMIPSMAKECONTEXT
-void
-makecontext(ucontext_t *uc, void (*fn)(void), int argc, ...)
-{
-	int i, *sp;
-	va_list arg;
-
-	va_start(arg, argc);
-	sp = (int*)uc->uc_stack.ss_sp+uc->uc_stack.ss_size/4;
-	for(i=0; i<4 && i<argc; i++)
-		uc->uc_mcontext.mc_regs[i+4] = va_arg(arg, int);
-	va_end(arg);
-	uc->uc_mcontext.mc_regs[29] = (int)sp;
-	uc->uc_mcontext.mc_regs[31] = (int)fn;
 }
 #endif
 
