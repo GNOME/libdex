@@ -39,6 +39,16 @@
 
 G_BEGIN_DECLS
 
+#if !GLIB_CHECK_VERSION(2, 68, 0)
+static inline gpointer
+g_memdup2 (gconstpointer mem,
+           gsize         byte_size)
+{
+  g_assert (byte_size <= G_MAXUINT);
+  return g_memdup (mem, byte_size);
+}
+#endif
+
 static inline void
 _g_source_set_static_name (GSource    *source,
                            const char *name)
