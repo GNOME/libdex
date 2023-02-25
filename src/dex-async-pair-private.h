@@ -33,7 +33,7 @@ typedef struct _DexAsyncPair
   DexFuture parent_instance;
   gpointer instance;
   GCancellable *cancellable;
-  DexAsyncPairInfo info;
+  DexAsyncPairInfo *info;
 } DexAsyncPair;
 
 typedef struct _DexAsyncPairClass

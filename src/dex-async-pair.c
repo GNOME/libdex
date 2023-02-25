@@ -46,6 +46,7 @@ dex_async_pair_finalize (DexObject *object)
 
   g_clear_object (&async_pair->instance);
   g_clear_object (&async_pair->cancellable);
+  g_clear_pointer (&async_pair->info, g_free);
 
   DEX_OBJECT_CLASS (dex_async_pair_parent_class)->finalize (object);
 }
@@ -90,9 +91,9 @@ dex_async_pair_ready_callback (GObject      *object,
     }
 
 #define FINISH_AS(ap, TYPE) \
-  (((TYPE (*) (gpointer, GAsyncResult*, GError**))ap->info.finish) (ap->instance, result, &error))
+  (((TYPE (*) (gpointer, GAsyncResult*, GError**))ap->info->finish) (ap->instance, result, &error))
 
-  gtype = async_pair->info.return_type;
+  gtype = async_pair->info->return_type;
 
   switch (gtype)
     {
@@ -164,7 +165,7 @@ dex_async_pair_ready_callback (GObject      *object,
           error = g_error_new (DEX_ERROR,
                                DEX_ERROR_TYPE_NOT_SUPPORTED,
                                "Type '%s' is not currently supported by DexAsyncPair!",
-                               g_type_name (async_pair->info.return_type));
+                               g_type_name (async_pair->info->return_type));
         }
       break;
     }
@@ -194,7 +195,7 @@ dex_async_pair_new (gpointer                instance,
   async_func = info->async;
 
   async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
-  async_pair->info = *info;
+  async_pair->info = g_memdup2 (info, sizeof *info);
   g_set_object (&async_pair->instance, instance);
 
   async_func (async_pair->instance,
