@@ -94,3 +94,11 @@ extern void  makecontext(ucontext_t*, void(*)(), int, ...);
 #  include "power-ucontext.h"
 # endif
 #endif
+
+#if defined(__linux__) && defined(__mips__)
+# include "mips-ucontext.h"
+int  getmcontext(mcontext_t*);
+void setmcontext(const mcontext_t*);
+# define setcontext(u) setmcontext(&(u)->uc_mcontext)
+# define getcontext(u) getmcontext(&(u)->uc_mcontext)
+#endif
