@@ -151,7 +151,7 @@ dex_thread_pool_scheduler_new (void)
   guint n_procs;
   guint n_workers;
 
-  thread_pool_scheduler = (DexThreadPoolScheduler *)g_type_create_instance (DEX_TYPE_THREAD_POOL_SCHEDULER);
+  thread_pool_scheduler = (DexThreadPoolScheduler *)dex_object_create_instance (DEX_TYPE_THREAD_POOL_SCHEDULER);
 
   /* TODO: let this be dynamic and tunable, as well as thread pinning */
 

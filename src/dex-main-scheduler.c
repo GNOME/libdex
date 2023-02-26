@@ -230,7 +230,7 @@ dex_main_scheduler_new (GMainContext *main_context)
 
   fiber_scheduler = dex_fiber_scheduler_new ();
 
-  main_scheduler = (DexMainScheduler *)g_type_create_instance (DEX_TYPE_MAIN_SCHEDULER);
+  main_scheduler = (DexMainScheduler *)dex_object_create_instance (DEX_TYPE_MAIN_SCHEDULER);
   main_scheduler->main_context = g_main_context_ref (main_context);
   main_scheduler->aio_context = (GSource *)aio_context;
   main_scheduler->fiber_scheduler = (GSource *)fiber_scheduler;

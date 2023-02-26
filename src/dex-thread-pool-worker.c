@@ -428,7 +428,7 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
   if (aio_context == NULL)
     return NULL;
 
-  thread_pool_worker = (DexThreadPoolWorker *)g_type_create_instance (DEX_TYPE_THREAD_POOL_WORKER);
+  thread_pool_worker = (DexThreadPoolWorker *)dex_object_create_instance (DEX_TYPE_THREAD_POOL_WORKER);
   thread_pool_worker->main_context = g_main_context_new ();
   thread_pool_worker->aio_context = aio_context;
   thread_pool_worker->global_work_queue = dex_ref (work_queue);

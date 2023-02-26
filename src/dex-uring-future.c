@@ -169,7 +169,7 @@ dex_uring_future_new_read (int      fd,
 {
   DexUringFuture *future;
 
-  future = (DexUringFuture *)g_type_create_instance (DEX_TYPE_URING_FUTURE);
+  future = (DexUringFuture *)dex_object_create_instance (DEX_TYPE_URING_FUTURE);
   future->type = DEX_URING_TYPE_READ;
   future->read.fd = fd;
   future->read.buffer = buffer;
@@ -187,7 +187,7 @@ dex_uring_future_new_write (int           fd,
 {
   DexUringFuture *future;
 
-  future = (DexUringFuture *)g_type_create_instance (DEX_TYPE_URING_FUTURE);
+  future = (DexUringFuture *)dex_object_create_instance (DEX_TYPE_URING_FUTURE);
   future->type = DEX_URING_TYPE_WRITE;
   future->write.fd = fd;
   future->write.buffer = buffer;

@@ -191,7 +191,7 @@ dex_fiber_new (DexFiberFunc   func,
 
   g_return_val_if_fail (func != NULL, NULL);
 
-  fiber = (DexFiber *)g_type_create_instance (DEX_TYPE_FIBER);
+  fiber = (DexFiber *)dex_object_create_instance (DEX_TYPE_FIBER);
   fiber->func = func;
   fiber->func_data = func_data;
   fiber->func_data_destroy = func_data_destroy;

@@ -194,7 +194,7 @@ dex_async_pair_new (gpointer                instance,
 
   async_func = info->async;
 
-  async_pair = (DexAsyncPair *)g_type_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
   async_pair->info = g_memdup2 (info, sizeof *info);
   g_set_object (&async_pair->instance, instance);
 

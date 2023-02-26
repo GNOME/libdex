@@ -133,7 +133,7 @@ DEX_DEFINE_FINAL_TYPE (DexSemaphore, dex_semaphore, DEX_TYPE_OBJECT)
 DexSemaphore *
 dex_semaphore_new (void)
 {
-  return (DexSemaphore *)g_type_create_instance (DEX_TYPE_SEMAPHORE);
+  return (DexSemaphore *)dex_object_create_instance (DEX_TYPE_SEMAPHORE);
 }
 
 static void
@@ -269,7 +269,7 @@ dex_semaphore_wait (DexSemaphore *semaphore)
     DexFuture *ret = NULL;
 
     waiter = (DexSemaphoreWaiter *)
-      g_type_create_instance (DEX_TYPE_SEMAPHORE_WAITER);
+      dex_object_create_instance (DEX_TYPE_SEMAPHORE_WAITER);
 
     dex_object_lock (semaphore);
     if (semaphore->counter > 0)

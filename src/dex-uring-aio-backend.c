@@ -358,7 +358,7 @@ dex_uring_aio_backend_new (void)
   DexAioBackend *aio_backend;
   DexAioContext *aio_context;
 
-  aio_backend = (DexAioBackend *)g_type_create_instance (DEX_TYPE_URING_AIO_BACKEND);
+  aio_backend = (DexAioBackend *)dex_object_create_instance (DEX_TYPE_URING_AIO_BACKEND);
 
   /* Make sure we are capable of creating an aio_context */
   if (!(aio_context = dex_aio_backend_create_context (aio_backend)))

@@ -69,7 +69,7 @@ dex_cancellable_init (DexCancellable *cancellable)
 DexCancellable *
 dex_cancellable_new (void)
 {
-  return (DexCancellable *)g_type_create_instance (DEX_TYPE_CANCELLABLE);
+  return (DexCancellable *)dex_object_create_instance (DEX_TYPE_CANCELLABLE);
 }
 
 static void

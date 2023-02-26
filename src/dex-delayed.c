@@ -111,7 +111,7 @@ dex_delayed_new (DexFuture *future)
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
-  delayed = (DexDelayed *)g_type_create_instance (DEX_TYPE_DELAYED);
+  delayed = (DexDelayed *)dex_object_create_instance (DEX_TYPE_DELAYED);
   delayed->corked = TRUE;
   delayed->future = dex_ref (future);
 

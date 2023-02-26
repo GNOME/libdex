@@ -104,7 +104,7 @@ dex_posix_aio_future_new (DexPosixAioFutureKind  kind,
   if ((main_context = g_source_get_context ((GSource *)aio_context)))
     g_main_context_ref (main_context);
 
-  posix_aio_future = (DexPosixAioFuture *)g_type_create_instance (DEX_TYPE_POSIX_AIO_FUTURE);
+  posix_aio_future = (DexPosixAioFuture *)dex_object_create_instance (DEX_TYPE_POSIX_AIO_FUTURE);
   posix_aio_future->kind = kind;
   posix_aio_future->aio_context = (DexPosixAioContext *)g_source_ref ((GSource *)aio_context);
   posix_aio_future->main_context = main_context;

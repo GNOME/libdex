@@ -266,7 +266,7 @@ dex_block_new (DexFuture         *future,
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
-  block = (DexBlock *)g_type_create_instance (dex_block_type);
+  block = (DexBlock *)dex_object_create_instance (dex_block_type);
   block->scheduler = scheduler ? dex_ref (scheduler) : dex_scheduler_ref_thread_default ();
   block->awaiting = future;
   block->kind = kind;

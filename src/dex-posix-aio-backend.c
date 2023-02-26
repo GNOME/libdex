@@ -252,5 +252,5 @@ dex_posix_aio_backend_init (DexPosixAioBackend *posix_aio_backend)
 DexAioBackend *
 dex_posix_aio_backend_new (void)
 {
-  return (DexAioBackend *)g_type_create_instance (DEX_TYPE_POSIX_AIO_BACKEND);
+  return (DexAioBackend *)dex_object_create_instance (DEX_TYPE_POSIX_AIO_BACKEND);
 }

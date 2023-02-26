@@ -97,7 +97,7 @@ dex_channel_receiver_complete (DexChannelReceiver *channel_receiver,
 static inline DexChannelReceiver *
 dex_channel_receiver_new (void)
 {
-  return (DexChannelReceiver *)g_type_create_instance (dex_channel_receiver_type);
+  return (DexChannelReceiver *)dex_object_create_instance (dex_channel_receiver_type);
 }
 
 struct _DexChannel
@@ -243,7 +243,7 @@ dex_channel_new (guint capacity)
   if (capacity == 0)
     capacity = G_MAXUINT;
 
-  channel = (DexChannel *)g_type_create_instance (DEX_TYPE_CHANNEL);
+  channel = (DexChannel *)dex_object_create_instance (DEX_TYPE_CHANNEL);
   channel->capacity = capacity;
   channel->flags = DEX_CHANNEL_STATE_CAN_SEND | DEX_CHANNEL_STATE_CAN_RECEIVE;
 

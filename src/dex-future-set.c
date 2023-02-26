@@ -220,7 +220,7 @@ dex_future_set_new (DexFuture * const *futures,
                         NULL);
 
   /* Setup our new DexFuture to contain the results */
-  future_set = (DexFutureSet *)g_type_create_instance (DEX_TYPE_FUTURE_SET);
+  future_set = (DexFutureSet *)dex_object_create_instance (DEX_TYPE_FUTURE_SET);
   future_set->n_futures = n_futures;
   future_set->flags = flags;
 
@@ -256,7 +256,7 @@ dex_future_set_new_va (DexFuture         *first_future,
                         (flags & (DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE|DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)) != 0,
                         NULL);
 
-  future_set = (DexFutureSet *)g_type_create_instance (DEX_TYPE_FUTURE_SET);
+  future_set = (DexFutureSet *)dex_object_create_instance (DEX_TYPE_FUTURE_SET);
   future_set->flags = flags;
   future_set->futures = future_set->embedded;
 

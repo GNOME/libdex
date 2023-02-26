@@ -132,7 +132,7 @@ dex_unix_signal_new (int signum)
       g_assert_not_reached ();
     }
 
-  unix_signal = (DexUnixSignal *)g_type_create_instance (DEX_TYPE_UNIX_SIGNAL);
+  unix_signal = (DexUnixSignal *)dex_object_create_instance (DEX_TYPE_UNIX_SIGNAL);
   unix_signal->signum = signum;
   unix_signal->source = g_unix_signal_source_new (signum);
 

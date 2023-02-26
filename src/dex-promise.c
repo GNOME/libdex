@@ -52,7 +52,7 @@ dex_promise_init (DexPromise *promise)
 DexPromise *
 (dex_promise_new) (void)
 {
-  return (DexPromise *)g_type_create_instance (dex_promise_type);
+  return (DexPromise *)dex_object_create_instance (dex_promise_type);
 }
 
 /**

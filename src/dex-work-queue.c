@@ -79,7 +79,7 @@ dex_work_queue_init (DexWorkQueue *work_queue)
 DexWorkQueue *
 dex_work_queue_new (void)
 {
-  return (DexWorkQueue *)g_type_create_instance (DEX_TYPE_WORK_QUEUE);
+  return (DexWorkQueue *)dex_object_create_instance (DEX_TYPE_WORK_QUEUE);
 }
 
 void

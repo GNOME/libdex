@@ -55,7 +55,7 @@ dex_static_future_new_rejected (GError *error)
 
   g_return_val_if_fail (error != NULL, NULL);
 
-  ret = (DexFuture *)g_type_create_instance (DEX_TYPE_STATIC_FUTURE);
+  ret = (DexFuture *)dex_object_create_instance (DEX_TYPE_STATIC_FUTURE);
   ret->rejected = error;
   ret->status = DEX_FUTURE_STATUS_REJECTED;
 
@@ -69,7 +69,7 @@ dex_static_future_new_resolved (const GValue *value)
 
   g_return_val_if_fail (G_IS_VALUE (value), NULL);
 
-  ret = (DexFuture *)g_type_create_instance (DEX_TYPE_STATIC_FUTURE);
+  ret = (DexFuture *)dex_object_create_instance (DEX_TYPE_STATIC_FUTURE);
   g_value_init (&ret->resolved, G_VALUE_TYPE (value));
   g_value_copy (value, &ret->resolved);
   ret->status = DEX_FUTURE_STATUS_RESOLVED;

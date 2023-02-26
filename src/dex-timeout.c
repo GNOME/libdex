@@ -132,7 +132,7 @@ dex_timeout_new_deadline (gint64 deadline)
   if G_UNLIKELY (name == NULL)
     name = g_intern_static_string ("[dex-timeout]");
 
-  timeout = (DexTimeout *)g_type_create_instance (DEX_TYPE_TIMEOUT);
+  timeout = (DexTimeout *)dex_object_create_instance (DEX_TYPE_TIMEOUT);
 
   wr = g_new0 (DexWeakRef, 1);
   dex_weak_ref_init (wr, timeout);
