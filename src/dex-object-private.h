@@ -63,6 +63,14 @@ G_BEGIN_DECLS
 #define DEX_DEFINE_FINAL_TYPE(ClassName, class_name, PARENT_TYPE)                                 \
   _DEX_DEFINE_TYPE(ClassName, class_name, PARENT_TYPE, G_TYPE_FLAG_FINAL)
 
+#if defined(_MSC_VER)
+# define DEX_ALIGNED_BEGIN(_N) __declspec(align (_N))
+# define DEX_ALIGNED_END(_N)
+#else
+# define DEX_ALIGNED_BEGIN(_N)
+# define DEX_ALIGNED_END(_N) __attribute__ ((aligned (_N)))
+#endif
+
 typedef struct _DexWeakRef
 {
   GMutex              mutex;
@@ -78,6 +86,7 @@ gpointer dex_weak_ref_get   (DexWeakRef *weak_ref);
 void     dex_weak_ref_set   (DexWeakRef *weak_ref,
                              gpointer    mem_block);
 
+DEX_ALIGNED_BEGIN (8)
 typedef struct _DexObject
 {
   GTypeInstance    parent_instance;
@@ -88,7 +97,8 @@ typedef struct _DexObject
 #ifdef HAVE_SYSPROF
   gint64           ctime;
 #endif
-} DexObject;
+} DexObject
+DEX_ALIGNED_END (8);
 
 static inline void
 dex_object_lock (gpointer data)
@@ -108,5 +118,7 @@ typedef struct _DexObjectClass
 
   void (*finalize) (DexObject *object);
 } DexObjectClass;
+
+DexObject *dex_object_create_instance (GType instance_type);
 
 G_END_DECLS

@@ -518,3 +518,9 @@ dex_object_get_type (void)
 
   return dex_object_type;
 }
+
+DexObject *
+dex_object_create_instance (GType instance_type)
+{
+  return (DexObject *)(gpointer)g_type_create_instance (instance_type);
+}
