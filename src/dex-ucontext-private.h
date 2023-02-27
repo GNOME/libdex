@@ -25,6 +25,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "config.h"
+
 /* The following code is from libtask by Russ Cox to emulate the
  * ucontext implementation in a fashion that doesn't necessarily
  * require context switches for implementation.
@@ -95,7 +97,7 @@ extern void  makecontext(ucontext_t*, void(*)(), int, ...);
 # endif
 #endif
 
-#if defined(__linux__) && defined(__mips__)
+#if defined(__linux__) && defined(__mips__) && !defined(HAVE_UCONTEXT_H)
 # include "mips-ucontext.h"
 int  getmcontext(mcontext_t*);
 void setmcontext(const mcontext_t*);

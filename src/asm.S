@@ -1,5 +1,7 @@
 /* Copyright (c) 2005-2006 Russ Cox, MIT; see COPYRIGHT */
 
+#include "config.h"
+
 #if defined(__FreeBSD__) && defined(__i386__) && __FreeBSD__ < 5
 #define NEEDX86CONTEXT 1
 #define SET setmcontext
@@ -28,7 +30,7 @@
 #endif
 #endif
 
-#if defined(__linux__) && defined(__mips__)
+#if defined(__linux__) && defined(__mips__) && !defined(HAVE_UCONTEXT_H)
 #define NEEDMIPSCONTEXT 1
 #define SET setmcontext
 #define GET getmcontext
