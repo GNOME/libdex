@@ -97,10 +97,13 @@ extern void  makecontext(ucontext_t*, void(*)(), int, ...);
 # endif
 #endif
 
-#if defined(__linux__) && defined(__mips__) && !defined(HAVE_UCONTEXT_H)
-# include "mips-ucontext.h"
-int  getmcontext(mcontext_t*);
-void setmcontext(const mcontext_t*);
-# define setcontext(u) setmcontext(&(u)->uc_mcontext)
-# define getcontext(u) getmcontext(&(u)->uc_mcontext)
+#if defined(__linux__) && defined(__mips__)
+# if !defined(HAVE_UCONTEXT_H)
+#   include "mips-ucontext.h"
+# endif
+extern int getcontext (ucontext_t *ucp);
+extern int setcontext(const ucontext_t *ucp);
+extern int swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
+/* glibc makecontext.S for mips specifies int return type, not void */
+extern int makecontext(ucontext_t *ucp, (void *func) (), int argc, ...);
 #endif
