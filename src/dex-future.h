@@ -1,7 +1,7 @@
 /*
  * dex-future.h
  *
- * Copyright 2022 Christian Hergert <chergert@gnome.org>
+ * Copyright 2022-2023 Christian Hergert <chergert@gnome.org>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,6 +36,21 @@ G_BEGIN_DECLS
 
 typedef struct _DexFuture DexFuture;
 
+/**
+ * DexFutureCallback:
+ * @future: a resolved or rejected #DexFuture
+ * @user_data: closure data associated with the callback
+ *
+ * A #DexFutureCallback can be executed from a #DexBlock as response to
+ * another #DexFuture resolving or rejecting.
+ *
+ * The callback will be executed within the scheduler environment the
+ * block is created within when using dex_future_then(), dex_future_catch(),
+ * dex_future_finally(), dex_future_all(), and similar functions.
+ *
+ * This is the expected way to handle completion of a future when not using
+ * #DexFiber via dex_scheduler_spawn().
+ */
 typedef DexFuture *(*DexFutureCallback) (DexFuture *future,
                                          gpointer   user_data);
 
