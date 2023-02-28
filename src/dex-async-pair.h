@@ -1,7 +1,7 @@
 /*
  * dex-async-pair.h
  *
- * Copyright 2022 Christian Hergert <chergert@redhat.com>
+ * Copyright 2022-2023 Christian Hergert <chergert@redhat.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -38,7 +38,12 @@ typedef struct _DexAsyncPairInfo
   gpointer  async;
   gpointer  finish;
   GType     return_type;
+
+  /*< private >*/
+  gpointer _reserved[13];
 } DexAsyncPairInfo;
+
+G_STATIC_ASSERT (sizeof (DexAsyncPairInfo) == (GLIB_SIZEOF_VOID_P * 16));
 
 #define DEX_ASYNC_PAIR_INFO(Async, Finish, ReturnType) \
   (DexAsyncPairInfo) {                                 \
