@@ -109,4 +109,6 @@ void          dex_async_pair_return_boxed    (DexAsyncPair           *async_pair
                                               GType                   boxed_type,
                                               gpointer                instance);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexAsyncPair, dex_unref)
+
 G_END_DECLS
