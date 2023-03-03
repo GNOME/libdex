@@ -68,7 +68,7 @@ extern void  setmcontext(const mcontext_t*);
 #define setcontext(u) setmcontext(&(u)->uc_mcontext)
 #define getcontext(u) getmcontext(&(u)->uc_mcontext)
 extern int   swapcontext(ucontext_t*, const ucontext_t*);
-extern void  makecontext(ucontext_t*, void(*)(), int, ...);
+extern void  makecontext(ucontext_t*, void(*)(void), int, ...);
 #endif
 
 #if defined(__APPLE__)
@@ -105,5 +105,5 @@ extern int getcontext (ucontext_t *ucp);
 extern int setcontext(const ucontext_t *ucp);
 extern int swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
 /* glibc makecontext.S for mips specifies int return type, not void */
-extern int makecontext(ucontext_t *, void(*)(), int, ...);
+extern void makecontext(ucontext_t *ucp, void(*)(void), int, ...);
 #endif
