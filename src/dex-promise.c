@@ -27,6 +27,7 @@
 typedef struct _DexPromise
 {
   DexFuture parent_instance;
+  GCancellable *cancellable;
 } DexPromise;
 
 typedef struct _DexPromiseClass
@@ -40,8 +41,32 @@ DEX_DEFINE_FINAL_TYPE (DexPromise, dex_promise, DEX_TYPE_FUTURE)
 #define DEX_TYPE_PROMISE dex_promise_type
 
 static void
+dex_promise_discard (DexFuture *future)
+{
+  DexPromise *promise = DEX_PROMISE (future);
+
+  g_cancellable_cancel (promise->cancellable);
+}
+
+static void
+dex_promise_finalize (DexObject *object)
+{
+  DexPromise *self = (DexPromise *)object;
+
+  g_clear_object (&self->cancellable);
+
+  DEX_OBJECT_CLASS (dex_promise_parent_class)->finalize (object);
+}
+
+static void
 dex_promise_class_init (DexPromiseClass *promise_class)
 {
+  DexObjectClass *object_class = DEX_OBJECT_CLASS (promise_class);
+  DexFutureClass *future_class = DEX_FUTURE_CLASS (promise_class);
+
+  object_class->finalize = dex_promise_finalize;
+
+  future_class->discard = dex_promise_discard;
 }
 
 static void
@@ -53,6 +78,50 @@ DexPromise *
 (dex_promise_new) (void)
 {
   return (DexPromise *)dex_object_create_instance (dex_promise_type);
+}
+
+/**
+ * dex_promise_new_cancellable:
+ * @cancellable: a #GCancellable
+ *
+ * Creates a new #DexPromise that can propagate cancellation if the
+ * promise is discarded.
+ *
+ * This can be used to plumb cancellation between promises and
+ * #GAsyncReadyCallback based APIs.
+ *
+ * Returns: (transfer full): a #DexPromise
+ */
+DexPromise *
+(dex_promise_new_cancellable) (void)
+{
+  DexPromise *self = (DexPromise *)dex_object_create_instance (dex_promise_type);
+
+  self->cancellable = g_cancellable_new ();
+
+  return self;
+}
+
+/**
+ * dex_promise_get_cancellable:
+ * @self: a #DexPromise
+ *
+ * Gets a #GCancellable that will cancel when the promise has
+ * been discarded (and therefore result no longer necessary).
+ *
+ * This is useful when manually implementing wrappers around various
+ * #GAsyncReadyCallback based API.
+ *
+ * If @self was created with dex_promise_new(), then %NULL is returned.
+ *
+ * Returns: (transfer none) (nullable): a #GCancellable or %NULL
+ */
+GCancellable *
+dex_promise_get_cancellable (DexPromise *self)
+{
+  g_return_val_if_fail (DEX_IS_PROMISE (self), NULL);
+
+  return self->cancellable;
 }
 
 /**
