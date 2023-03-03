@@ -105,5 +105,5 @@ extern int getcontext (ucontext_t *ucp);
 extern int setcontext(const ucontext_t *ucp);
 extern int swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
 /* glibc makecontext.S for mips specifies int return type, not void */
-extern int makecontext(ucontext_t *ucp, (void *func) (), int argc, ...);
+extern int makecontext(ucontext_t *, void(*)(), int, ...);
 #endif
