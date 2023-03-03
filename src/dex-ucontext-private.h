@@ -99,7 +99,7 @@ extern void  makecontext(ucontext_t*, void(*)(void), int, ...);
 
 #if defined(__linux__) && defined(__mips__)
 # if !defined(HAVE_UCONTEXT_H)
-#   include "mips-ucontext.h"
+#  include "mips-ucontext.h"
 # endif
 extern int getcontext (ucontext_t *ucp);
 extern int setcontext(const ucontext_t *ucp);
