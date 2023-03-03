@@ -1,3 +1,18 @@
+libdex 0.1.1
+============
+
+Changes in this release:
+
+ * Fix soname versioning
+ * Documentation improvements
+ * Fix various GObject Introspection issues
+ * More backports for older GLib use
+ * Various ucontext fiber fixes for less-used architectures
+ * Fixes for various incorrect cast-align warnings
+ * Tweaks for better Forward portability
+ * Add some missing g_autoptr() definitions
+ * Add GCancellation integration to DexPromise
+
 libdex 0.1.0
 ============
 
