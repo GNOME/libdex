@@ -40,4 +40,6 @@ void       dex_delayed_release    (DexDelayed *delayed);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_delayed_dup_future (DexDelayed *delayed);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexDelayed, dex_unref)
+
 G_END_DECLS

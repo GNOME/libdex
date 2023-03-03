@@ -43,4 +43,6 @@ DEX_AVAILABLE_IN_ALL
 DexFuture    *dex_future_set_get_future_at (DexFutureSet  *future_set,
                                             guint          position);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFutureSet, dex_unref)
+
 G_END_DECLS

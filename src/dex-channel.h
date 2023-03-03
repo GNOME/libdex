@@ -51,4 +51,6 @@ gboolean    dex_channel_can_send          (DexChannel *channel);
 DEX_AVAILABLE_IN_ALL
 gboolean    dex_channel_can_receive       (DexChannel *channel);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexChannel, dex_unref)
+
 G_END_DECLS

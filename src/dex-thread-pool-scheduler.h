@@ -38,4 +38,6 @@ DexScheduler *dex_thread_pool_scheduler_new         (void);
 DEX_AVAILABLE_IN_ALL
 DexScheduler *dex_thread_pool_scheduler_get_default (void) G_GNUC_CONST;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexThreadPoolScheduler, dex_unref)
+
 G_END_DECLS

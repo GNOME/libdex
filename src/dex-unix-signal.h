@@ -38,4 +38,6 @@ DexFuture *dex_unix_signal_new        (int signum);
 DEX_AVAILABLE_IN_ALL
 int        dex_unix_signal_get_signum (DexUnixSignal *unix_signal);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexUnixSignal, dex_unref)
+
 G_END_DECLS

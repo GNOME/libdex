@@ -33,4 +33,6 @@ typedef struct _DexFiber DexFiber;
 DEX_AVAILABLE_IN_ALL
 GType dex_fiber_get_type (void) G_GNUC_CONST;
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFiber, dex_unref)
+
 G_END_DECLS

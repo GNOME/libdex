@@ -52,4 +52,6 @@ dex_clear (gpointer data)
     dex_unref (obj);
 }
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexObject, dex_unref)
+
 G_END_DECLS

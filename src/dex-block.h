@@ -53,4 +53,6 @@ DexBlockKind  dex_block_get_kind      (DexBlock *block);
 DEX_AVAILABLE_IN_ALL
 DexScheduler *dex_block_get_scheduler (DexBlock *block);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexBlock, dex_unref)
+
 G_END_DECLS
