@@ -43,7 +43,9 @@ typedef struct _DexAsyncPairInfo
   gpointer _reserved[13];
 } DexAsyncPairInfo;
 
+#ifndef __GI_SCANNER__
 G_STATIC_ASSERT (sizeof (DexAsyncPairInfo) == (GLIB_SIZEOF_VOID_P * 16));
+#endif
 
 #define DEX_ASYNC_PAIR_INFO(Async, Finish, ReturnType) \
   (DexAsyncPairInfo) {                                 \
