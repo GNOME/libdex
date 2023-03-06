@@ -76,7 +76,7 @@ struct mcontext {
 	 * sigcontext. So that we can support sigcontext
 	 * and ucontext_t at the same time.
 	 */
-	int	mc_onstack;		/* XXX - sigcontext compat. */
+	int	mc_onstack;		/* sigcontext compat. */
 	int	mc_gs;
 	int	mc_fs;
 	int	mc_es;

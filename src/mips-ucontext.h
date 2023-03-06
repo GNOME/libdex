@@ -52,7 +52,7 @@ struct  mcontext {
   int     mc_fpregs[33];  /* fp regs 0 to 31 and csr */
   int     mc_fpc_eir;     /* fp exception instruction reg */
   void   *mc_tls;         /* pointer to TLS area */
-  int     __spare__[8];   /* XXX reserved */
+  int     __spare__[8];   /* reserved */
 };
 
 struct ucontext {

@@ -76,7 +76,7 @@ struct mcontext {
 	 * sigcontext. So that we can support sigcontext
 	 * and ucontext_t at the same time.
 	 */
-	long	mc_onstack;		/* XXX - sigcontext compat. */
+	long	mc_onstack;		/* sigcontext compat. */
 	long	mc_rdi;			/* machine state (struct trapframe) */
 	long	mc_rsi;
 	long	mc_rdx;
