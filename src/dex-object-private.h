@@ -1,7 +1,7 @@
 /*
  * dex-object-private.h
  *
- * Copyright 2022 Christian Hergert <chergert@gnome.org>
+ * Copyright 2022-2023 Christian Hergert <chergert@gnome.org>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -60,6 +60,8 @@ G_BEGIN_DECLS
   }
 #define DEX_DEFINE_ABSTRACT_TYPE(ClassName, class_name, PARENT_TYPE)                              \
   _DEX_DEFINE_TYPE(ClassName, class_name, PARENT_TYPE, G_TYPE_FLAG_ABSTRACT)
+#define DEX_DEFINE_DERIVABLE_TYPE(ClassName, class_name, PARENT_TYPE)                             \
+  _DEX_DEFINE_TYPE(ClassName, class_name, PARENT_TYPE, 0)
 #define DEX_DEFINE_FINAL_TYPE(ClassName, class_name, PARENT_TYPE)                                 \
   _DEX_DEFINE_TYPE(ClassName, class_name, PARENT_TYPE, G_TYPE_FLAG_FINAL)
 
