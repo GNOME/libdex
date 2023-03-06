@@ -1109,7 +1109,7 @@ DexFuture *
 /**
  * dex_future_new_reject: (constructor)
  * @domain: the error domain
- * @code: the error code
+ * @error_code: the error code
  * @format: a printf-style format string
  *
  * Creates a new #DexFuture that is rejeced.
@@ -1118,7 +1118,7 @@ DexFuture *
  */
 DexFuture *
 (dex_future_new_reject) (GQuark      domain,
-                         int         code,
+                         int         error_code,
                          const char *format,
                          ...)
 {
@@ -1126,7 +1126,7 @@ DexFuture *
   va_list args;
 
   va_start (args, format);
-  error = g_error_new_valist (domain, code, format, args);
+  error = g_error_new_valist (domain, error_code, format, args);
   va_end (args);
 
   g_return_val_if_fail (error != NULL, NULL);

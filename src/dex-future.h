@@ -71,32 +71,32 @@ DexFuture       *dex_future_new_reject      (GQuark              domain,
                                              const char         *format,
                                              ...) G_GNUC_PRINTF (3, 4);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_string  (const char         *value);
+DexFuture       *dex_future_new_for_string  (const char         *string);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_take_string (char               *value);
+DexFuture       *dex_future_new_take_string (char               *string);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_int     (int                 value);
+DexFuture       *dex_future_new_for_int     (int                 v_int);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_uint    (guint               value);
+DexFuture       *dex_future_new_for_uint    (guint               v_uint);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_int64   (gint64              value);
+DexFuture       *dex_future_new_for_int64   (gint64              v_int64);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_uint64  (guint64             value);
+DexFuture       *dex_future_new_for_uint64  (guint64             v_uint64);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_boolean (gboolean            value);
+DexFuture       *dex_future_new_for_boolean (gboolean            v_bool);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_double  (double              value);
+DexFuture       *dex_future_new_for_double  (double              v_double);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_float   (float               value);
+DexFuture       *dex_future_new_for_float   (float               v_float);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_take_boxed  (GType               type,
+DexFuture       *dex_future_new_take_boxed  (GType               boxed_type,
                                              gpointer            value);
 DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_for_pointer (gpointer            pointer);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_object  (gpointer            instance);
+DexFuture       *dex_future_new_for_object  (gpointer            value);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_take_object (gpointer            instance);
+DexFuture       *dex_future_new_take_object (gpointer            value);
 DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_then            (DexFuture          *future,
                                              DexFutureCallback   callback,
