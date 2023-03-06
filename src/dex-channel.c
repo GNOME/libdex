@@ -372,6 +372,17 @@ dex_channel_send (DexChannel *channel,
   return ret;
 }
 
+/**
+ * dex_channel_receive:
+ * @channel: a #DexChannel
+ *
+ * Receives the next item from the channel.
+ *
+ * The resulting future will resolve or reject when an item is available
+ * to the channel or when send side has closed (in that order).
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_channel_receive (DexChannel *channel)
 {
@@ -411,8 +422,8 @@ reject_receive:
 }
 
 /**
- * dex_channel_try_receive_all:
- * @self: a #DexChannel
+ * dex_channel_receive_all:
+ * @channel: a #DexChannel
  *
  * Will attempt to receive all items in the channel as a #DexResultSet.
  *
