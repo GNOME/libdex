@@ -1,7 +1,7 @@
 /*
  * dex-gio.c
  *
- * Copyright 2022 Christian Hergert <chergert@redhat.com>
+ * Copyright 2022-2023 Christian Hergert <chergert@redhat.com>
  *
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -78,6 +78,11 @@ dex_input_stream_read_bytes_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_input_stream_read_bytes:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_input_stream_read_bytes (GInputStream *stream,
                              gsize         count,
@@ -118,6 +123,11 @@ dex_output_stream_write_bytes_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_output_stream_write_bytes:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_output_stream_write_bytes (GOutputStream *stream,
                                GBytes        *bytes,
@@ -156,9 +166,18 @@ dex_file_read_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_file_read:
+ * @file: a #GFile
+ * @io_priority: IO priority such as %G_PRIORITY_DEFAULT
+ *
+ * Asynchronously opens a file for reading.
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_file_read (GFile *file,
-               int    priority)
+               int    io_priority)
 {
   DexAsyncPair *async_pair;
 
@@ -167,7 +186,7 @@ dex_file_read (GFile *file,
   async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
 
   g_file_read_async (file,
-                     priority,
+                     io_priority,
                      async_pair->cancellable,
                      dex_file_read_cb,
                      dex_ref (async_pair));
@@ -192,6 +211,11 @@ dex_file_replace_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_file_replace:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_file_replace (GFile            *file,
                   const char       *etag,
@@ -236,6 +260,11 @@ dex_input_stream_read_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_input_stream_read:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_input_stream_read (GInputStream *self,
                        gpointer      buffer,
@@ -278,6 +307,11 @@ dex_output_stream_write_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_output_stream_write:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_output_stream_write (GOutputStream *self,
                          gconstpointer  buffer,
@@ -319,6 +353,11 @@ dex_output_stream_close_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_output_stream_close:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_output_stream_close (GOutputStream *self,
                          int            priority)
@@ -356,6 +395,11 @@ dex_input_stream_close_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_input_stream_close:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_input_stream_close (GInputStream *self,
                         int           priority)
@@ -394,6 +438,11 @@ dex_output_stream_splice_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_output_stream_splice:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_output_stream_splice (GOutputStream            *output,
                           GInputStream             *input,
@@ -437,6 +486,11 @@ dex_file_query_info_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_file_query_info:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_file_query_info (GFile               *file,
                      const char          *attributes,
@@ -478,6 +532,16 @@ dex_file_make_directory_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_file_make_directory:
+ * @file: a #GFile
+ * @io_priority: IO priority such as %G_PRIORITY_DEFAULT
+ *
+ * Asynchronously creates a directory and returns #DexFuture which
+ * can be observed for the result.
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_file_make_directory (GFile *file,
                          int    io_priority)
@@ -516,6 +580,11 @@ dex_file_enumerate_children_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_file_enumerate_children:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_file_enumerate_children (GFile               *file,
                              const char          *attributes,
@@ -558,6 +627,11 @@ dex_file_enumerator_next_files_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_file_enumerator_next_files:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_file_enumerator_next_files (GFileEnumerator *file_enumerator,
                                 int              num_files,
@@ -597,6 +671,18 @@ dex_file_copy_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_file_copy:
+ * @source: a #GFile
+ * @destination: a #GFile
+ * @flags: the #GFileCopyFlags
+ * @io_priority: IO priority such as %G_PRIORITY_DEFAULT
+ *
+ * Asynchronously copies a file and returns a #DexFuture which
+ * can be observed for the result.
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_file_copy (GFile          *source,
                GFile          *destination,
@@ -641,6 +727,11 @@ dex_socket_listener_accept_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_socket_listener_accept:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_socket_listener_accept (GSocketListener *listener)
 {
@@ -677,6 +768,11 @@ dex_socket_client_connect_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_socket_client_connect:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_socket_client_connect (GSocketClient      *socket_client,
                            GSocketConnectable *socket_connectable)
@@ -715,6 +811,11 @@ dex_io_stream_close_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_io_stream_close:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_io_stream_close (GIOStream *io_stream,
                      int        io_priority)
@@ -753,6 +854,11 @@ dex_resolver_lookup_by_name_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_resolver_lookup_by_name:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_resolver_lookup_by_name (GResolver  *resolver,
                              const char *address)
@@ -793,6 +899,11 @@ dex_file_load_contents_bytes_cb (GObject      *object,
   dex_unref (async_pair);
 }
 
+/**
+ * dex_file_load_contents_bytes:
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
 DexFuture *
 dex_file_load_contents_bytes (GFile *file)
 {
