@@ -1,7 +1,7 @@
 /*
  * dex-async-result.c
  *
- * Copyright 2022 Christian Hergert <>
+ * Copyright 2022-2023 Christian Hergert <>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -171,7 +171,7 @@ dex_async_result_set_static_name (DexAsyncResult *async_result,
 
 /**
  * dex_async_result_dup_future:
- * @self: a #DexAsyncResult
+ * @async_result: a #DexAsyncResult
  *
  * Gets the future for the #DexAsyncResult, or %NULL if a future
  * is not available.
@@ -179,16 +179,16 @@ dex_async_result_set_static_name (DexAsyncResult *async_result,
  * Returns: (transfer full) (nullable): a #DexFuture or %NULL
  */
 DexFuture *
-dex_async_result_dup_future (DexAsyncResult *self)
+dex_async_result_dup_future (DexAsyncResult *async_result)
 {
   DexFuture *future = NULL;
 
-  g_return_val_if_fail (DEX_IS_ASYNC_RESULT (self), NULL);
+  g_return_val_if_fail (DEX_IS_ASYNC_RESULT (async_result), NULL);
 
-  g_mutex_lock (&self->mutex);
-  if (self->future != NULL)
-    future = dex_ref (self->future);
-  g_mutex_unlock (&self->mutex);
+  g_mutex_lock (&async_result->mutex);
+  if (async_result->future != NULL)
+    future = dex_ref (async_result->future);
+  g_mutex_unlock (&async_result->mutex);
 
   return g_steal_pointer (&future);
 }
