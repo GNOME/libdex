@@ -1,7 +1,7 @@
 /*
  * dex-future.c
  *
- * Copyright 2022 Christian Hergert <chergert@gnome.org>
+ * Copyright 2022-2023 Christian Hergert <chergert@gnome.org>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -34,7 +34,7 @@
 static void dex_future_propagate (DexFuture *future,
                                   DexFuture *completed);
 
-DEX_DEFINE_ABSTRACT_TYPE (DexFuture, dex_future, DEX_TYPE_OBJECT)
+DEX_DEFINE_DERIVABLE_TYPE (DexFuture, dex_future, DEX_TYPE_OBJECT)
 
 #undef DEX_TYPE_FUTURE
 #define DEX_TYPE_FUTURE dex_future_type
@@ -779,7 +779,7 @@ dex_future_get_name (DexFuture *future)
  *
  * Creates a read-only #DexFuture that has resolved.
  *
- * Returns: (transfer full) (type DexStaticFuture): a #DexFuture
+ * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
 (dex_future_new_for_value) (const GValue *value)
@@ -795,7 +795,7 @@ DexFuture *
  *
  * Creates a read-only #DexFuture that has rejected.
  *
- * Returns: (transfer full) (type DexStaticFuture): a #DexFuture
+ * Returns: (transfer full): a #DexFuture
  */
 DexFuture *
 (dex_future_new_for_error) (GError *error)
@@ -811,7 +811,7 @@ DexFuture *
  *
  * Creates a new #DexFuture and resolves it with @v_bool.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_for_boolean) (gboolean v_bool)
@@ -840,7 +840,7 @@ DexFuture *
  *
  * Creates a new #DexFuture and resolves it with @v_int.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_for_int) (int v_int)
@@ -862,7 +862,7 @@ DexFuture *
  *
  * Creates a new #DexFuture and resolves it with @v_int64.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_for_int64) (gint64 v_int64)
@@ -884,7 +884,7 @@ DexFuture *
  *
  * Creates a new #DexFuture and resolves it with @v_uint64.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_for_uint64) (guint64 v_uint64)
@@ -906,7 +906,7 @@ DexFuture *
  *
  * Creates a new #DexFuture and resolves it with @v_float.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_for_float) (gfloat v_float)
@@ -928,7 +928,7 @@ DexFuture *
  *
  * Creates a new #DexFuture and resolves it with @v_double.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_for_double) (gdouble v_double)
@@ -950,7 +950,7 @@ DexFuture *
  *
  * Creates a new #DexFuture and resolves it with @v_uint.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_for_uint) (guint v_uint)
@@ -972,7 +972,7 @@ DexFuture *
  *
  * Creates a new #DexFuture and resolves it with @string.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_for_string) (const char *string)
@@ -994,7 +994,7 @@ DexFuture *
  *
  * Creates a new #DexFuture and resolves it with @string.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_take_string) (char *string)
@@ -1017,7 +1017,7 @@ DexFuture *
  *
  * Creates a new #DexFuture that is resolved with @value.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_take_boxed) (GType    boxed_type,
@@ -1042,7 +1042,7 @@ DexFuture *
  *
  * Creates a new #DexFuture that is resolved with @pointer as a %G_TYPE_POINTER.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_for_pointer) (gpointer pointer)
@@ -1064,7 +1064,7 @@ DexFuture *
  *
  * Creates a new #DexFuture that is resolved with @value.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_for_object) (gpointer value)
@@ -1088,7 +1088,7 @@ DexFuture *
  *
  * Creates a new #DexFuture that is resolved with @value.
  *
- * Returns: (transfer full) (type DexStaticFuture): a resolved #DexFuture
+ * Returns: (transfer full): a resolved #DexFuture
  */
 DexFuture *
 (dex_future_new_take_object) (gpointer value)
@@ -1114,7 +1114,7 @@ DexFuture *
  *
  * Creates a new #DexFuture that is rejeced.
  *
- * Returns: (transfer full) (type DexStaticFuture): a new #DexFuture
+ * Returns: (transfer full): a new #DexFuture
  */
 DexFuture *
 (dex_future_new_reject) (GQuark      domain,
