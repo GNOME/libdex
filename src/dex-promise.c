@@ -1,7 +1,7 @@
 /*
  * dex-promise.c
  *
- * Copyright 2022 Christian Hergert <chergert@gnome.org>
+ * Copyright 2022-2023 Christian Hergert <chergert@gnome.org>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -82,7 +82,6 @@ DexPromise *
 
 /**
  * dex_promise_new_cancellable:
- * @cancellable: a #GCancellable
  *
  * Creates a new #DexPromise that can propagate cancellation if the
  * promise is discarded.
@@ -104,7 +103,7 @@ DexPromise *
 
 /**
  * dex_promise_get_cancellable:
- * @self: a #DexPromise
+ * @promise: a #DexPromise
  *
  * Gets a #GCancellable that will cancel when the promise has
  * been discarded (and therefore result no longer necessary).
@@ -112,16 +111,16 @@ DexPromise *
  * This is useful when manually implementing wrappers around various
  * #GAsyncReadyCallback based API.
  *
- * If @self was created with dex_promise_new(), then %NULL is returned.
+ * If @promise was created with dex_promise_new(), then %NULL is returned.
  *
  * Returns: (transfer none) (nullable): a #GCancellable or %NULL
  */
 GCancellable *
-dex_promise_get_cancellable (DexPromise *self)
+dex_promise_get_cancellable (DexPromise *promise)
 {
-  g_return_val_if_fail (DEX_IS_PROMISE (self), NULL);
+  g_return_val_if_fail (DEX_IS_PROMISE (promise), NULL);
 
-  return self->cancellable;
+  return promise->cancellable;
 }
 
 /**
@@ -232,7 +231,7 @@ dex_promise_resolve_boolean (DexPromise *promise,
 
 /**
  * dex_promise_resolve_string:
- * @self: a #DexPromise
+ * @promise: a #DexPromise
  * @value: (transfer full): a string to use to resolve the promise
  *
  */
@@ -247,15 +246,15 @@ dex_promise_resolve_string (DexPromise *promise,
 
 /**
  * dex_promise_resolve_object:
- * @self: a #DexPromise
- * @value: (transfer full): a #GObject
+ * @promise: a #DexPromise
+ * @object: (transfer full): a #GObject
  *
  */
 void
 dex_promise_resolve_object (DexPromise *promise,
-                            gpointer    value)
+                            gpointer    object)
 {
-  GValue gvalue = {G_OBJECT_TYPE (value), {{.v_pointer = value}, {.v_int = 0}}};
+  GValue gvalue = {G_OBJECT_TYPE (object), {{.v_pointer = object}, {.v_int = 0}}};
   dex_promise_resolve (promise, &gvalue);
-  g_object_unref (value);
+  g_object_unref (object);
 }
