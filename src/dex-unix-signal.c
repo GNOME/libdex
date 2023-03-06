@@ -1,7 +1,7 @@
 /*
  * dex-unix-signal.c
  *
- * Copyright 2022 Christian Hergert <chergert@redhat.com>
+ * Copyright 2022-2023 Christian Hergert <chergert@redhat.com>
  *
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -97,7 +97,7 @@ clear_weak_ref (gpointer data)
 
 /**
  * dex_unix_signal_new:
- * @self: a #DexUnixSignal
+ * @signum: a unix signal number
  *
  * Creates a new #DexUnixSignal that completes when @signum is delivered
  * to the process.
