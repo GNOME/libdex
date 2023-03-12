@@ -26,10 +26,18 @@ testsuite = {
   'test-stream': {},
 }
 
+testsuite_deps = [
+  libdex_static_dep,
+]
+
+if get_option('sysprof')
+  testsuite_deps += [libsysprof_capture_dep]
+endif
+
 foreach test, params: testsuite
   test_exe = executable(test, '@0@.c'.format(test),
           c_args: testsuite_c_args + deprecated_c_args,
-    dependencies: [libdex_static_dep],
+    dependencies: testsuite_deps,
   )
 
   test(test, test_exe, env: test_env)
