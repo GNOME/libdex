@@ -8,7 +8,7 @@ option('vapi',
        type: 'boolean', value: true,
        description: 'Generate vapi data (requires vapigen)')
 option('introspection',
-       type: 'feature', value: 'auto',
+       type: 'feature', value: 'enabled',
        description: 'Generate gir data (requires gobject-introspection)')
 option('sysprof',
        type: 'boolean', value: false,
