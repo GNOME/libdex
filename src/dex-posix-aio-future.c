@@ -167,10 +167,13 @@ dex_posix_aio_future_run (DexPosixAioFuture *posix_aio_future)
                  posix_aio_future->read.count,
                  posix_aio_future->read.offset);
       else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
         posix_aio_future->read.res =
           read (posix_aio_future->read.fd,
                 posix_aio_future->read.buffer,
                 posix_aio_future->read.count);
+#pragma GCC diagnostic pop
       break;
 
     case DEX_POSIX_AIO_FUTURE_WRITE:
