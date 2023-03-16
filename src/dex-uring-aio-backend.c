@@ -102,12 +102,13 @@ dex_uring_aio_context_dispatch (GSource     *source,
   gint64 counter;
   guint n_handled = 0;
 
-  if (g_source_query_unix_fd (source, aio_context->eventfdtag) & G_IO_IN) {
+  if (g_source_query_unix_fd (source, aio_context->eventfdtag) & G_IO_IN)
+    {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-result"
-    read (aio_context->eventfd, &counter, sizeof counter);
+      read (aio_context->eventfd, &counter, sizeof counter);
 #pragma GCC diagnostic pop
-  }
+    }
 
 again:
   while (io_uring_peek_cqe (&aio_context->ring, &cqe) == 0)
