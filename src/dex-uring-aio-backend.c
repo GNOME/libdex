@@ -104,10 +104,10 @@ dex_uring_aio_context_dispatch (GSource     *source,
 
   if (g_source_query_unix_fd (source, aio_context->eventfdtag) & G_IO_IN)
     {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-result"
-      read (aio_context->eventfd, &counter, sizeof counter);
-#pragma GCC diagnostic pop
+      if (read (aio_context->eventfd, &counter, sizeof counter) <= 0)
+        {
+          /* Do mothing */
+        }
     }
 
 again:
