@@ -1,3 +1,18 @@
+libdex 0.2.0
+============
+
+This is the first release intended for end-users.
+
+Changes in this release:
+
+ * Followup fixes for building on mips
+ * Fixes for introspection gi-scanner
+ * Remove abstract type flag from DexFuture to satisfy GObject Introspection
+   rules about constructors.
+ * Many documentation/gi-annotation fixes
+ * Build system improvements
+ * Default to `-Dintrospection=enabled`
+
 libdex 0.1.1
 ============
 
