@@ -13,7 +13,7 @@ Dex is licensed as LGPL-2.1+.
 ## Documentation
 
 You can find
-[documentation for Dex](https://chergert.pages.gitlab.gnome.org/libdex/libdex-1/index.html)
+[documentation for Dex](https://gnome.pages.gitlab.gnome.org/libdex/libdex-1/index.html)
 updated as part of the CI pipeline.
 
 ## Building
