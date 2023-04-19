@@ -157,7 +157,7 @@ pkg.generate(
 )
 
 if get_option('introspection').enabled()
-  libdex_gir = gnome.generate_gir(libdex_static,
+  libdex_gir = gnome.generate_gir(libdex,
                 sources: [libdex_sources, libdex_headers],
               nsversion: api_version,
               namespace: 'Dex',
