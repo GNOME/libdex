@@ -8,7 +8,7 @@
   <name>libdex</name>
   <shortname>libdex</shortname>
   <shortdesc>Future-based programming for GLib-based applications and libraries</shortdesc>
-  <homepage rdf:resource="https://gitlab.gnome.org/chergert/libdex" />
+  <homepage rdf:resource="https://gitlab.gnome.org/GNOME/libdex" />
   <license rdf:resource="https://spdx.org/licenses/LGPL-3.0-or-later.html" />
 
   <programming-language>C</programming-language>
