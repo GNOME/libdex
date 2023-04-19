@@ -18,5 +18,5 @@ To build a program that uses Dex, you can use the following command to get
 the cflags and libraries necessary to compile and link.
 
 ```sh
-gcc hello.c `pkg-config --cflags --libs libdex-1.0` -o hello
+gcc hello.c `pkg-config --cflags --libs libdex-1` -o hello
 ```
