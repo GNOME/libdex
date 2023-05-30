@@ -345,3 +345,24 @@ dex_async_pair_return_boxed (DexAsyncPair *async_pair,
   dex_future_complete (DEX_FUTURE (async_pair), &gvalue, NULL);
   g_value_unset (&gvalue);
 }
+
+/**
+ * dex_async_pair_return_variant:
+ * @async_pair: a #DexAsyncPair
+ * @variant: (transfer full): the variant to resolve with
+ *
+ * Resolves @async_pair with @variant.
+ */
+void
+dex_async_pair_return_variant (DexAsyncPair *async_pair,
+                               GVariant     *variant)
+{
+  GValue gvalue = G_VALUE_INIT;
+
+  g_return_if_fail (DEX_IS_ASYNC_PAIR (async_pair));
+
+  g_value_init (&gvalue, G_TYPE_VARIANT);
+  g_value_take_variant (&gvalue, variant);
+  dex_future_complete (DEX_FUTURE (async_pair), &gvalue, NULL);
+  g_value_unset (&gvalue);
+}

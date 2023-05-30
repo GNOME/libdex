@@ -110,6 +110,9 @@ DEX_AVAILABLE_IN_ALL
 void          dex_async_pair_return_boxed    (DexAsyncPair           *async_pair,
                                               GType                   boxed_type,
                                               gpointer                instance);
+DEX_AVAILABLE_IN_ALL
+void          dex_async_pair_return_variant  (DexAsyncPair           *async_pair,
+                                              GVariant               *variant);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexAsyncPair, dex_unref)
 
