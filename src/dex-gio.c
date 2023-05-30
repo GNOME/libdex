@@ -920,3 +920,179 @@ dex_file_load_contents_bytes (GFile *file)
 
   return DEX_FUTURE (async_pair);
 }
+
+static void
+dex_dbus_connection_send_message_with_reply_cb (GObject      *object,
+                                                GAsyncResult *result,
+                                                gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GDBusMessage *message = NULL;
+  GError *error = NULL;
+
+  message = g_dbus_connection_send_message_with_reply_finish (G_DBUS_CONNECTION (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_object (async_pair, message);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+/**
+ * dex_dbus_connection_send_message_with_reply:
+ * @connection: a #GDBusConnection
+ * @message: a #GDBusMessage
+ * @flags:  flags for @message
+ * @timeout_msec: timeout in milliseconds, or -1 for default, or %G_MAXINT
+ *   for no timeout.
+ * @out_serial: (out) (nullable): a location for the message serial number
+ *
+ * Wrapper for g_dbus_connection_send_message_with_reply().
+ *
+ * Returns: (transfer full): a #DexFuture that will resolve to a #GDBusMessage
+ *   or reject with failure.
+ *
+ * Since: 0.4
+ */
+DexFuture *
+dex_dbus_connection_send_message_with_reply (GDBusConnection       *connection,
+                                             GDBusMessage          *message,
+                                             GDBusSendMessageFlags  flags,
+                                             int                    timeout_msec,
+                                             guint32               *out_serial)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_DBUS_CONNECTION (connection), NULL);
+  g_return_val_if_fail (G_IS_DBUS_MESSAGE (message), NULL);
+
+  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_dbus_connection_send_message_with_reply (connection,
+                                             message,
+                                             flags,
+                                             timeout_msec,
+                                             out_serial,
+                                             async_pair->cancellable,
+                                             dex_dbus_connection_send_message_with_reply_cb,
+                                             dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_dbus_connection_call_cb (GObject      *object,
+                             GAsyncResult *result,
+                             gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GVariant *reply = NULL;
+  GError *error = NULL;
+
+  reply = g_dbus_connection_call_finish (G_DBUS_CONNECTION (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_variant (async_pair, reply);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+/**
+ * dex_dbus_connection_call:
+ * @bus_name:
+ * @object_path:
+ * @interface_name:
+ * @method_name:
+ * @parameters:
+ * @reply_type:
+ * @flags:
+ * @timeout_msec:
+ *
+ * Wrapper for g_dbus_connection_call().
+ *
+ * Returns: (transfer full): a #DexFuture that resolves to a #GVariant
+ *   or rejects with error.
+ *
+ * Since: 0.4
+ */
+DexFuture *
+dex_dbus_connection_call (GDBusConnection    *connection,
+                          const char         *bus_name,
+                          const char         *object_path,
+                          const char         *interface_name,
+                          const char         *method_name,
+                          GVariant           *parameters,
+                          const GVariantType *reply_type,
+                          GDBusCallFlags      flags,
+                          int                 timeout_msec)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_DBUS_CONNECTION (connection), NULL);
+
+  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_dbus_connection_call (connection,
+                          bus_name,
+                          object_path,
+                          interface_name,
+                          method_name,
+                          parameters,
+                          reply_type,
+                          flags,
+                          timeout_msec,
+                          async_pair->cancellable,
+                          dex_dbus_connection_call_cb,
+                          dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_bus_get_cb (GObject      *object,
+                GAsyncResult *result,
+                gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GDBusConnection *bus;
+  GError *error = NULL;
+
+  bus = g_bus_get_finish (result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_object (async_pair, bus);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+/**
+ * dex_bus_get:
+ * @bus_type:
+ *
+ * Wrapper for g_bus_get().
+ *
+ * Returns: (transfer full): a #DexFuture that resolves to a #GDBusConnection
+ *   or rejects with error.
+ *
+ * Since: 0.4
+ */
+DexFuture *
+dex_bus_get (GBusType bus_type)
+{
+  DexAsyncPair *async_pair;
+
+  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_bus_get (bus_type,
+             async_pair->cancellable,
+             dex_bus_get_cb,
+             dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}

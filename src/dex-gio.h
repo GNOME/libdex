@@ -107,5 +107,23 @@ DexFuture *dex_io_stream_close            (GIOStream                *io_stream,
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_resolver_lookup_by_name    (GResolver                *resolver,
                                            const char               *address);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_bus_get (GBusType bus_type);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_dbus_connection_call (GDBusConnection    *connection,
+                                     const char         *bus_name,
+                                     const char         *object_path,
+                                     const char         *interface_name,
+                                     const char         *method_name,
+                                     GVariant           *parameters,
+                                     const GVariantType *reply_type,
+                                     GDBusCallFlags      flags,
+                                     int                 timeout_msec);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_dbus_connection_send_message_with_reply (GDBusConnection       *connection,
+                                                        GDBusMessage          *message,
+                                                        GDBusSendMessageFlags  flags,
+                                                        int                    timeout_msec,
+                                                        guint32               *out_serial);
 
 G_END_DECLS
