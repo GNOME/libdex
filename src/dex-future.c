@@ -1037,6 +1037,28 @@ DexFuture *
 }
 
 /**
+ * dex_future_new_take_variant: (constructor) (skip)
+ * @v_variant: the variant to take ownership of
+ *
+ * Creates a new #DexFuture that is resolved with @v_variant.
+ *
+ * Returns: (transfer full): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_take_variant) (GVariant *v_variant)
+{
+  GValue gvalue = G_VALUE_INIT;
+  DexFuture *ret;
+
+  g_value_init (&gvalue, G_TYPE_VARIANT);
+  g_value_take_variant (&gvalue, v_variant);
+  ret = dex_future_new_for_value (&gvalue);
+  g_value_unset (&gvalue);
+
+  return ret;
+}
+
+/**
  * dex_future_new_for_pointer: (constructor)
  * @pointer: the resolved future value as a pointer
  *
@@ -1375,6 +1397,34 @@ dex_await_boxed (DexFuture  *future,
 
   if ((value = dex_await_check (future, G_TYPE_BOXED, error)))
     ret = g_value_dup_boxed (value);
+
+  dex_unref (future);
+
+  return ret;
+}
+
+/**
+ * dex_await_variant: (method) (skip)
+ * @future: (transfer full): a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the %G_TYPE_VARIANT based result.
+ *
+ * Returns: (transfer full): the variant result, or %NULL and @error is set.
+ *
+ * Since: 0.4
+ */
+GVariant *
+dex_await_variant (DexFuture  *future,
+                   GError    **error)
+{
+  const GValue *value;
+  GVariant *ret = NULL;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_await_check (future, G_TYPE_VARIANT, error)))
+    ret = g_value_dup_variant (value);
 
   dex_unref (future);
 

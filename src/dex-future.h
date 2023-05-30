@@ -89,6 +89,8 @@ DexFuture       *dex_future_new_for_double  (double              v_double);
 DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_for_float   (float               v_float);
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_take_variant(GVariant           *v_variant);
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_take_boxed  (GType               boxed_type,
                                              gpointer            value);
 DEX_AVAILABLE_IN_ALL
@@ -193,6 +195,9 @@ DEX_AVAILABLE_IN_ALL
 guint64          dex_await_uint64           (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
+GVariant        *dex_await_variant          (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
 gpointer         dex_await_boxed            (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
@@ -230,6 +235,7 @@ gpointer         dex_await_object           (DexFuture          *future,
 # define dex_future_new_for_boolean(...) _DEX_FUTURE_NEW(new_for_boolean, __VA_ARGS__)
 # define dex_future_new_for_double(...) _DEX_FUTURE_NEW(new_for_double, __VA_ARGS__)
 # define dex_future_new_for_float(...) _DEX_FUTURE_NEW(new_for_float, __VA_ARGS__)
+# define dex_future_new_take_variant(...) _DEX_FUTURE_NEW(new_take_variant, __VA_ARGS__)
 # define dex_future_new_take_boxed(...) _DEX_FUTURE_NEW(new_take_boxed, __VA_ARGS__)
 # define dex_future_new_for_object(...) _DEX_FUTURE_NEW(new_for_object, __VA_ARGS__)
 # define dex_future_new_take_object(...) _DEX_FUTURE_NEW(new_take_object, __VA_ARGS__)
