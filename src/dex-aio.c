@@ -20,7 +20,7 @@
 
 #include "config.h"
 
-#include "dex-aio-private.h"
+#include "dex-aio.h"
 #include "dex-aio-backend-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-thread-storage-private.h"

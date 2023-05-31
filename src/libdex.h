@@ -27,6 +27,7 @@
 G_BEGIN_DECLS
 
 #define DEX_INSIDE
+# include "dex-aio.h"
 # include "dex-async-pair.h"
 # include "dex-async-result.h"
 # include "dex-block.h"

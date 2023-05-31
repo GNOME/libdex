@@ -23,8 +23,6 @@
 
 #include "cat-util.h"
 
-#include "dex-aio-private.h"
-
 /* NOTE:
  *
  * `cat` from coreutils is certainly faster than this, especially if you're

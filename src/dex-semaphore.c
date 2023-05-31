@@ -34,7 +34,7 @@
 
 #include <gio/gio.h>
 
-#include "dex-aio-private.h"
+#include "dex-aio.h"
 #include "dex-block-private.h"
 #include "dex-error.h"
 #include "dex-future-private.h"
