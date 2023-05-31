@@ -39,6 +39,14 @@ dex_aio_context_current (void)
   g_return_val_if_reached (NULL);
 }
 
+/**
+ * dex_aio_read:
+ *
+ * An asynchronous `pread()` wrapper.
+ *
+ * Returns: (transfer full): a future that will resolve when the
+ *   read completes or rejects with error.
+ */
 DexFuture *
 dex_aio_read (DexAioContext *aio_context,
               int            fd,
@@ -53,6 +61,14 @@ dex_aio_read (DexAioContext *aio_context,
                                fd, buffer, count, offset);
 }
 
+/**
+ * dex_aio_write:
+ *
+ * An asynchronous `pwrite()` wrapper.
+ *
+ * Returns: (transfer full): a future that will resolve when the
+ *   write completes or rejects with error.
+ */
 DexFuture *
 dex_aio_write (DexAioContext *aio_context,
                int            fd,
