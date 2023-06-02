@@ -1096,3 +1096,48 @@ dex_bus_get (GBusType bus_type)
 
   return DEX_FUTURE (async_pair);
 }
+
+static void
+dex_subprocess_wait_check_cb (GObject      *object,
+                              GAsyncResult *result,
+                              gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+
+  if (g_subprocess_wait_check_finish (G_SUBPROCESS (object), result, &error))
+    dex_async_pair_return_boolean (async_pair, TRUE);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+/**
+ * dex_subprocess_wait_check:
+ * @subprocess: a #GSubprocess
+ *
+ * Creates a future that awaits for @subprocess to complete using
+ * g_subprocess_wait_check_async().
+ *
+ * Returns: (transfer full): a #DexFuture that will resolve when @subprocess
+ *   exits cleanly or reject upon signal or non-successful exit.
+ *
+ * Since: 0.4
+ */
+DexFuture *
+dex_subprocess_wait_check (GSubprocess *subprocess)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_SUBPROCESS (subprocess), NULL);
+
+  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  g_subprocess_wait_check_async (subprocess,
+                                 async_pair->cancellable,
+                                 dex_subprocess_wait_check_cb,
+                                 dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
