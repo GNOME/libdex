@@ -892,6 +892,14 @@ test_future_name (void)
   dex_unref (future);
 }
 
+static void
+test_infinite_simple (void)
+{
+  DexFuture *future = dex_future_new_infinite ();
+  ASSERT_STATUS (future, DEX_FUTURE_STATUS_PENDING);
+  dex_unref (future);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -932,6 +940,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Future/first", test_future_first);
   g_test_add_func ("/Dex/TestSuite/Future/discard", test_future_discard);
   g_test_add_func ("/Dex/TestSuite/Delayed/simple", test_delayed_simple);
+  g_test_add_func ("/Dex/TestSuite/Infinite/simple", test_infinite_simple);
 #ifdef G_OS_UNIX
   g_test_add_func ("/Dex/TestSuite/UnixSignal/sigusr2", test_unix_signal_sigusr2);
 #endif
