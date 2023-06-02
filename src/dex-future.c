@@ -1156,6 +1156,31 @@ DexFuture *
   return dex_future_new_for_error (error);
 }
 
+/**
+ * dex_future_new_for_errno:
+ * @errno_: the `errno` to use for rejection
+ *
+ * Creates a new rejected future using @errno_ as the value
+ * of errno for the GError.
+ *
+ * The resulting error domain will be %G_IO_ERROR.
+ *
+ * Returns: (transfer full): a rejected #DexFuture.
+ *
+ * Since: 0.4
+ */
+DexFuture *
+(dex_future_new_for_errno) (int errno_)
+{
+  /* NOTE: We might be able to cache some common rejections
+   * by errno to avoid re-creating them.
+   */
+
+  return dex_future_new_for_error (g_error_new_literal (G_IO_ERROR,
+                                                        g_io_error_from_errno (errno_),
+                                                        g_strerror (errno_)));
+}
+
 static const GValue *
 dex_await_check (DexFuture  *future,
                  GType       type,

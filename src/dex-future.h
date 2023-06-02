@@ -71,6 +71,8 @@ DexFuture       *dex_future_new_reject      (GQuark              domain,
                                              const char         *format,
                                              ...) G_GNUC_PRINTF (3, 4);
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_errno   (int                 errno_);
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_for_string  (const char         *string);
 DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_take_string (char               *string);
@@ -226,6 +228,7 @@ gpointer         dex_await_object           (DexFuture          *future,
 # define dex_future_firstv(...) _DEX_FUTURE_NEW(firstv, __VA_ARGS__)
 # define dex_future_new_for_value(...) _DEX_FUTURE_NEW(new_for_value, __VA_ARGS__)
 # define dex_future_new_for_error(...) _DEX_FUTURE_NEW(new_for_error, __VA_ARGS__)
+# define dex_future_new_for_errno(...) _DEX_FUTURE_NEW(new_for_errno, __VA_ARGS__)
 # define dex_future_new_for_string(...) _DEX_FUTURE_NEW(new_for_string, __VA_ARGS__)
 # define dex_future_new_take_string(...) _DEX_FUTURE_NEW(new_take_string, __VA_ARGS__)
 # define dex_future_new_for_int(...) _DEX_FUTURE_NEW(new_for_int, __VA_ARGS__)
