@@ -1181,6 +1181,23 @@ DexFuture *
                                                         g_strerror (errno_)));
 }
 
+/**
+ * dex_future_new_infinite:
+ *
+ * Creates an infinite future that will never resolve or reject. This can
+ * be useful when you want to mock a situation of "run forever" unless
+ * another future rejects or resolves.
+ *
+ * Returns: (transfer full): a #DexFuture that will never complete or reject
+ *
+ * Since: 0.4
+ */
+DexFuture *
+dex_future_new_infinite (void)
+{
+  return (DexFuture *)dex_object_create_instance (DEX_TYPE_FUTURE);
+}
+
 static const GValue *
 dex_await_check (DexFuture  *future,
                  GType       type,

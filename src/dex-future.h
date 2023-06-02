@@ -66,6 +66,8 @@ DexFuture       *dex_future_new_for_value   (const GValue       *value);
 DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_for_error   (GError             *error);
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_infinite    (void);
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_reject      (GQuark              domain,
                                              int                 error_code,
                                              const char         *format,
