@@ -29,7 +29,9 @@
 #include "dex-profiler.h"
 
 /**
- * DexObject: (ref-func dex_object_ref) (unref-func dex_object_unref) (set-value-func dex_value_set_object) (get-value-func dex_value_get_object)
+ * DexObject: (ref-func dex_ref) (unref-func dex_unref)
+ *   (set-value-func dex_value_set_object)
+ *   (get-value-func dex_value_get_object)
  *
  * `DexObject` is the basic building block of types defined within
  * libdex. Futures, Schedulers, and Channels all inherit from DexObject
@@ -59,18 +61,34 @@ dex_object_finalize (DexObject *object)
   g_type_free_instance ((GTypeInstance *)object);
 }
 
+/**
+ * dex_ref: (method)
+ * @object: (type DexObject): the object to reference
+ *
+ * Acquires a reference on the given object, and increases its reference count by one.
+ *
+ * Returns: (transfer full) (type DexObject): the object with its reference count increased
+ */
 gpointer
-(dex_ref) (gpointer object)
+dex_ref (gpointer object)
 {
   DexObject *self = object;
   atomic_fetch_add_explicit (&self->ref_count, 1, memory_order_relaxed);
   return object;
 }
 
+/**
+ * dex_unref: (method)
+ * @object: (type DexObject) (transfer full): the object to unreference
+ *
+ * Releases a reference on the given object, and decreases its reference count by one.
+ *
+ * If it was the last reference, the resources associated to the instance are freed.
+ */
 void
-(dex_unref) (gpointer data)
+dex_unref (gpointer object)
 {
-  DexObject *object = data;
+  DexObject *obj = object;
   DexObjectClass *object_class;
   DexWeakRef *weak_refs;
   guint watermark;
@@ -83,12 +101,12 @@ void
    * the life of the mem_block will be responsible to free
    * the object in the end.
    */
-  watermark = g_atomic_int_get (&object->weak_refs_watermark);
+  watermark = g_atomic_int_get (&obj->weak_refs_watermark);
 
   /* If we decrement and it's not zero, then there is nothing
    * for this thread to do. Fast path.
    */
-  if G_LIKELY (atomic_fetch_sub_explicit (&object->ref_count, 1, memory_order_release) != 1)
+  if G_LIKELY (atomic_fetch_sub_explicit (&obj->ref_count, 1, memory_order_release) != 1)
     return;
 
   atomic_thread_fence (memory_order_acquire);
@@ -105,7 +123,7 @@ void
    * for finalizing this object.
    */
   dex_object_lock (object);
-  for (DexWeakRef *wr = object->weak_refs; wr; wr = wr->next)
+  for (DexWeakRef *wr = obj->weak_refs; wr; wr = wr->next)
     g_mutex_lock (&wr->mutex);
 
   /* If we increased our reference count on another thread by extending the
@@ -113,16 +131,16 @@ void
    * to do anything here. Just bail and move along allowing a future unref to
    * finalize when it once again approaches zero.
    */
-  if (g_atomic_int_get (&object->ref_count) > 0 ||
-      g_atomic_int_get (&object->weak_refs_watermark) != watermark)
+  if (g_atomic_int_get (&obj->ref_count) > 0 ||
+      g_atomic_int_get (&obj->weak_refs_watermark) != watermark)
     {
-      for (DexWeakRef *wr = object->weak_refs; wr; wr = wr->next)
+      for (DexWeakRef *wr = obj->weak_refs; wr; wr = wr->next)
         g_mutex_unlock (&wr->mutex);
       dex_object_unlock (object);
       return;
     }
 
-  weak_refs = g_steal_pointer (&object->weak_refs);
+  weak_refs = g_steal_pointer (&obj->weak_refs);
 
   /* So we have locks on everything we can, we still are at zero, so that
    * means we need to zero out all our weak refs and then finalize the
@@ -144,7 +162,7 @@ void
   dex_object_unlock (object);
 
   /* If we did not create an immortal ref, then we are safe to finalize */
-  if (g_atomic_int_get (&object->ref_count) == 0)
+  if (g_atomic_int_get (&obj->ref_count) == 0)
     object_class->finalize (object);
 }
 
@@ -535,33 +553,6 @@ DexObject *
 dex_object_create_instance (GType instance_type)
 {
   return (DexObject *)(gpointer)g_type_create_instance (instance_type);
-}
-
-/**
- * dex_object_ref:
- * @object: (type DexObject): a #DexObject
- *
- * Increases the reference count of `object` by one.
- *
- * Returns: (transfer full) (type DexObject): a #DexObject
- */
-gpointer
-dex_object_ref (gpointer object)
-{
-  return (dex_ref) (object);
-}
-
-/**
- * dex_object_unref:
- * @object: (type DexObject): a #DexObject
- *
- * Decrements the reference count of `object` and frees it
- * if the reference count reaches zero.
- */
-void
-dex_object_unref (gpointer object)
-{
-  (dex_unref) (object);
 }
 
 /**
