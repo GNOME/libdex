@@ -43,16 +43,6 @@ gpointer dex_ref             (gpointer  object);
 DEX_AVAILABLE_IN_ALL
 void     dex_unref           (gpointer  object);
 
-DEX_AVAILABLE_IN_ALL
-gpointer dex_object_ref      (gpointer  object);
-DEX_AVAILABLE_IN_ALL
-void     dex_object_unref    (gpointer  object);
-
-#ifndef __GI_SCANNER__
-# define dex_ref(obj) dex_object_ref(obj)
-# define dex_unref(obj) dex_object_unref(obj)
-#endif
-
 #ifndef __GI_SCANNER__
 static inline void
 dex_clear (gpointer data)
