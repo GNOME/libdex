@@ -1225,7 +1225,7 @@ dex_await_check (DexFuture  *future,
 }
 
 /**
- * dex_await_pointer: (method) (skip)
+ * dex_await_pointer: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1252,7 +1252,7 @@ dex_await_pointer (DexFuture  *future,
 }
 
 /**
- * dex_await_int: (method) (skip)
+ * dex_await_int: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1280,7 +1280,7 @@ dex_await_int (DexFuture  *future,
 }
 
 /**
- * dex_await_uint: (method) (skip)
+ * dex_await_uint: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1308,7 +1308,7 @@ dex_await_uint (DexFuture  *future,
 }
 
 /**
- * dex_await_int64: (method) (skip)
+ * dex_await_int64: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1336,7 +1336,7 @@ dex_await_int64 (DexFuture  *future,
 }
 
 /**
- * dex_await_uint64: (method) (skip)
+ * dex_await_uint64: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1364,7 +1364,7 @@ dex_await_uint64 (DexFuture  *future,
 }
 
 /**
- * dex_await_double: (method) (skip)
+ * dex_await_double: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1392,7 +1392,7 @@ dex_await_double (DexFuture  *future,
 }
 
 /**
- * dex_await_float: (method) (skip)
+ * dex_await_float: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1420,7 +1420,7 @@ dex_await_float (DexFuture  *future,
 }
 
 /**
- * dex_await_boxed: (method) (skip)
+ * dex_await_boxed: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1446,7 +1446,7 @@ dex_await_boxed (DexFuture  *future,
 }
 
 /**
- * dex_await_variant: (method) (skip)
+ * dex_await_variant: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1474,7 +1474,7 @@ dex_await_variant (DexFuture  *future,
 }
 
 /**
- * dex_await_object: (method) (skip)
+ * dex_await_object: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1500,7 +1500,7 @@ dex_await_object (DexFuture  *future,
 }
 
 /**
- * dex_await_boolean: (method) (skip)
+ * dex_await_boolean: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1528,7 +1528,7 @@ dex_await_boolean (DexFuture  *future,
 }
 
 /**
- * dex_await_string: (method) (skip)
+ * dex_await_string: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1556,7 +1556,7 @@ dex_await_string (DexFuture  *future,
 }
 
 /**
- * dex_await_enum: (method) (skip)
+ * dex_await_enum: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
@@ -1584,7 +1584,7 @@ dex_await_enum (DexFuture  *future,
 }
 
 /**
- * dex_await_flags: (method) (skip)
+ * dex_await_flags: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError
  *
