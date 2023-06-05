@@ -35,8 +35,26 @@ G_BEGIN_DECLS
 
 typedef struct _DexScheduler DexScheduler;
 
-typedef void       (*DexSchedulerFunc) (gpointer func_data);
-typedef DexFuture *(*DexFiberFunc)     (gpointer func_data);
+typedef void (*DexSchedulerFunc) (gpointer func_data);
+
+/**
+ * DexFiberFunc:
+ *
+ * This function prototype is used for spawning fibers. A fiber
+ * is a lightweight, cooperative-multitasking feature where the
+ * fiber is given it's own stack. The fiber runs until it reaches
+ * a point of suspention (using `dex_await` or similar) or exits
+ * the fiber.
+ *
+ * When suspended, the fiber is placed onto a queue until it is
+ * runnable again. Once runnable, the fiber is scheduled to run
+ * from within whatever scheduler it was created with.
+ *
+ * See `dex_scheduler_spawn()`
+ *
+ * Returns: (transfer full) (nullable): a #DexFuture or %NULL
+ */
+typedef DexFuture *(*DexFiberFunc) (gpointer func_data);
 
 DEX_AVAILABLE_IN_ALL
 GType         dex_scheduler_get_type           (void) G_GNUC_CONST;
