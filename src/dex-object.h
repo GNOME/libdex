@@ -52,6 +52,15 @@ dex_clear (gpointer data)
     dex_unref (obj);
 }
 
+DEX_AVAILABLE_IN_ALL
+DexObject *dex_value_get_object  (const GValue *value);
+DEX_AVAILABLE_IN_ALL
+void       dex_value_set_object  (GValue       *value,
+                                  DexObject    *object);
+DEX_AVAILABLE_IN_ALL
+void       dex_value_take_object (GValue       *value,
+                                  DexObject    *object);
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexObject, dex_unref)
 
 G_END_DECLS

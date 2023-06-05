@@ -28,6 +28,23 @@
 #include "dex-object-private.h"
 #include "dex-profiler.h"
 
+/**
+ * DexObject: (ref-func dex_object_ref) (unref-func dex_object_unref) (set-value-func dex_value_set_object) (get-value-func dex_value_get_object)
+ *
+ * `DexObject` is the basic building block of types defined within
+ * libdex. Futures, Schedulers, and Channels all inherit from DexObject
+ * which provides features like thread-safe weak pointers and memory
+ * management operations.
+ *
+ * Objects that are integrating with GIO instead inherit from their
+ * natural type in GIO.
+ */
+
+DEX_AVAILABLE_IN_ALL
+DexObject *dex_object_ref   (DexObject *object);
+DEX_AVAILABLE_IN_ALL
+void       dex_object_unref (DexObject *object);
+
 static GType dex_object_type = G_TYPE_INVALID;
 
 #undef DEX_TYPE_OBJECT
@@ -523,4 +540,91 @@ DexObject *
 dex_object_create_instance (GType instance_type)
 {
   return (DexObject *)(gpointer)g_type_create_instance (instance_type);
+}
+
+DexObject *
+dex_object_ref (DexObject *object)
+{
+  return dex_ref (object);
+}
+
+void
+dex_object_unref (DexObject *object)
+{
+  dex_unref (object);
+}
+
+/**
+ * dex_value_get_object:
+ * @value: a `GValue` initialized with type `DEX_TYPE_OBJECT`
+ *
+ * Retrieves the `DexObject` stored inside the given `value`.
+ *
+ * Returns: (transfer none) (nullable): a `DexObject`
+ *
+ * Since: 0.4
+ */
+DexObject *
+dex_value_get_object (const GValue *value)
+{
+  g_return_val_if_fail (G_VALUE_HOLDS (value, DEX_TYPE_OBJECT), NULL);
+
+  return value->data[0].v_pointer;
+}
+
+/**
+ * dex_value_set_object:
+ * @value: a [struct@GObject.Value] initialized with type `DEX_TYPE_OBJECT`
+ * @object: (nullable): a `DexObject` or %NULL
+ *
+ * Stores the given `DexObject` inside `value`.
+ *
+ * The [struct@GObject.Value] will acquire a reference to the `object`.
+ *
+ * Since: 0.4
+ */
+void
+dex_value_set_object (GValue    *value,
+                      DexObject *object)
+{
+  if (object != NULL)
+    dex_ref (object);
+
+  dex_value_take_object (value, object);
+}
+
+/**
+ * dex_value_take_object:
+ * @value: a [struct@GObject.Value] initialized with type `DEX_TYPE_OBJECT`
+ * @object: (transfer full) (nullable): a `DexObject`
+ *
+ * Stores the given `DexObject` inside `value`.
+ *
+ * This function transfers the ownership of the `object` to the `GValue`.
+ *
+ * Since: 0.4
+ */
+void
+dex_value_take_object (GValue    *value,
+                       DexObject *object)
+{
+  DexObject *old_object;
+
+  g_return_if_fail (G_VALUE_HOLDS (value, DEX_TYPE_OBJECT));
+
+  old_object = value->data[0].v_pointer;
+
+  if (object != NULL)
+    {
+      g_return_if_fail (DEX_IS_OBJECT (object));
+
+      value->data[0].v_pointer = object;
+    }
+  else
+    {
+      value->data[0].v_pointer = NULL;
+    }
+
+  if (old_object != NULL)
+    dex_unref (old_object);
 }
