@@ -453,7 +453,7 @@ dex_await_borrowed (DexFuture  *future,
 }
 
 /**
- * dex_await: (method) (skip)
+ * dex_await: (method)
  * @future: (transfer full): a #DexFuture
  * @error: a location for a #GError, or %NULL
  *
@@ -470,6 +470,9 @@ dex_await_borrowed (DexFuture  *future,
  * if a foreach-style function taking a callback was to suspend from the
  * callback, undefined behavior may occur such as thread-local-storage
  * having changed.
+ *
+ * Returns: %TRUE if the future resolved, otherwise %FALSE
+ *   and @error is set.
  */
 gboolean
 dex_await (DexFuture  *future,
