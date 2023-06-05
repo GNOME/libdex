@@ -40,11 +40,6 @@
  * natural type in GIO.
  */
 
-DEX_AVAILABLE_IN_ALL
-DexObject *dex_object_ref   (DexObject *object);
-DEX_AVAILABLE_IN_ALL
-void       dex_object_unref (DexObject *object);
-
 static GType dex_object_type = G_TYPE_INVALID;
 
 #undef DEX_TYPE_OBJECT
@@ -65,7 +60,7 @@ dex_object_finalize (DexObject *object)
 }
 
 gpointer
-dex_ref (gpointer object)
+(dex_ref) (gpointer object)
 {
   DexObject *self = object;
   atomic_fetch_add_explicit (&self->ref_count, 1, memory_order_relaxed);
@@ -73,7 +68,7 @@ dex_ref (gpointer object)
 }
 
 void
-dex_unref (gpointer data)
+(dex_unref) (gpointer data)
 {
   DexObject *object = data;
   DexObjectClass *object_class;
@@ -542,16 +537,31 @@ dex_object_create_instance (GType instance_type)
   return (DexObject *)(gpointer)g_type_create_instance (instance_type);
 }
 
-DexObject *
-dex_object_ref (DexObject *object)
+/**
+ * dex_object_ref:
+ * @object: (type DexObject): a #DexObject
+ *
+ * Increases the reference count of `object` by one.
+ *
+ * Returns: (transfer full) (type DexObject): a #DexObject
+ */
+gpointer
+dex_object_ref (gpointer object)
 {
-  return dex_ref (object);
+  return (dex_ref) (object);
 }
 
+/**
+ * dex_object_unref:
+ * @object: (type DexObject): a #DexObject
+ *
+ * Decrements the reference count of `object` and frees it
+ * if the reference count reaches zero.
+ */
 void
-dex_object_unref (DexObject *object)
+dex_object_unref (gpointer object)
 {
-  dex_unref (object);
+  (dex_unref) (object);
 }
 
 /**
