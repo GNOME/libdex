@@ -360,7 +360,7 @@ dex_future_discard (DexFuture *future,
 }
 
 /**
- * dex_future_then:
+ * dex_future_then: (constructor)
  * @future: (transfer full): a #DexFuture
  * @callback: (scope async): a callback to execute
  * @callback_data: closure data for @callback
@@ -390,7 +390,7 @@ DexFuture *
 }
 
 /**
- * dex_future_then_loop:
+ * dex_future_then_loop: (constructor)
  * @future: (transfer full): a #DexFuture
  * @callback: (scope async): a callback to execute
  * @callback_data: closure data for @callback
@@ -422,7 +422,7 @@ DexFuture *
 }
 
 /**
- * dex_future_catch_loop:
+ * dex_future_catch_loop: (constructor)
  * @future: (transfer full): a #DexFuture
  * @callback: (scope async): a callback to execute
  * @callback_data: closure data for @callback
@@ -454,7 +454,7 @@ DexFuture *
 }
 
 /**
- * dex_future_finally_loop:
+ * dex_future_finally_loop: (constructor)
  * @future: (transfer full): a #DexFuture
  * @callback: (scope async): a callback to execute
  * @callback_data: closure data for @callback
@@ -486,7 +486,7 @@ DexFuture *
 }
 
 /**
- * dex_future_catch:
+ * dex_future_catch: (constructor)
  * @future: (transfer full): a #DexFuture
  * @callback: (scope async): a callback to execute
  * @callback_data: closure data for @callback
@@ -516,7 +516,7 @@ DexFuture *
 }
 
 /**
- * dex_future_finally:
+ * dex_future_finally: (constructor)
  * @future: (transfer full): a #DexFuture
  * @callback: (scope async): a callback to execute
  * @callback_data: closure data for @callback
@@ -544,7 +544,7 @@ DexFuture *
 }
 
 /**
- * dex_future_all:
+ * dex_future_all: (constructor)
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
@@ -555,7 +555,7 @@ DexFuture *
  * the exact values of the dependent futures. The value of the future
  * if resolved will be a %G_TYPE_BOOLEAN of %TRUE.
  *
- * Returns: (transfer full) (type DexFutureSet): a #DexFuture
+ * Returns: (transfer full) (type DexFuture): a #DexFutureSet
  */
 DexFuture *
 (dex_future_all) (DexFuture *first_future,
@@ -572,7 +572,7 @@ DexFuture *
 }
 
 /**
- * dex_future_any:
+ * dex_future_any: (constructor)
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
@@ -581,7 +581,7 @@ DexFuture *
  *
  * If no futures resolve, then the future will reject.
  *
- * Returns: (transfer full) (type DexFutureSet): a #DexFuture
+ * Returns: (transfer full) (type DexFuture): a #DexFutureSet
  */
 DexFuture *
 (dex_future_any) (DexFuture *first_future,
@@ -600,7 +600,7 @@ DexFuture *
 }
 
 /**
- * dex_future_all_race:
+ * dex_future_all_race: (constructor)
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
@@ -614,7 +614,7 @@ DexFuture *
  * Since the futures race to complete, some futures retrieved with the
  * dex_future_set_get_future() API will still be %DEX_FUTURE_STATUS_PENDING.
  *
- * Returns: (transfer full) (type DexFutureSet): a #DexFuture
+ * Returns: (transfer full) (type DexFuture): a #DexFutureSet
  */
 DexFuture *
 (dex_future_all_race) (DexFuture *first_future,
@@ -633,14 +633,14 @@ DexFuture *
 }
 
 /**
- * dex_future_first:
+ * dex_future_first: (constructor)
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
  * Creates a new #DexFuture that resolves or rejects as soon as the
  * first dependent future resolves or rejects, sharing the same result.
  *
- * Returns: (transfer full) (type DexFutureSet): a #DexFuture
+ * Returns: (transfer full) (type DexFuture): a #DexFutureSet
  */
 DexFuture *
 (dex_future_first) (DexFuture *first_future,
@@ -660,7 +660,7 @@ DexFuture *
 }
 
 /**
- * dex_future_firstv: (rename-to dex_future_first)
+ * dex_future_firstv: (rename-to dex_future_first) (constructor)
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
@@ -680,7 +680,7 @@ DexFuture *
 }
 
 /**
- * dex_future_anyv: (rename-to dex_future_any)
+ * dex_future_anyv: (rename-to dex_future_any) (constructor)
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
@@ -700,7 +700,7 @@ DexFuture *
 }
 
 /**
- * dex_future_all_racev: (rename-to dex_future_all_race)
+ * dex_future_all_racev: (rename-to dex_future_all_race) (constructor)
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
@@ -720,7 +720,7 @@ DexFuture *
 }
 
 /**
- * dex_future_allv: (rename-to dex_future_all)
+ * dex_future_allv: (rename-to dex_future_all) (constructor)
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
@@ -790,7 +790,7 @@ DexFuture *
 }
 
 /**
- * dex_future_new_for_error:
+ * dex_future_new_for_error: (constructor)
  * @error: (transfer full): a #GError
  *
  * Creates a read-only #DexFuture that has rejected.
