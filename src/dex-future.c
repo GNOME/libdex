@@ -544,7 +544,7 @@ DexFuture *
 }
 
 /**
- * dex_future_all: (skip)
+ * dex_future_all:
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
@@ -572,7 +572,7 @@ DexFuture *
 }
 
 /**
- * dex_future_any: (skip)
+ * dex_future_any:
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
@@ -633,7 +633,7 @@ DexFuture *
 }
 
 /**
- * dex_future_first: (skip)
+ * dex_future_first:
  * @first_future: (transfer full): a #DexFuture
  * @...: a %NULL terminated list of futures
  *
