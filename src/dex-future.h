@@ -50,6 +50,8 @@ typedef struct _DexFuture DexFuture;
  *
  * This is the expected way to handle completion of a future when not using
  * #DexFiber via dex_scheduler_spawn().
+ *
+ * Returns: (transfer full) (nullable): a #DexFuture or %NULL
  */
 typedef DexFuture *(*DexFutureCallback) (DexFuture *future,
                                          gpointer   user_data);
