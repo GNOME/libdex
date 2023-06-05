@@ -35,7 +35,7 @@ G_BEGIN_DECLS
 
 typedef struct _DexScheduler DexScheduler;
 
-typedef void (*DexSchedulerFunc) (gpointer func_data);
+typedef void (*DexSchedulerFunc) (gpointer user_data);
 
 /**
  * DexFiberFunc:
@@ -54,7 +54,7 @@ typedef void (*DexSchedulerFunc) (gpointer func_data);
  *
  * Returns: (transfer full) (nullable): a #DexFuture or %NULL
  */
-typedef DexFuture *(*DexFiberFunc) (gpointer func_data);
+typedef DexFuture *(*DexFiberFunc) (gpointer user_data);
 
 DEX_AVAILABLE_IN_ALL
 GType         dex_scheduler_get_type           (void) G_GNUC_CONST;
