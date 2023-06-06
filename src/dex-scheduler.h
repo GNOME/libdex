@@ -77,6 +77,16 @@ DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
                                                 gpointer          func_data,
                                                 GDestroyNotify    func_data_destroy);
 
+#if G_GNUC_CHECK_VERSION(3,0) && defined(DEX_ENABLE_DEBUG)
+# define _DEX_FIBER_NEW_(counter, ...) \
+  ({ DexFuture *G_PASTE(__f, counter) = dex_scheduler_spawn (__VA_ARGS__); \
+     dex_future_set_static_name (DEX_FUTURE (G_PASTE (__f, counter)), G_STRLOC); \
+     g_print ("Set to %s\n", G_STRLOC); \
+     G_PASTE (__f, counter); })
+# define _DEX_FIBER_NEW(...) _DEX_FIBER_NEW_(__COUNTER__, __VA_ARGS__)
+# define dex_scheduler_spawn(...) _DEX_FIBER_NEW(__VA_ARGS__)
+#endif
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexScheduler, dex_unref)
 
 G_END_DECLS
