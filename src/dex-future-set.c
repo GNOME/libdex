@@ -158,12 +158,17 @@ dex_future_set_finalize (DexObject *object)
 
   for (guint i = 0; i < future_set->n_futures; i++)
     {
-      dex_future_discard (future_set->futures[i], DEX_FUTURE (future_set));
-      dex_unref (future_set->futures[i]);
+      DexFuture *future = g_steal_pointer (&future_set->futures[i]);
+
+      if (future != NULL)
+        {
+          dex_future_discard (future, DEX_FUTURE (future_set));
+          dex_unref (future);
+        }
     }
 
   if (future_set->futures != future_set->embedded)
-    g_free (future_set->futures);
+    g_clear_pointer (&future_set->futures, g_free);
 
   future_set->futures = NULL;
   future_set->n_futures = 0;
