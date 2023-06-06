@@ -247,14 +247,15 @@ dex_promise_resolve_string (DexPromise *promise,
 /**
  * dex_promise_resolve_object:
  * @promise: a #DexPromise
- * @object: (transfer full): a #GObject
+ * @object: (transfer full) (nullable): a #GObject
  *
  */
 void
 dex_promise_resolve_object (DexPromise *promise,
                             gpointer    object)
 {
-  GValue gvalue = {G_OBJECT_TYPE (object), {{.v_pointer = object}, {.v_int = 0}}};
+  GType gtype = object ? G_OBJECT_TYPE (object) : G_TYPE_OBJECT;
+  GValue gvalue = {gtype, {{.v_pointer = object}, {.v_int = 0}}};
   dex_promise_resolve (promise, &gvalue);
-  g_object_unref (object);
+  g_clear_object (&object);
 }
