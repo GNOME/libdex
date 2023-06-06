@@ -1079,7 +1079,7 @@ dex_dbus_connection_call_with_unix_fd_list_cb (GObject      *object,
     }
   else
     {
-      dex_promise_reject (promise, error);
+      dex_promise_reject (promise, g_error_copy (error));
       dex_async_pair_return_error (async_pair, error);
     }
 
