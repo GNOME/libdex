@@ -23,6 +23,10 @@
 
 #include <gio/gio.h>
 
+#ifdef G_OS_UNIX
+# include <gio/gunixfdlist.h>
+#endif
+
 #include "dex-future.h"
 
 G_BEGIN_DECLS
@@ -119,6 +123,19 @@ DexFuture *dex_dbus_connection_call                    (GDBusConnection         
                                                         const GVariantType       *reply_type,
                                                         GDBusCallFlags            flags,
                                                         int                       timeout_msec);
+#ifdef G_OS_UNIX
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_dbus_connection_call_with_unix_fd_list  (GDBusConnection          *connection,
+                                                        const char               *bus_name,
+                                                        const char               *object_path,
+                                                        const char               *interface_name,
+                                                        const char               *method_name,
+                                                        GVariant                 *parameters,
+                                                        const GVariantType       *reply_type,
+                                                        GDBusCallFlags            flags,
+                                                        int                       timeout_msec,
+                                                        GUnixFDList              *fd_list);
+#endif
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_dbus_connection_send_message_with_reply (GDBusConnection          *connection,
                                                         GDBusMessage             *message,

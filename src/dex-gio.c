@@ -23,7 +23,9 @@
 
 #include "dex-async-pair-private.h"
 #include "dex-future-private.h"
+#include "dex-future-set.h"
 #include "dex-gio.h"
+#include "dex-promise.h"
 
 typedef struct _DexFileInfoList DexFileInfoList;
 
@@ -1050,6 +1052,102 @@ dex_dbus_connection_call (GDBusConnection    *connection,
                           dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_dbus_connection_call_with_unix_fd_list_cb (GObject      *object,
+                                               GAsyncResult *result,
+                                               gpointer      user_data)
+{
+  DexFutureSet *future_set = user_data;
+  DexAsyncPair *async_pair;
+  DexPromise *promise;
+  GUnixFDList *fd_list = NULL;
+  GVariant *reply = NULL;
+  GError *error = NULL;
+
+  async_pair = DEX_ASYNC_PAIR (dex_future_set_get_future_at (future_set, 0));
+  promise = DEX_PROMISE (dex_future_set_get_future_at (future_set, 1));
+
+  reply = g_dbus_connection_call_with_unix_fd_list_finish (G_DBUS_CONNECTION (object), &fd_list, result, &error);
+
+  if (error == NULL)
+    {
+      dex_promise_resolve_object (promise, object);
+      dex_async_pair_return_variant (async_pair, reply);
+    }
+  else
+    {
+      dex_promise_reject (promise, error);
+      dex_async_pair_return_error (async_pair, error);
+    }
+
+  dex_unref (future_set);
+}
+
+/**
+ * dex_dbus_connection_call_with_unix_fd_list:
+ * @bus_name:
+ * @object_path:
+ * @interface_name:
+ * @method_name:
+ * @parameters:
+ * @reply_type:
+ * @flags:
+ * @timeout_msec:
+ * @fd_list: (nullable): a #GUnixFDList
+ *
+ * Wrapper for g_dbus_connection_call_with_unix_fd_list().
+ *
+ * Returns: (transfer full): a #DexFutureSet that resolves to a #GVariant.
+ *   The #DexFuture containing the resulting #GUnixFDList can be retrieved
+ *   with dex_future_set_get_future_at() with an index of 1.
+ *
+ * Since: 0.4
+ */
+DexFuture *
+dex_dbus_connection_call_with_unix_fd_list (GDBusConnection    *connection,
+                                            const char         *bus_name,
+                                            const char         *object_path,
+                                            const char         *interface_name,
+                                            const char         *method_name,
+                                            GVariant           *parameters,
+                                            const GVariantType *reply_type,
+                                            GDBusCallFlags      flags,
+                                            int                 timeout_msec,
+                                            GUnixFDList        *fd_list)
+{
+  DexAsyncPair *async_pair;
+  DexPromise *promise;
+  DexFuture *ret;
+
+  g_return_val_if_fail (G_IS_DBUS_CONNECTION (connection), NULL);
+  g_return_val_if_fail (!fd_list || G_IS_UNIX_FD_LIST (fd_list), NULL);
+
+  /* Will hold our GVariant result */
+  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+
+  /* Will hold our GUnixFDList result */
+  promise = dex_promise_new ();
+
+  /* Sent to user. Resolving will contain variant. */
+  ret = dex_future_all (DEX_FUTURE (async_pair), DEX_FUTURE (promise), NULL);
+
+  g_dbus_connection_call_with_unix_fd_list (connection,
+                                            bus_name,
+                                            object_path,
+                                            interface_name,
+                                            method_name,
+                                            parameters,
+                                            reply_type,
+                                            flags,
+                                            timeout_msec,
+                                            fd_list,
+                                            async_pair->cancellable,
+                                            dex_dbus_connection_call_with_unix_fd_list_cb,
+                                            dex_ref (ret));
+
+  return ret;
 }
 
 static void
