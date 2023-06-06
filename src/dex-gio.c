@@ -1054,6 +1054,7 @@ dex_dbus_connection_call (GDBusConnection    *connection,
   return DEX_FUTURE (async_pair);
 }
 
+#ifdef G_OS_UNIX
 static void
 dex_dbus_connection_call_with_unix_fd_list_cb (GObject      *object,
                                                GAsyncResult *result,
@@ -1149,6 +1150,7 @@ dex_dbus_connection_call_with_unix_fd_list (GDBusConnection    *connection,
 
   return ret;
 }
+#endif
 
 static void
 dex_bus_get_cb (GObject      *object,
