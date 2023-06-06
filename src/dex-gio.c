@@ -1067,10 +1067,19 @@ dex_dbus_connection_call_with_unix_fd_list_cb (GObject      *object,
   GVariant *reply = NULL;
   GError *error = NULL;
 
+  g_assert (G_IS_DBUS_CONNECTION (object));
+  g_assert (DEX_IS_FUTURE_SET (future_set));
+
   async_pair = DEX_ASYNC_PAIR (dex_future_set_get_future_at (future_set, 0));
   promise = DEX_PROMISE (dex_future_set_get_future_at (future_set, 1));
 
+  g_assert (DEX_IS_ASYNC_PAIR (async_pair));
+  g_assert (DEX_IS_PROMISE (promise));
+
   reply = g_dbus_connection_call_with_unix_fd_list_finish (G_DBUS_CONNECTION (object), &fd_list, result, &error);
+
+  g_assert (!fd_list || G_IS_UNIX_FD_LIST (fd_list));
+  g_assert (reply != NULL || error != NULL);
 
   if (error == NULL)
     {
