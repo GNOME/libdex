@@ -1083,7 +1083,7 @@ dex_dbus_connection_call_with_unix_fd_list_cb (GObject      *object,
 
   if (error == NULL)
     {
-      dex_promise_resolve_object (promise, object);
+      dex_promise_resolve_object (promise, fd_list);
       dex_async_pair_return_variant (async_pair, reply);
     }
   else
