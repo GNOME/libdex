@@ -1,3 +1,25 @@
+libdex 0.3.0
+============
+
+This is the first alpha release for GNOME 45.
+
+Changes in this release:
+
+ * Documentation updates
+ * pkg-config improvements
+ * Build system improvements for GIR
+ * Support for GVariant-based futures
+ * New Future-based wrappers for GDBusConnection
+ * The FD-based AIO API is now public, allowing for use of io_uring
+   on Linux kernels that support it. If unsupported, a threadpool
+   approach is used similar to GIO.
+ * Improvements to introspection for language bindings.
+ * You can now return NULL for a DexPromise expecting a GObject as
+   as a resolved value.
+ * DexFiber will now get static names associated with them when
+   used from C which points to the line of code. This is only enabled
+   when debugging is enabled for libdex through the use of macros.
+
 libdex 0.2.0
 ============
 
