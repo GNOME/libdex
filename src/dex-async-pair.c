@@ -36,7 +36,8 @@ dex_async_pair_discard (DexFuture *future)
 {
   DexAsyncPair *async_pair = DEX_ASYNC_PAIR (future);
 
-  g_cancellable_cancel (async_pair->cancellable);
+  if (async_pair->cancel_on_discard)
+    g_cancellable_cancel (async_pair->cancellable);
 }
 
 static void
