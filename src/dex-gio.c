@@ -61,6 +61,17 @@ dex_inet_address_list_free (DexInetAddressList *list)
 
 G_DEFINE_BOXED_TYPE (DexInetAddressList, dex_inet_address_list, dex_inet_address_list_copy, dex_inet_address_list_free)
 
+static inline DexAsyncPair *
+create_async_pair (const char *name)
+{
+  DexAsyncPair *async_pair;
+
+  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  dex_future_set_static_name (DEX_FUTURE (async_pair), name);
+
+  return async_pair;
+}
+
 static void
 dex_input_stream_read_bytes_cb (GObject      *object,
                                 GAsyncResult *result,
@@ -94,7 +105,7 @@ dex_input_stream_read_bytes (GInputStream *stream,
 
   g_return_val_if_fail (G_IS_INPUT_STREAM (stream), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_input_stream_read_bytes_async (stream,
                                    count,
@@ -139,7 +150,7 @@ dex_output_stream_write_bytes (GOutputStream *stream,
 
   g_return_val_if_fail (G_IS_OUTPUT_STREAM (stream), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_output_stream_write_bytes_async (stream,
                                      bytes,
@@ -185,7 +196,7 @@ dex_file_read (GFile *file,
 
   g_return_val_if_fail (G_IS_FILE (file), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_file_read_async (file,
                      io_priority,
@@ -229,7 +240,7 @@ dex_file_replace (GFile            *file,
 
   g_return_val_if_fail (G_IS_FILE (file), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_file_replace_async (file,
                         etag,
@@ -277,7 +288,7 @@ dex_input_stream_read (GInputStream *self,
 
   g_return_val_if_fail (G_IS_INPUT_STREAM (self), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_input_stream_read_async (self,
                              buffer,
@@ -324,7 +335,7 @@ dex_output_stream_write (GOutputStream *self,
 
   g_return_val_if_fail (G_IS_OUTPUT_STREAM (self), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_output_stream_write_async (self,
                                buffer,
@@ -368,7 +379,7 @@ dex_output_stream_close (GOutputStream *self,
 
   g_return_val_if_fail (G_IS_OUTPUT_STREAM (self), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_output_stream_close_async (self,
                                priority,
@@ -410,7 +421,7 @@ dex_input_stream_close (GInputStream *self,
 
   g_return_val_if_fail (G_IS_INPUT_STREAM (self), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_input_stream_close_async (self,
                               priority,
@@ -456,7 +467,7 @@ dex_output_stream_splice (GOutputStream            *output,
   g_return_val_if_fail (G_IS_OUTPUT_STREAM (output), NULL);
   g_return_val_if_fail (G_IS_INPUT_STREAM (input), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_output_stream_splice_async (output,
                                 input,
@@ -503,7 +514,7 @@ dex_file_query_info (GFile               *file,
 
   g_return_val_if_fail (G_IS_FILE (file), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_file_query_info_async (file,
                            attributes,
@@ -552,7 +563,7 @@ dex_file_make_directory (GFile *file,
 
   g_return_val_if_fail (G_IS_FILE (file), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_file_make_directory_async (file,
                                io_priority,
@@ -597,7 +608,7 @@ dex_file_enumerate_children (GFile               *file,
 
   g_return_val_if_fail (G_IS_FILE (file), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_file_enumerate_children_async (file,
                                    attributes,
@@ -643,7 +654,7 @@ dex_file_enumerator_next_files (GFileEnumerator *file_enumerator,
 
   g_return_val_if_fail (G_IS_FILE_ENUMERATOR (file_enumerator), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_file_enumerator_next_files_async (file_enumerator,
                                       num_files,
@@ -696,7 +707,7 @@ dex_file_copy (GFile          *source,
   g_return_val_if_fail (G_IS_FILE (source), NULL);
   g_return_val_if_fail (G_IS_FILE (destination), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_file_copy_async (source,
                      destination,
@@ -741,7 +752,7 @@ dex_socket_listener_accept (GSocketListener *listener)
 
   g_return_val_if_fail (G_IS_SOCKET_LISTENER (listener), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_socket_listener_accept_async (listener,
                                   async_pair->cancellable,
@@ -784,7 +795,7 @@ dex_socket_client_connect (GSocketClient      *socket_client,
   g_return_val_if_fail (G_IS_SOCKET_CLIENT (socket_client), NULL);
   g_return_val_if_fail (G_IS_SOCKET_CONNECTABLE (socket_connectable), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_socket_client_connect_async (socket_client,
                                  socket_connectable,
@@ -826,7 +837,7 @@ dex_io_stream_close (GIOStream *io_stream,
 
   g_return_val_if_fail (G_IS_IO_STREAM (io_stream), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_io_stream_close_async (io_stream,
                            io_priority,
@@ -870,7 +881,7 @@ dex_resolver_lookup_by_name (GResolver  *resolver,
   g_return_val_if_fail (G_IS_RESOLVER (resolver), NULL);
   g_return_val_if_fail (address != NULL, NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_resolver_lookup_by_name_async (resolver,
                                    address,
@@ -913,7 +924,7 @@ dex_file_load_contents_bytes (GFile *file)
 
   g_return_val_if_fail (G_IS_FILE (file), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_file_load_contents_async (file,
                               async_pair->cancellable,
@@ -970,7 +981,7 @@ dex_dbus_connection_send_message_with_reply (GDBusConnection       *connection,
   g_return_val_if_fail (G_IS_DBUS_CONNECTION (connection), NULL);
   g_return_val_if_fail (G_IS_DBUS_MESSAGE (message), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_dbus_connection_send_message_with_reply (connection,
                                              message,
@@ -1036,7 +1047,7 @@ dex_dbus_connection_call (GDBusConnection    *connection,
 
   g_return_val_if_fail (G_IS_DBUS_CONNECTION (connection), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_dbus_connection_call (connection,
                           bus_name,
@@ -1135,7 +1146,7 @@ dex_dbus_connection_call_with_unix_fd_list (GDBusConnection    *connection,
   g_return_val_if_fail (!fd_list || G_IS_UNIX_FD_LIST (fd_list), NULL);
 
   /* Will hold our GVariant result */
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   /* Will hold our GUnixFDList result */
   promise = dex_promise_new ();
@@ -1196,7 +1207,7 @@ dex_bus_get (GBusType bus_type)
 {
   DexAsyncPair *async_pair;
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_bus_get (bus_type,
              async_pair->cancellable,
@@ -1241,7 +1252,7 @@ dex_subprocess_wait_check (GSubprocess *subprocess)
 
   g_return_val_if_fail (G_IS_SUBPROCESS (subprocess), NULL);
 
-  async_pair = (DexAsyncPair *)dex_object_create_instance (DEX_TYPE_ASYNC_PAIR);
+  async_pair = create_async_pair (G_STRFUNC);
 
   g_subprocess_wait_check_async (subprocess,
                                  async_pair->cancellable,
