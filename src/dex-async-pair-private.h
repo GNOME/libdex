@@ -1,7 +1,7 @@
 /*
  * dex-async-pair-private.h
  *
- * Copyright 2022 Christian Hergert <chergert@redhat.com>
+ * Copyright 2022-2023 Christian Hergert <chergert@redhat.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -34,6 +34,7 @@ typedef struct _DexAsyncPair
   gpointer instance;
   GCancellable *cancellable;
   DexAsyncPairInfo *info;
+  guint cancel_on_discard : 1;
 } DexAsyncPair;
 
 typedef struct _DexAsyncPairClass

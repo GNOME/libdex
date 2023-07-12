@@ -1,7 +1,7 @@
 /*
  * dex-async-pair.c
  *
- * Copyright 2022 Christian Hergert <chergert@redhat.com>
+ * Copyright 2022-2023 Christian Hergert <chergert@redhat.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -66,6 +66,7 @@ static void
 dex_async_pair_init (DexAsyncPair *async_pair)
 {
   async_pair->cancellable = g_cancellable_new ();
+  async_pair->cancel_on_discard = TRUE;
 }
 
 static void
@@ -365,4 +366,26 @@ dex_async_pair_return_variant (DexAsyncPair *async_pair,
   g_value_take_variant (&gvalue, variant);
   dex_future_complete (DEX_FUTURE (async_pair), &gvalue, NULL);
   g_value_unset (&gvalue);
+}
+
+/**
+ * dex_async_pair_set_cancel_on_discard:
+ * @async_pair: a #DexAsyncPair
+ * @cancel_on_discard: if the operation should cancel when the future is discarded
+ *
+ * Sets whether or not the future should cancel the async operation when
+ * the future is discarded. This happens when no more futures are awaiting
+ * the completion of this future.
+ *
+ * Since: 0.4
+ */
+void
+dex_async_pair_set_cancel_on_discard (DexAsyncPair *async_pair,
+                                      gboolean      cancel_on_discard)
+{
+  g_return_if_fail (DEX_IS_ASYNC_PAIR (async_pair));
+
+  dex_object_lock (async_pair);
+  async_pair->cancel_on_discard = !!cancel_on_discard;
+  dex_object_unlock (async_pair);
 }

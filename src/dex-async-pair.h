@@ -82,37 +82,40 @@ G_STATIC_ASSERT (sizeof (DexAsyncPairInfo) == (GLIB_SIZEOF_VOID_P * 16));
   DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_OBJECT)
 
 DEX_AVAILABLE_IN_ALL
-GType         dex_async_pair_get_type        (void) G_GNUC_CONST;
+GType         dex_async_pair_get_type              (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexFuture    *dex_async_pair_new             (gpointer                instance,
-                                              const DexAsyncPairInfo *info);
+DexFuture    *dex_async_pair_new                   (gpointer                instance,
+                                                    const DexAsyncPairInfo *info);
 DEX_AVAILABLE_IN_ALL
-GCancellable *dex_async_pair_get_cancellable (DexAsyncPair           *async_pair);
+GCancellable *dex_async_pair_get_cancellable       (DexAsyncPair           *async_pair);
 DEX_AVAILABLE_IN_ALL
-void          dex_async_pair_return_object   (DexAsyncPair           *async_pair,
-                                              gpointer                instance);
+void          dex_async_pair_return_object         (DexAsyncPair           *async_pair,
+                                                    gpointer                instance);
 DEX_AVAILABLE_IN_ALL
-void          dex_async_pair_return_error    (DexAsyncPair           *async_pair,
-                                              GError                 *error);
+void          dex_async_pair_return_error          (DexAsyncPair           *async_pair,
+                                                    GError                 *error);
 DEX_AVAILABLE_IN_ALL
-void          dex_async_pair_return_int64    (DexAsyncPair           *async_pair,
-                                              gint64                  value);
+void          dex_async_pair_return_int64          (DexAsyncPair           *async_pair,
+                                                    gint64                  value);
 DEX_AVAILABLE_IN_ALL
-void          dex_async_pair_return_uint64   (DexAsyncPair           *async_pair,
-                                              guint64                 value);
+void          dex_async_pair_return_uint64         (DexAsyncPair           *async_pair,
+                                                    guint64                 value);
 DEX_AVAILABLE_IN_ALL
-void          dex_async_pair_return_boolean  (DexAsyncPair           *async_pair,
-                                              gboolean                value);
+void          dex_async_pair_return_boolean        (DexAsyncPair           *async_pair,
+                                                    gboolean                value);
 DEX_AVAILABLE_IN_ALL
-void          dex_async_pair_return_string   (DexAsyncPair           *async_pair,
-                                              char                   *value);
+void          dex_async_pair_return_string         (DexAsyncPair           *async_pair,
+                                                    char                   *value);
 DEX_AVAILABLE_IN_ALL
-void          dex_async_pair_return_boxed    (DexAsyncPair           *async_pair,
-                                              GType                   boxed_type,
-                                              gpointer                instance);
+void          dex_async_pair_return_boxed          (DexAsyncPair           *async_pair,
+                                                    GType                   boxed_type,
+                                                    gpointer                instance);
 DEX_AVAILABLE_IN_ALL
-void          dex_async_pair_return_variant  (DexAsyncPair           *async_pair,
-                                              GVariant               *variant);
+void          dex_async_pair_return_variant        (DexAsyncPair           *async_pair,
+                                                    GVariant               *variant);
+DEX_AVAILABLE_IN_ALL
+void          dex_async_pair_set_cancel_on_discard (DexAsyncPair           *async_pair,
+                                                    gboolean                cancel_on_discard);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexAsyncPair, dex_unref)
 
