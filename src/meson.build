@@ -14,6 +14,7 @@ libdex_sources = [
   'dex-future-set.c',
   'dex-gio.c',
   'dex-init.c',
+  'dex-infinite.c',
   'dex-main-scheduler.c',
   'dex-object.c',
   'dex-platform.c',

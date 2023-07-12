@@ -27,6 +27,7 @@
 #include "dex-error.h"
 #include "dex-future-private.h"
 #include "dex-future-set-private.h"
+#include "dex-infinite-private.h"
 #include "dex-promise.h"
 #include "dex-scheduler.h"
 #include "dex-static-future-private.h"
@@ -1195,7 +1196,7 @@ DexFuture *
 DexFuture *
 dex_future_new_infinite (void)
 {
-  return (DexFuture *)dex_object_create_instance (DEX_TYPE_FUTURE);
+  return dex_infinite_new ();
 }
 
 static const GValue *

@@ -24,6 +24,7 @@
 #include "libdex.h"
 
 #include "dex-main-scheduler-private.h"
+#include "dex-infinite-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-semaphore-private.h"
 #include "dex-thread-pool-worker-private.h"
@@ -60,6 +61,7 @@ dex_init_once (void)
   g_type_ensure (DEX_TYPE_PROMISE);
   g_type_ensure (DEX_TYPE_STATIC_FUTURE);
   g_type_ensure (DEX_TYPE_TIMEOUT);
+  g_type_ensure (DEX_TYPE_INFINITE);
 #ifdef G_OS_UNIX
   g_type_ensure (DEX_TYPE_UNIX_SIGNAL);
 #endif
