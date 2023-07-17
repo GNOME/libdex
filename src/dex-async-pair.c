@@ -162,6 +162,11 @@ dex_async_pair_ready_callback (GObject      *object,
           g_value_init (&value, gtype);
           g_value_set_flags (&value, FINISH_AS (async_pair, guint));
         }
+      else if (g_type_is_a (gtype, G_TYPE_BOXED))
+        {
+          g_value_init (&value, gtype);
+          g_value_take_boxed (&value, FINISH_AS (async_pair, gpointer));
+        }
       else
         {
           error = g_error_new (DEX_ERROR,

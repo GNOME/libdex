@@ -81,6 +81,9 @@ G_STATIC_ASSERT (sizeof (DexAsyncPairInfo) == (GLIB_SIZEOF_VOID_P * 16));
 #define DEX_ASYNC_PAIR_INFO_OBJECT(Async, Finish)      \
   DEX_ASYNC_PAIR_INFO (Async, Finish, G_TYPE_OBJECT)
 
+#define DEX_ASYNC_PAIR_INFO_BOXED(Async, Finish, Type) \
+  DEX_ASYNC_PAIR_INFO (Async, Finish, Type)
+
 DEX_AVAILABLE_IN_ALL
 GType         dex_async_pair_get_type              (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
