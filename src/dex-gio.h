@@ -80,6 +80,10 @@ DexFuture *dex_input_stream_read                       (GInputStream            
                                                         gsize                     count,
                                                         int                       io_priority);
 DEX_AVAILABLE_IN_ALL
+DexFuture *dex_input_stream_skip                       (GInputStream             *self,
+                                                        gsize                     count,
+                                                        int                       io_priority);
+DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_read_bytes                 (GInputStream             *self,
                                                         gsize                     count,
                                                         int                       io_priority);

@@ -302,6 +302,53 @@ dex_input_stream_read (GInputStream *self,
 }
 
 static void
+dex_input_stream_skip_cb (GObject      *object,
+                          GAsyncResult *result,
+                          gpointer      user_data)
+{
+  DexAsyncPair *async_pair = user_data;
+  GError *error = NULL;
+  gssize len;
+
+  len = g_input_stream_skip_finish (G_INPUT_STREAM (object), result, &error);
+
+  if (error == NULL)
+    dex_async_pair_return_int64 (async_pair, len);
+  else
+    dex_async_pair_return_error (async_pair, error);
+
+  dex_unref (async_pair);
+}
+
+/**
+ * dex_input_stream_skip:
+ * @count: the number of bytes to skip
+ * @io_priority: %G_PRIORITY_DEFAULT or similar priority value
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
+DexFuture *
+dex_input_stream_skip (GInputStream *self,
+                       gsize         count,
+                       int           io_priority)
+{
+  DexAsyncPair *async_pair;
+
+  g_return_val_if_fail (G_IS_INPUT_STREAM (self), NULL);
+
+  async_pair = create_async_pair (G_STRFUNC);
+
+  g_input_stream_skip_async (self,
+                             count,
+                             io_priority,
+                             async_pair->cancellable,
+                             dex_input_stream_skip_cb,
+                             dex_ref (async_pair));
+
+  return DEX_FUTURE (async_pair);
+}
+
+static void
 dex_output_stream_write_cb (GObject      *object,
                             GAsyncResult *result,
                             gpointer      user_data)
