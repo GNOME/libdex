@@ -1611,3 +1611,38 @@ dex_await_flags (DexFuture  *future,
 
   return ret;
 }
+
+static DexFuture *
+dex_future_disown_cleanup (DexFuture *resolved,
+                           gpointer   user_data)
+{
+  DexFuture **pfuture = user_data;
+
+  g_clear_pointer (pfuture, dex_unref);
+  g_free (pfuture);
+
+  return NULL;
+}
+
+/**
+ * dex_future_disown:
+ * @future: (transfer full): a #DexFuture
+ *
+ * Disowns a future, allowing it to run to completion even though there may
+ * be no observer interested in the futures completion or rejection.
+ *
+ * Since: 0.4
+ */
+void
+dex_future_disown (DexFuture *future)
+{
+  DexFuture **pfuture;
+
+  g_return_if_fail (DEX_IS_FUTURE (future));
+
+  pfuture = g_new0 (DexFuture *, 1);
+  *pfuture = dex_future_finally (future,
+                                 dex_future_disown_cleanup,
+                                 pfuture,
+                                 NULL);
+}
