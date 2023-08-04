@@ -1612,15 +1612,32 @@ dex_await_flags (DexFuture  *future,
   return ret;
 }
 
-static DexFuture *
-dex_future_disown_cleanup (DexFuture *resolved,
-                           gpointer   user_data)
+static DexFuture **
+pfuture_ref (DexFuture **pfuture)
 {
-  DexFuture **pfuture = user_data;
+  return g_atomic_rc_box_acquire (pfuture);
+}
 
-  g_clear_pointer (pfuture, dex_unref);
-  g_free (pfuture);
+static void
+pfuture_finalize (DexFuture **pfuture)
+{
+  g_assert (pfuture != NULL);
+  g_assert (*pfuture != NULL);
+  g_assert (DEX_IS_FUTURE (*pfuture));
 
+  dex_unref (*pfuture);
+}
+
+static void
+pfuture_unref (DexFuture **pfuture)
+{
+  g_atomic_rc_box_release_full (pfuture, (GDestroyNotify)pfuture_finalize);
+}
+
+static DexFuture *
+dex_future_disown_cb (DexFuture *resolved,
+                      gpointer   user_data)
+{
   return NULL;
 }
 
@@ -1640,9 +1657,10 @@ dex_future_disown (DexFuture *future)
 
   g_return_if_fail (DEX_IS_FUTURE (future));
 
-  pfuture = g_new0 (DexFuture *, 1);
+  pfuture = g_atomic_rc_box_new0 (DexFuture *);
   *pfuture = dex_future_finally (future,
-                                 dex_future_disown_cleanup,
-                                 pfuture,
-                                 NULL);
+                                 dex_future_disown_cb,
+                                 pfuture_ref (pfuture),
+                                 (GDestroyNotify)pfuture_unref);
+  pfuture_unref (pfuture);
 }
