@@ -1,3 +1,22 @@
+libdex 0.3.1
+============
+
+This is the beta release for GNOME 45.
+
+Changes in this release:
+
+ * A new "Infinite" future type which will never resolve or reject.
+ * The gio wrappers will now set debuggable names for their futures.
+ * A `dex_async_pair_set_cancel_on_discard()` function has been added which
+   ensures that the `GCancellable` will not be cancelled when the future
+   is discarded. This can help in situations where you might repeatedly
+   await on a future and do not want intermediate cancellation between
+   attempts to await.
+ * A `dex_input_stream_skip_async()` function has been added to wrap the
+   underlying GIO function.
+ * A `dex_future_disown()` function has been added which simplifies the
+   case where you want a future to run but are not interested in the result.
+
 libdex 0.3.0
 ============
 
