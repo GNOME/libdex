@@ -43,7 +43,7 @@ typedef void (*DexSchedulerFunc) (gpointer user_data);
  * This function prototype is used for spawning fibers. A fiber
  * is a lightweight, cooperative-multitasking feature where the
  * fiber is given it's own stack. The fiber runs until it reaches
- * a point of suspention (using `dex_await` or similar) or exits
+ * a point of suspension (using `dex_await` or similar) or exits
  * the fiber.
  *
  * When suspended, the fiber is placed onto a queue until it is
