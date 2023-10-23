@@ -1,3 +1,8 @@
+libdex 0.4.1
+============
+
+This release includes an important fix for how io_uring CQE are handled.
+
 libdex 0.4.0
 ============
 
