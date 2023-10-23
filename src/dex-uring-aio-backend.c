@@ -100,7 +100,7 @@ dex_uring_aio_context_dispatch (GSource     *source,
   DexUringFuture *handledstack[32];
   struct io_uring_cqe *cqe;
   gint64 counter;
-  guint n_handled = 0;
+  guint n_handled;
 
   if (g_source_query_unix_fd (source, aio_context->eventfdtag) & G_IO_IN)
     {
@@ -111,6 +111,7 @@ dex_uring_aio_context_dispatch (GSource     *source,
     }
 
 again:
+  n_handled = 0;
   while (io_uring_peek_cqe (&aio_context->ring, &cqe) == 0)
     {
       DexUringFuture *future = io_uring_cqe_get_data (cqe);
