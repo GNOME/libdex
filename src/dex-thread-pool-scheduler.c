@@ -155,7 +155,7 @@ dex_thread_pool_scheduler_new (void)
 
   /* TODO: let this be dynamic and tunable, as well as thread pinning */
 
-  n_procs = g_get_num_processors ();
+  n_procs = MIN (32, g_get_num_processors ());
 
   /* Couple things here, which we should take a look at in the future to
    * see how we can tune them correctly, but:
