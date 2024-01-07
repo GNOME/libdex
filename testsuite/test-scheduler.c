@@ -125,6 +125,41 @@ test_thread_pool_scheduler_spawn (void)
   dex_unref (thread_pool);
 }
 
+static void
+test_thread_pool_scheduler_push_cb (gpointer data)
+{
+  struct {
+    GMutex mutex;
+    GCond cond;
+  } *syncobj = data;
+
+  g_mutex_lock (&syncobj->mutex);
+  g_cond_signal (&syncobj->cond);
+  g_mutex_unlock (&syncobj->mutex);
+}
+
+static void
+test_thread_pool_scheduler_push (void)
+{
+  struct {
+    GMutex mutex;
+    GCond cond;
+  } syncobj;
+
+  g_mutex_init (&syncobj.mutex);
+  g_cond_init (&syncobj.cond);
+
+  g_mutex_lock (&syncobj.mutex);
+  dex_scheduler_push (dex_thread_pool_scheduler_get_default (),
+                      test_thread_pool_scheduler_push_cb,
+                      &syncobj);
+  g_cond_wait (&syncobj.cond, &syncobj.mutex);
+  g_mutex_unlock (&syncobj.mutex);
+
+  g_mutex_clear (&syncobj.mutex);
+  g_cond_clear (&syncobj.cond);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -133,5 +168,6 @@ main (int   argc,
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/MainScheduler/simple", test_main_scheduler_simple);
   g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/10_000_fibers", test_thread_pool_scheduler_spawn);
+  g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/push", test_thread_pool_scheduler_push);
   return g_test_run ();
 }
