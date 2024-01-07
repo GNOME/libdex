@@ -16,3 +16,6 @@ option('sysprof',
 option('tests',
        type: 'boolean', value: true,
        description: 'Build and enable tests')
+option('liburing',
+       type: 'feature', value: 'auto',
+       description: 'Allow use of liburing (io_uring)')
