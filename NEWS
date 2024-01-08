@@ -1,3 +1,16 @@
+libdex 0.4.2
+============
+
+This release contains an important fix for running on systems with
+io_uring and recent Linux kernels.
+
+ * io_uring AIO backend will now attempt to create the io_uring on the
+   target worker thread so that IORING_SETUP_SINGLE_ISSUER may restrict
+   submissions correctly.
+ * Linux distributions may optionally disable liburing using the build
+   time option -Dliburing=disabled. In that case, the fallback of POSIX
+   IO with a thread-pool will be used.
+
 libdex 0.4.1
 ============
 
