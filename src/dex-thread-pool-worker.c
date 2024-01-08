@@ -42,8 +42,10 @@ typedef enum _DexThreadPoolWorkerStatus
 struct _DexThreadPoolWorker
 {
   DexScheduler               parent_instance;
+
   GList                      set_link;
   DexThreadPoolWorkerSet    *set;
+
   GThread                   *thread;
   GMainContext              *main_context;
   DexAioContext             *aio_context;
@@ -52,6 +54,10 @@ struct _DexThreadPoolWorker
   GSource                   *set_source;
   GSource                   *local_source;
   GSource                   *fiber_scheduler;
+
+  GMutex                     setup_mutex;
+  GCond                      setup_cond;
+
   DexThreadPoolWorkerStatus  status : 2;
 };
 
@@ -65,10 +71,12 @@ DEX_DEFINE_FINAL_TYPE (DexThreadPoolWorker, dex_thread_pool_worker, DEX_TYPE_SCH
 #undef DEX_TYPE_THREAD_POOL_WORKER
 #define DEX_TYPE_THREAD_POOL_WORKER dex_thread_pool_worker_type
 
-static void dex_thread_pool_worker_set_add    (DexThreadPoolWorkerSet *set,
-                                               DexThreadPoolWorker    *thread_pool_worker);
-static void dex_thread_pool_worker_set_remove (DexThreadPoolWorkerSet *set,
-                                               DexThreadPoolWorker    *thread_pool_worker);
+static void     dex_thread_pool_worker_set_add           (DexThreadPoolWorkerSet *set,
+                                                          DexThreadPoolWorker    *thread_pool_worker);
+static void     dex_thread_pool_worker_set_remove        (DexThreadPoolWorkerSet *set,
+                                                          DexThreadPoolWorker    *thread_pool_worker);
+static GSource *dex_thread_pool_worker_set_create_source (DexThreadPoolWorkerSet *set,
+                                                          DexThreadPoolWorker    *thread_pool_worker);
 
 static void
 dex_thread_pool_worker_push (DexScheduler *scheduler,
@@ -147,6 +155,9 @@ dex_thread_pool_worker_finalize (DexObject *object)
   g_assert (thread_pool_worker->set_link.prev == NULL);
   g_assert (thread_pool_worker->set_link.next == NULL);
 
+  g_mutex_clear (&thread_pool_worker->setup_mutex);
+  g_cond_clear (&thread_pool_worker->setup_cond);
+
   DEX_OBJECT_CLASS (dex_thread_pool_worker_parent_class)->finalize (object);
 }
 
@@ -199,6 +210,9 @@ static void
 dex_thread_pool_worker_init (DexThreadPoolWorker *thread_pool_worker)
 {
   thread_pool_worker->set_link.data = thread_pool_worker;
+
+  g_mutex_init (&thread_pool_worker->setup_mutex);
+  g_cond_init (&thread_pool_worker->setup_cond);
 }
 
 static gpointer
@@ -206,7 +220,54 @@ dex_thread_pool_worker_thread_func (gpointer data)
 {
   DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (data);
   DexThreadStorage *storage = dex_thread_storage_get ();
+  DexAioBackend *aio_backend;
+  DexAioContext *aio_context;
   DexFuture *global_work_queue_loop;
+  GSource *source;
+
+  g_mutex_lock (&thread_pool_worker->setup_mutex);
+
+  aio_backend = dex_aio_backend_get_default ();
+  aio_context = dex_aio_backend_create_context (aio_backend);
+
+  /* If we fail to setup an AIO context, then there is no point in
+   * adding this thread pool worker. Just bail immediately and notify
+   * the creator of the issue.
+   */
+  if (aio_context == NULL)
+    {
+      thread_pool_worker->status = DEX_THREAD_POOL_WORKER_FINISHED;
+      g_cond_signal (&thread_pool_worker->setup_cond);
+      return NULL;
+    }
+
+  thread_pool_worker->aio_context = g_steal_pointer (&aio_context);
+
+  /* Attach our AIO source to complete AIO work */
+  g_source_attach ((GSource *)thread_pool_worker->aio_context,
+                   thread_pool_worker->main_context);
+
+  /* Attach a GSource that will process items from the worker threads
+   * work queue.
+   */
+  source = dex_work_stealing_queue_create_source (thread_pool_worker->work_stealing_queue);
+  g_source_set_priority (source, G_PRIORITY_DEFAULT);
+  g_source_attach (source, thread_pool_worker->main_context);
+  thread_pool_worker->local_source = g_steal_pointer (&source);
+
+  /* Create a source to steal work items from other thread pool threads.
+   * This is slightly higher priority than the global queue because we
+   * want to steal items from the peers before the global queue.
+   */
+  source = dex_thread_pool_worker_set_create_source (thread_pool_worker->set, thread_pool_worker);
+  g_source_set_priority (source, G_PRIORITY_DEFAULT_IDLE-1);
+  g_source_attach (source, thread_pool_worker->main_context);
+  thread_pool_worker->set_source = g_steal_pointer (&source);
+
+  /* Setup fiber scheduler source */
+  source = (GSource *)dex_fiber_scheduler_new ();
+  g_source_attach (source, thread_pool_worker->main_context);
+  thread_pool_worker->fiber_scheduler = g_steal_pointer (&source);
 
   storage->scheduler = DEX_SCHEDULER (thread_pool_worker);
   storage->worker = thread_pool_worker;
@@ -220,6 +281,10 @@ dex_thread_pool_worker_thread_func (gpointer data)
 
   /* Async processing global work-queue items until we're told to shutdown */
   global_work_queue_loop = dex_work_queue_run (thread_pool_worker->global_work_queue);
+
+  /* Notify the caller that we are all setup */
+  g_cond_signal (&thread_pool_worker->setup_cond);
+  g_mutex_unlock (&thread_pool_worker->setup_mutex);
 
   /* Process main context until we are told to shutdown */
   while (thread_pool_worker->status != DEX_THREAD_POOL_WORKER_STOPPING)
@@ -409,61 +474,28 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
                             DexThreadPoolWorkerSet *set)
 {
   DexThreadPoolWorker *thread_pool_worker;
-  DexAioBackend *aio_backend;
-  DexAioContext *aio_context;
-  GSource *source;
+  gboolean failed;
 
   g_return_val_if_fail (work_queue != NULL, NULL);
   g_return_val_if_fail (set != NULL, NULL);
 
-  aio_backend = dex_aio_backend_get_default ();
-  aio_context = dex_aio_backend_create_context (aio_backend);
-
-  /* If we fail to create an aio context for the backend, then
-   * it's likely we're over a limit imposed by things like io_uring.
-   *
-   * Instead of falling back to DexPosixAioBackend, it's better to just
-   * run fewer workers so we're pinned closer to the physical core count.
-   */
-  if (aio_context == NULL)
-    return NULL;
-
   thread_pool_worker = (DexThreadPoolWorker *)dex_object_create_instance (DEX_TYPE_THREAD_POOL_WORKER);
   thread_pool_worker->main_context = g_main_context_new ();
-  thread_pool_worker->aio_context = aio_context;
   thread_pool_worker->global_work_queue = dex_ref (work_queue);
   thread_pool_worker->work_stealing_queue = dex_work_stealing_queue_new (255);
   thread_pool_worker->set = set;
 
-  /* Attach our AIO source to complete AIO work */
-  g_source_attach ((GSource *)aio_context, thread_pool_worker->main_context);
-
-  /* Attach a GSource that will process items from the worker threads
-   * work queue.
-   */
-  source = dex_work_stealing_queue_create_source (thread_pool_worker->work_stealing_queue);
-  g_source_set_priority (source, G_PRIORITY_DEFAULT);
-  g_source_attach (source, thread_pool_worker->main_context);
-  thread_pool_worker->local_source = g_steal_pointer (&source);
-
-  /* Create a source to steal work items from other thread pool threads.
-   * This is slightly higher priority than the global queue because we
-   * want to steal items from the peers before the global queue.
-   */
-  source = dex_thread_pool_worker_set_create_source (set, thread_pool_worker);
-  g_source_set_priority (source, G_PRIORITY_DEFAULT_IDLE-1);
-  g_source_attach (source, thread_pool_worker->main_context);
-  thread_pool_worker->set_source = g_steal_pointer (&source);
-
-  /* Setup fiber scheduler source */
-  source = (GSource *)dex_fiber_scheduler_new ();
-  g_source_attach (source, thread_pool_worker->main_context);
-  thread_pool_worker->fiber_scheduler = g_steal_pointer (&source);
-
   /* Now spawn our thread to process events via GSource */
+  g_mutex_lock (&thread_pool_worker->setup_mutex);
   thread_pool_worker->thread = g_thread_new ("dex-thread-pool-worker",
                                              dex_thread_pool_worker_thread_func,
                                              thread_pool_worker);
+  g_cond_wait (&thread_pool_worker->setup_cond, &thread_pool_worker->setup_mutex);
+  failed = thread_pool_worker->status == DEX_THREAD_POOL_WORKER_FINISHED;
+  g_mutex_unlock (&thread_pool_worker->setup_mutex);
+
+  if (failed)
+    dex_clear (&thread_pool_worker);
 
   return thread_pool_worker;
 }
