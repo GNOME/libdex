@@ -160,10 +160,9 @@ static GSourceFuncs dex_posix_aio_context_source_funcs = {
 static DexAioContext *
 dex_posix_aio_backend_create_context (DexAioBackend *aio_backend)
 {
-  DexPosixAioBackend *posix_aio_backend = DEX_POSIX_AIO_BACKEND (aio_backend);
   DexPosixAioContext *aio_context;
 
-  g_assert (DEX_IS_POSIX_AIO_BACKEND (posix_aio_backend));
+  g_assert (DEX_IS_POSIX_AIO_BACKEND (aio_backend));
 
   aio_context = (DexPosixAioContext *)
     g_source_new (&dex_posix_aio_context_source_funcs,

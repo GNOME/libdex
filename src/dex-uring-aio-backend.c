@@ -260,11 +260,10 @@ dex_uring_aio_context_queue (DexUringAioContext *aio_context,
 static DexAioContext *
 dex_uring_aio_backend_create_context (DexAioBackend *aio_backend)
 {
-  DexUringAioBackend *uring_aio_backend = DEX_URING_AIO_BACKEND (aio_backend);
   DexUringAioContext *aio_context;
   guint uring_flags = 0;
 
-  g_assert (DEX_IS_URING_AIO_BACKEND (uring_aio_backend));
+  g_assert (DEX_IS_URING_AIO_BACKEND (aio_backend));
 
   aio_context = (DexUringAioContext *)
     g_source_new (&dex_uring_aio_context_source_funcs,
