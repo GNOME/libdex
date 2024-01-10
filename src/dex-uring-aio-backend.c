@@ -363,6 +363,15 @@ dex_uring_aio_backend_new (void)
   DexAioBackend *aio_backend;
   DexAioContext *aio_context;
 
+  /* We run into a number of issues with io_uring on older kernels which
+   * makes it hard to detect up-front if things will work. So just bail
+   * out if we have a kernel older than 6.1.
+   *
+   * See https://gitlab.gnome.org/GNOME/libdex/-/issues/17
+   */
+  if (!dex_uring_check_kernel_version (6, 1))
+    return NULL;
+
   aio_backend = (DexAioBackend *)dex_object_create_instance (DEX_TYPE_URING_AIO_BACKEND);
 
   /* Make sure we are capable of creating an aio_context */
