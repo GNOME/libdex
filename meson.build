@@ -30,7 +30,7 @@ glib_dep = dependency('gio-2.0', version: glib_req)
 if host_machine.system() == 'linux' and not get_option('liburing').disabled()
   liburing_req_version = '0.7'
   liburing_req = '>= @0@'.format(liburing_req_version)
-  liburing_dep = dependency('liburing', version: liburing_req, required: false)
+  liburing_dep = dependency('liburing', version: liburing_req, required: get_option('liburing').enabled())
 
   if liburing_dep.found()
     config_h.set10('HAVE_LIBURING', true)
