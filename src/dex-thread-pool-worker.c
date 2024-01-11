@@ -79,6 +79,14 @@ static void     dex_thread_pool_worker_set_remove        (DexThreadPoolWorkerSet
 static GSource *dex_thread_pool_worker_set_create_source (DexThreadPoolWorkerSet *set,
                                                           DexThreadPoolWorker    *thread_pool_worker);
 
+static gboolean
+dex_thread_pool_worker_work_item_cb (gpointer user_data)
+{
+  DexWorkItem *work_item = user_data;
+  dex_work_item_invoke (work_item);
+  return G_SOURCE_REMOVE;
+}
+
 static void
 dex_thread_pool_worker_push (DexScheduler *scheduler,
                              DexWorkItem   work_item)
@@ -87,10 +95,36 @@ dex_thread_pool_worker_push (DexScheduler *scheduler,
 
   g_assert (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
 
-  if G_LIKELY (g_thread_self () == thread_pool_worker->thread)
+  if G_LIKELY (g_thread_self () == thread_pool_worker->thread &&
+               thread_pool_worker->status == DEX_THREAD_POOL_WORKER_RUNNING)
     dex_work_stealing_queue_push (thread_pool_worker->work_stealing_queue, work_item);
   else
-    dex_work_queue_push (thread_pool_worker->global_work_queue, work_item);
+    {
+      GSource *source;
+
+      /* Pushing a work item directly onto a worker is generally going
+       * to be related to completing work items. Treat those as extremely
+       * high priority as they will delay further processing of futures.
+       *
+       * This is currently a workaround to improve the situation with
+       * issue #17 when we're on fallback configurations. If we want
+       * to improve that situation further, we can reduce some overhead
+       * here by creating a dedicated GSource like DexMainScheduler does
+       * for work items instead of a 1:1 GSource creation.
+       *
+       * But this at least improves the situation immediately that is
+       * causing potential lock-ups.
+       */
+
+      source = g_idle_source_new ();
+      g_source_set_priority (source, G_MININT);
+      g_source_set_callback (source,
+                             dex_thread_pool_worker_work_item_cb,
+                             g_memdup2 (&work_item, sizeof work_item),
+                             g_free);
+      g_source_attach (source, thread_pool_worker->main_context);
+      g_source_unref (source);
+    }
 }
 
 static gboolean
