@@ -199,7 +199,7 @@ foreach f : functions
   endif
 endforeach
 
-if get_option('eventfd').enabled() and not config_h.get('HAVE_EVENTFD')
+if get_option('eventfd').enabled() and config_h.get('HAVE_EVENTFD') == 0
   error('eventfd function is required for -Deventfd=enabled')
 endif
 
