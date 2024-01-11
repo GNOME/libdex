@@ -42,6 +42,7 @@
 #include "dex-promise.h"
 #include "dex-semaphore-private.h"
 #include "dex-thread-storage-private.h"
+#include "dex-uring-aio-backend-private.h"
 
 /*
  * NOTES:
@@ -57,6 +58,9 @@
  * work can be completed in a single io_uring_submit() when running
  * on Linux.
  *
+ * We will use the fallback case if we're not on io_uring because
+ * otherwise we lock up our thread pool with blocking read().
+ *
  * For the fallback case, we use a future that is enqueued on the waiter
  * thread, and when a post comes in, we attempt to complete those. If
  * the waiter enqueues and items are already available, they will be
@@ -69,7 +73,6 @@
  * there too).
  */
 
-#if !defined(HAVE_EVENT_FD)
 #define DEX_TYPE_SEMAPHORE_WAITER dex_semaphore_waiter_type
 
 typedef struct _DexSemaphoreWaiter
@@ -107,17 +110,17 @@ dex_semaphore_waiter_init (DexSemaphoreWaiter *semaphore_waiter)
 {
   semaphore_waiter->link.data = semaphore_waiter;
 }
-#endif
 
 struct _DexSemaphore
 {
   DexObject parent_instance;
+
 #ifdef HAVE_EVENTFD
   int eventfd;
-#else
+#endif
+
   gint64 counter;
   GQueue waiters;
-#endif
 };
 
 typedef struct _DexSemaphoreClass
@@ -175,7 +178,21 @@ static void
 dex_semaphore_init (DexSemaphore *semaphore)
 {
 #ifdef HAVE_EVENTFD
-  semaphore->eventfd = eventfd (0, EFD_SEMAPHORE);
+  {
+    /* We only support using eventfd if our AIO backend is
+     * io_uring because the threadpool AIO backend could end
+     * up saturating the threadpool and deadlocking.
+     *
+     * See #17
+     */
+#ifdef HAVE_LIBURING
+    DexAioBackend *backend = dex_aio_backend_get_default ();
+    if (DEX_IS_URING_AIO_BACKEND (backend))
+      semaphore->eventfd = eventfd (0, EFD_SEMAPHORE);
+    else
+#endif
+      semaphore->eventfd = -1;
+  }
 #endif
 }
 
@@ -195,54 +212,54 @@ dex_semaphore_post_many (DexSemaphore *semaphore,
     return;
 
 #ifdef HAVE_EVENTFD
-  {
-    guint64 counter = count;
+  if (semaphore->eventfd != -1)
+    {
+      guint64 counter = count;
 
-    /* Writes to eventfd are 64-bit integers and always atomic. Anything
-     * other than sizeof(counter) indicates failure and we are not prepared
-     * to handle that as it shouldn't happen. Just bail.
-     */
-    if (write (semaphore->eventfd, &counter, sizeof counter) != sizeof counter)
-      {
-        int errsv = errno;
-        g_error ("Failed to post semaphore counter: %s",
-                 g_strerror (errsv));
-      }
-  }
-#else
-  {
-    GQueue queue = G_QUEUE_INIT;
-
-    /* Post count and steal as many workers as we can complete
-     * immediately which are waiting on a result.
-     */
-    dex_object_lock (semaphore);
-    semaphore->counter += count;
-    while (semaphore->counter > 0 &&
-           semaphore->waiters.length > 0)
-      g_queue_push_tail_link (&queue, g_queue_pop_tail_link (&semaphore->waiters));
-    semaphore->counter -= queue.length;
-    dex_object_unlock (semaphore);
-
-    /* Now complete the waiters outside our object lock */
-    while (queue.length > 0)
-      {
-        DexSemaphoreWaiter *waiter = g_queue_pop_head_link (&queue)->data;
-        dex_future_complete (DEX_FUTURE (waiter), &semaphore_waiter_value, NULL);
-        dex_unref (waiter);
-      }
-  }
+      /* Writes to eventfd are 64-bit integers and always atomic. Anything
+       * other than sizeof(counter) indicates failure and we are not prepared
+       * to handle that as it shouldn't happen. Just bail.
+       */
+      if (write (semaphore->eventfd, &counter, sizeof counter) != sizeof counter)
+        {
+          int errsv = errno;
+          g_error ("Failed to post semaphore counter: %s",
+                   g_strerror (errsv));
+        }
+    }
+  else
 #endif
+    {
+      GQueue queue = G_QUEUE_INIT;
+
+      /* Post count and steal as many workers as we can complete
+       * immediately which are waiting on a result.
+       */
+      dex_object_lock (semaphore);
+      semaphore->counter += count;
+      while (semaphore->counter > 0 && semaphore->waiters.length > 0)
+        {
+          g_queue_push_tail_link (&queue, g_queue_pop_head_link (&semaphore->waiters));
+          semaphore->counter--;
+        }
+      dex_object_unlock (semaphore);
+
+      /* Now complete the waiters outside our object lock */
+      while (queue.length > 0)
+        {
+          DexSemaphoreWaiter *waiter = g_queue_pop_head_link (&queue)->data;
+          dex_future_complete (DEX_FUTURE (waiter), &semaphore_waiter_value, NULL);
+          dex_unref (waiter);
+        }
+    }
 }
 
-#ifndef HAVE_EVENTFD
 static DexFuture *
 dex_semaphore_wait_on_scheduler (DexFuture *future,
                                  gpointer   user_data)
 {
-  return NULL;
+  return dex_ref (future);
 }
-#endif
 
 DexFuture *
 dex_semaphore_wait (DexSemaphore *semaphore)
@@ -250,59 +267,55 @@ dex_semaphore_wait (DexSemaphore *semaphore)
   g_return_val_if_fail (DEX_IS_SEMAPHORE (semaphore), NULL);
 
 #ifdef HAVE_EVENTFD
-  {
-    static gint64 trash_value;
-    if G_UNLIKELY (semaphore->eventfd < 0)
-      return DEX_FUTURE (dex_future_new_reject (G_IO_ERROR,
-                                                G_IO_ERROR_CLOSED,
-                                                "The semaphore has already been closed"));
-    else
+  if (semaphore->eventfd != -1)
+    {
+      static gint64 trash_value;
       return dex_aio_read (NULL,
                            semaphore->eventfd,
                            &trash_value,
                            sizeof trash_value,
                            -1);
-  }
-#else
-  {
-    DexSemaphoreWaiter *waiter;
-    DexFuture *ret = NULL;
-
-    waiter = (DexSemaphoreWaiter *)
-      dex_object_create_instance (DEX_TYPE_SEMAPHORE_WAITER);
-
-    dex_object_lock (semaphore);
-    if (semaphore->counter > 0)
-      {
-        semaphore->counter--;
-        dex_future_complete (DEX_FUTURE (waiter), &semaphore_waiter_value, NULL);
-        ret = DEX_FUTURE (g_steal_pointer (&waiter));
-      }
-    else
-      {
-        DexScheduler *scheduler = dex_scheduler_ref_thread_default ();
-        DexFuture *block;
-
-        g_assert (scheduler != NULL);
-        g_assert (DEX_IS_SCHEDULER (scheduler));
-
-        block = dex_block_new (dex_ref (waiter),
-                               scheduler,
-                               DEX_BLOCK_KIND_FINALLY,
-                               dex_semaphore_wait_on_scheduler, NULL, NULL);
-        g_queue_push_tail_link (&semaphore->waiters, &waiter->link);
-        ret = DEX_FUTURE (g_steal_pointer (&block));
-
-        dex_unref (scheduler);
-      }
-    dex_object_unlock (semaphore);
-
-    g_assert (ret != NULL);
-    g_assert (DEX_IS_FUTURE (ret));
-
-    return ret;
-  }
+    }
+  else
 #endif
+    {
+      DexSemaphoreWaiter *waiter;
+      DexFuture *ret = NULL;
+
+      waiter = (DexSemaphoreWaiter *)
+        dex_object_create_instance (DEX_TYPE_SEMAPHORE_WAITER);
+
+      dex_object_lock (semaphore);
+      if (semaphore->counter > 0)
+        {
+          semaphore->counter--;
+          dex_future_complete (DEX_FUTURE (waiter), &semaphore_waiter_value, NULL);
+          ret = DEX_FUTURE (g_steal_pointer (&waiter));
+        }
+      else
+        {
+          DexScheduler *scheduler = dex_scheduler_ref_thread_default ();
+          DexFuture *block;
+
+          g_assert (scheduler != NULL);
+          g_assert (DEX_IS_SCHEDULER (scheduler));
+
+          block = dex_block_new (dex_ref (waiter),
+                                 scheduler,
+                                 DEX_BLOCK_KIND_FINALLY,
+                                 dex_semaphore_wait_on_scheduler, NULL, NULL);
+          g_queue_push_tail_link (&semaphore->waiters, &waiter->link);
+          ret = DEX_FUTURE (g_steal_pointer (&block));
+
+          dex_unref (scheduler);
+        }
+      dex_object_unlock (semaphore);
+
+      g_assert (ret != NULL);
+      g_assert (DEX_IS_FUTURE (ret));
+
+      return ret;
+    }
 }
 
 void
@@ -318,7 +331,8 @@ dex_semaphore_close (DexSemaphore *semaphore)
       close (semaphore->eventfd);
       semaphore->eventfd = -1;
     }
-#else
+#endif
+
   if (semaphore->waiters.length > 0)
     {
       GQueue queue = semaphore->waiters;
@@ -333,7 +347,6 @@ dex_semaphore_close (DexSemaphore *semaphore)
           dex_unref (waiter);
         }
     }
-#endif
 
   dex_object_unlock (semaphore);
 }
