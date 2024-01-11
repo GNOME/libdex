@@ -48,6 +48,7 @@ struct _DexThreadPoolWorker
 
   GThread                   *thread;
   GMainContext              *main_context;
+  GMainLoop                 *main_loop;
   DexAioContext             *aio_context;
   DexWorkQueue              *global_work_queue;
   DexWorkStealingQueue      *work_stealing_queue;
@@ -100,6 +101,7 @@ dex_thread_pool_worker_finalize_cb (gpointer data)
 
   /* First set the status to ensure that our check/dispatch will bail */
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_STOPPING;
+  g_main_loop_quit (thread_pool_worker->main_loop);
 
   /* Now flush out the rest of the work items if there are any */
   while (dex_work_stealing_queue_pop (thread_pool_worker->work_stealing_queue, &work_item))
@@ -148,6 +150,7 @@ dex_thread_pool_worker_finalize (DexObject *object)
 
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
   g_clear_pointer (&thread_pool_worker->main_context, g_main_context_unref);
+  g_clear_pointer (&thread_pool_worker->main_loop, g_main_loop_unref);
   g_clear_pointer (&thread_pool_worker->work_stealing_queue, dex_work_stealing_queue_unref);
 
   dex_clear (&thread_pool_worker->global_work_queue);
@@ -288,8 +291,7 @@ dex_thread_pool_worker_thread_func (gpointer data)
   g_mutex_unlock (&thread_pool_worker->setup_mutex);
 
   /* Process main context until we are told to shutdown */
-  while (thread_pool_worker->status != DEX_THREAD_POOL_WORKER_STOPPING)
-    g_main_context_iteration (thread_pool_worker->main_context, TRUE);
+  g_main_loop_run (thread_pool_worker->main_loop);
 
   /* Discard our work queue loop */
   dex_clear (&global_work_queue_loop);
@@ -482,6 +484,7 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
 
   thread_pool_worker = (DexThreadPoolWorker *)dex_object_create_instance (DEX_TYPE_THREAD_POOL_WORKER);
   thread_pool_worker->main_context = g_main_context_new ();
+  thread_pool_worker->main_loop = g_main_loop_new (thread_pool_worker->main_context, FALSE);
   thread_pool_worker->global_work_queue = dex_ref (work_queue);
   thread_pool_worker->work_stealing_queue = dex_work_stealing_queue_new (255);
   thread_pool_worker->set = set;
