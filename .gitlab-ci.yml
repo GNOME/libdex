@@ -26,7 +26,10 @@ test:
     - "dnf install -y $DEPS"
   script:
     - 'meson setup _build . -Ddocs=false -Dexamples=false -Dvapi=false -Dintrospection=enabled -Dsysprof=false -Dtests=true'
-    - 'ninja -C _build test'
+    - 'cd _build'
+    - 'ninja test'
+    - 'meson configure -Dliburing=false -Deventfd=false'
+    - 'ninja test'
 
 reference:
     image: $FEDORA_IMAGE
