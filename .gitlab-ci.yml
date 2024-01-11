@@ -26,10 +26,10 @@ test:
     - 'cat /proc/cpuinfo'
     - "dnf install -y $DEPS"
   script:
-    - 'meson setup _build . -Ddocs=false -Dexamples=false -Dvapi=false -Dintrospection=enabled -Dsysprof=false -Dtests=true'
+    - 'meson setup _build . -Ddocs=false -Dexamples=false -Dvapi=false -Dintrospection=enabled -Dsysprof=false -Dtests=true -Dliburing=enabled -Deventfd=enabled'
     - 'cd _build'
     - 'ninja test'
-    - 'meson configure -Dliburing=false -Deventfd=false'
+    - 'meson configure -Dliburing=disabled -Deventfd=disabled'
     - 'ninja test'
 
 reference:
