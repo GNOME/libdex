@@ -23,6 +23,7 @@ test:
       gobject-introspection-devel
       git
   before_script:
+    - 'cat /proc/cpuinfo'
     - "dnf install -y $DEPS"
   script:
     - 'meson setup _build . -Ddocs=false -Dexamples=false -Dvapi=false -Dintrospection=enabled -Dsysprof=false -Dtests=true'
