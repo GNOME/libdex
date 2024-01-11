@@ -238,6 +238,7 @@ dex_thread_pool_worker_thread_func (gpointer data)
     {
       thread_pool_worker->status = DEX_THREAD_POOL_WORKER_FINISHED;
       g_cond_signal (&thread_pool_worker->setup_cond);
+      g_mutex_unlock (&thread_pool_worker->setup_mutex);
       return NULL;
     }
 
