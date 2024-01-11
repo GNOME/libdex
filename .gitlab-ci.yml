@@ -1,9 +1,32 @@
 stages:
+    - test
     - docs
     - deploy
 
 variables:
     FEDORA_IMAGE: "registry.gitlab.gnome.org/gnome/gtksourceview/fedora:latest"
+
+test:
+  image: 'registry.fedoraproject.org/fedora:39'
+  stage: test
+  variables:
+    DEPS: >-
+      gcc
+      gcc-c++
+      gettext
+      libatomic
+      liburing-devel
+      meson
+      ninja-build
+      redhat-rpm-config
+      glib2-devel
+      gobject-introspection-devel
+      git
+  before_script:
+    - "dnf install -y $DEPS"
+  script:
+    - 'meson setup _build . -Ddocs=false -Dexamples=false -Dvapi=false -Dintrospection=enabled -Dsysprof=false -Dtests=true'
+    - 'ninja -C _build test'
 
 reference:
     image: $FEDORA_IMAGE
