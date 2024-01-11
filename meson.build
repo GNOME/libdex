@@ -183,11 +183,14 @@ deprecated_c_args = [
 add_project_arguments('-I' + meson.project_build_root(), language: 'c')
 
 functions = [
-  'eventfd',
   'posix_fadvise',
   'madvise',
   'mprotect',
 ]
+
+if not get_option('eventfd').disabled()
+  functions += ['eventfd']
+endif
 
 foreach f : functions
   if cc.has_function(f)
@@ -195,6 +198,10 @@ foreach f : functions
     config_h.set10(define, true)
   endif
 endforeach
+
+if get_option('eventfd').enabled() and not config_h.get('HAVE_EVENTFD')
+  error('eventfd function is required for -Deventfd=enabled')
+endif
 
 configure_file(output: 'config.h', configuration: config_h)
 

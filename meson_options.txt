@@ -19,3 +19,6 @@ option('tests',
 option('liburing',
        type: 'feature', value: 'auto',
        description: 'Allow use of liburing (io_uring)')
+option('eventfd',
+       type: 'feature', value: 'auto',
+       description: 'Allow use of eventfd')
