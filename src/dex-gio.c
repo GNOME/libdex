@@ -1308,3 +1308,53 @@ dex_subprocess_wait_check (GSubprocess *subprocess)
 
   return DEX_FUTURE (async_pair);
 }
+
+static void
+dex_file_query_exists_cb (GObject      *object,
+                          GAsyncResult *result,
+                          gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GFileInfo *file_info;
+  GError *error = NULL;
+
+  file_info = g_file_query_info_finish (G_FILE (object), result, &error);
+
+  if (file_info != NULL)
+    dex_promise_resolve_boolean (promise, TRUE);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  g_clear_object (&file_info);
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_query_exists:
+ * @file: a #GFile
+ *
+ * Queries to see if @file exists asynchronously.
+ *
+ * Returns: (transfer full): a #DexFuture that will resolve with %TRUE
+ *   if the file exists, otherwise reject with error.
+ *
+ * Since: 0.6
+ */
+DexFuture *
+dex_file_query_exists (GFile *file)
+{
+  DexPromise *promise;
+
+  g_return_val_if_fail (G_IS_FILE (file), NULL);
+
+  promise = dex_promise_new_cancellable ();
+  g_file_query_info_async (file,
+                           G_FILE_ATTRIBUTE_STANDARD_TYPE,
+                           G_FILE_QUERY_INFO_NONE,
+                           G_PRIORITY_DEFAULT,
+                           dex_promise_get_cancellable (promise),
+                           dex_file_query_exists_cb,
+                           dex_ref (promise));
+  return DEX_FUTURE (promise);
+}

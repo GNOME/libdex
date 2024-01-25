@@ -148,5 +148,7 @@ DexFuture *dex_dbus_connection_send_message_with_reply (GDBusConnection         
                                                         guint32                  *out_serial);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_subprocess_wait_check                   (GSubprocess              *subprocess);
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_file_query_exists                       (GFile                    *file);
 
 G_END_DECLS
