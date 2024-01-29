@@ -75,7 +75,8 @@ DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
                                                 gsize             stack_size,
                                                 DexFiberFunc      func,
                                                 gpointer          func_data,
-                                                GDestroyNotify    func_data_destroy);
+                                                GDestroyNotify    func_data_destroy)
+  G_GNUC_WARN_UNUSED_RESULT;
 
 #if G_GNUC_CHECK_VERSION(3,0) && defined(DEX_ENABLE_DEBUG)
 # define _DEX_FIBER_NEW_(counter, ...) \
