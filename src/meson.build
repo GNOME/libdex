@@ -150,7 +150,7 @@ libdex_dep_sources = []
 install_headers(libdex_headers, subdir: 'libdex-@0@'.format(api_version))
 
 pkg.generate(
-  description: 'A shared library for deferred execution',
+  description: 'Future-based programming for GLib-based applications and libraries',
     libraries: libdex,
          name: 'libdex',
      filebase: 'libdex-' + api_version,
