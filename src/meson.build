@@ -163,6 +163,7 @@ if get_option('introspection').enabled()
                 sources: [libdex_sources, libdex_headers],
               nsversion: api_version,
               namespace: 'Dex',
+        export_packages: 'libdex-@0@'.format(api_version),
           symbol_prefix: 'dex',
       identifier_prefix: 'Dex',
         install_dir_gir: girdir,
