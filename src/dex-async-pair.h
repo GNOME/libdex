@@ -88,7 +88,8 @@ DEX_AVAILABLE_IN_ALL
 GType         dex_async_pair_get_type              (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
 DexFuture    *dex_async_pair_new                   (gpointer                instance,
-                                                    const DexAsyncPairInfo *info);
+                                                    const DexAsyncPairInfo *info)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 GCancellable *dex_async_pair_get_cancellable       (DexAsyncPair           *async_pair);
 DEX_AVAILABLE_IN_ALL

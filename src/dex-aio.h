@@ -31,12 +31,14 @@ DexFuture *dex_aio_read  (DexAioContext *aio_context,
                           int            fd,
                           gpointer       buffer,
                           gsize          count,
-                          goffset        offset);
+                          goffset        offset)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_aio_write (DexAioContext *aio_context,
                           int            fd,
                           gconstpointer  buffer,
                           gsize          count,
-                          goffset        offset);
+                          goffset        offset)
+  G_GNUC_WARN_UNUSED_RESULT;
 
 G_END_DECLS

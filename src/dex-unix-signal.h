@@ -34,7 +34,8 @@ typedef struct _DexUnixSignal DexUnixSignal;
 DEX_AVAILABLE_IN_ALL
 GType      dex_unix_signal_get_type   (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_unix_signal_new        (int signum);
+DexFuture *dex_unix_signal_new        (int            signum)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 int        dex_unix_signal_get_signum (DexUnixSignal *unix_signal);
 

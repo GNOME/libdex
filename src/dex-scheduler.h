@@ -61,7 +61,8 @@ GType         dex_scheduler_get_type           (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
 DexScheduler *dex_scheduler_get_thread_default (void);
 DEX_AVAILABLE_IN_ALL
-DexScheduler *dex_scheduler_ref_thread_default (void);
+DexScheduler *dex_scheduler_ref_thread_default (void)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexScheduler *dex_scheduler_get_default        (void);
 DEX_AVAILABLE_IN_ALL

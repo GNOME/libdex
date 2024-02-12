@@ -35,7 +35,8 @@ DEX_AVAILABLE_IN_ALL
 DexAsyncResult *dex_async_result_new               (gpointer              source_object,
                                                     GCancellable         *cancellable,
                                                     GAsyncReadyCallback   callback,
-                                                    gpointer              user_data);
+                                                    gpointer              user_data)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 void            dex_async_result_set_priority      (DexAsyncResult       *async_result,
                                                     int                   priority);
@@ -52,7 +53,8 @@ void            dex_async_result_await             (DexAsyncResult       *async_
                                                     DexFuture            *future);
 DEX_AVAILABLE_IN_ALL
 gpointer        dex_async_result_propagate_pointer (DexAsyncResult       *async_result,
-                                                    GError              **error);
+                                                    GError              **error)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 gboolean        dex_async_result_propagate_boolean (DexAsyncResult       *async_result,
                                                     GError              **error);
@@ -63,6 +65,7 @@ DEX_AVAILABLE_IN_ALL
 double          dex_async_result_propagate_double  (DexAsyncResult       *async_result,
                                                     GError              **error);
 DEX_AVAILABLE_IN_ALL
-DexFuture      *dex_async_result_dup_future        (DexAsyncResult       *async_result);
+DexFuture      *dex_async_result_dup_future        (DexAsyncResult       *async_result)
+  G_GNUC_WARN_UNUSED_RESULT;
 
 G_END_DECLS

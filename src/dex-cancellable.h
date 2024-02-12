@@ -38,9 +38,11 @@ typedef struct _DexCancellable DexCancellable;
 DEX_AVAILABLE_IN_ALL
 GType           dex_cancellable_get_type             (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexCancellable *dex_cancellable_new                  (void);
+DexCancellable *dex_cancellable_new                  (void)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture      *dex_cancellable_new_from_cancellable (GCancellable *cancellable);
+DexFuture      *dex_cancellable_new_from_cancellable (GCancellable *cancellable)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 void            dex_cancellable_cancel               (DexCancellable *cancellable);
 

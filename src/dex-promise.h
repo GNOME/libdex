@@ -40,9 +40,11 @@ typedef struct _DexPromise DexPromise;
 DEX_AVAILABLE_IN_ALL
 GType         dex_promise_get_type        (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexPromise   *dex_promise_new             (void);
+DexPromise   *dex_promise_new             (void)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexPromise   *dex_promise_new_cancellable (void);
+DexPromise   *dex_promise_new_cancellable (void)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 GCancellable *dex_promise_get_cancellable (DexPromise   *promise);
 DEX_AVAILABLE_IN_ALL

@@ -34,14 +34,18 @@ typedef struct _DexChannel DexChannel;
 DEX_AVAILABLE_IN_ALL
 GType       dex_channel_get_type          (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexChannel *dex_channel_new               (guint       capacity);
+DexChannel *dex_channel_new               (guint       capacity)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture  *dex_channel_send              (DexChannel *channel,
-                                           DexFuture  *future) G_GNUC_WARN_UNUSED_RESULT;
+                                           DexFuture  *future)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture  *dex_channel_receive           (DexChannel *channel) G_GNUC_WARN_UNUSED_RESULT;
+DexFuture  *dex_channel_receive           (DexChannel *channel)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture  *dex_channel_receive_all       (DexChannel *channel) G_GNUC_WARN_UNUSED_RESULT;
+DexFuture  *dex_channel_receive_all       (DexChannel *channel)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 void        dex_channel_close_send        (DexChannel *channel);
 DEX_AVAILABLE_IN_ALL
