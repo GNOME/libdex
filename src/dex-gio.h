@@ -40,83 +40,104 @@ DEX_AVAILABLE_IN_ALL
 GType      dex_inet_address_list_get_type              (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_make_directory                     (GFile                    *file,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_copy                               (GFile                    *source,
                                                         GFile                    *destination,
                                                         GFileCopyFlags            flags,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_read                               (GFile                    *file,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_file_load_contents_bytes                (GFile                    *file);
+DexFuture *dex_file_load_contents_bytes                (GFile                    *file)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_query_info                         (GFile                    *file,
                                                         const char               *attributes,
                                                         GFileQueryInfoFlags       flags,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_replace                            (GFile                    *file,
                                                         const char               *etag,
                                                         gboolean                  make_backup,
                                                         GFileCreateFlags          flags,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_enumerate_children                 (GFile                    *file,
                                                         const char               *attributes,
                                                         GFileQueryInfoFlags       flags,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_enumerator_next_files              (GFileEnumerator          *file_enumerator,
                                                         int                       num_files,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_close                      (GInputStream             *self,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_read                       (GInputStream             *self,
                                                         gpointer                  buffer,
                                                         gsize                     count,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_skip                       (GInputStream             *self,
                                                         gsize                     count,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_read_bytes                 (GInputStream             *self,
                                                         gsize                     count,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_close                     (GOutputStream            *self,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_splice                    (GOutputStream            *output,
                                                         GInputStream             *input,
                                                         GOutputStreamSpliceFlags  flags,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_write                     (GOutputStream            *self,
                                                         gconstpointer             buffer,
                                                         gsize                     count,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_write_bytes               (GOutputStream            *self,
                                                         GBytes                   *bytes,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_socket_listener_accept                  (GSocketListener          *listener);
+DexFuture *dex_socket_listener_accept                  (GSocketListener          *listener)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_socket_client_connect                   (GSocketClient            *socket_client,
-                                                        GSocketConnectable       *socket_connectable);
+                                                        GSocketConnectable       *socket_connectable)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_io_stream_close                         (GIOStream                *io_stream,
-                                                        int                       io_priority);
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_resolver_lookup_by_name                 (GResolver                *resolver,
-                                                        const char               *address);
+                                                        const char               *address)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_bus_get                                 (GBusType                  bus_type);
+DexFuture *dex_bus_get                                 (GBusType                  bus_type)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_dbus_connection_call                    (GDBusConnection          *connection,
                                                         const char               *bus_name,
@@ -126,7 +147,8 @@ DexFuture *dex_dbus_connection_call                    (GDBusConnection         
                                                         GVariant                 *parameters,
                                                         const GVariantType       *reply_type,
                                                         GDBusCallFlags            flags,
-                                                        int                       timeout_msec);
+                                                        int                       timeout_msec)
+  G_GNUC_WARN_UNUSED_RESULT;
 #ifdef G_OS_UNIX
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_dbus_connection_call_with_unix_fd_list  (GDBusConnection          *connection,
@@ -138,17 +160,21 @@ DexFuture *dex_dbus_connection_call_with_unix_fd_list  (GDBusConnection         
                                                         const GVariantType       *reply_type,
                                                         GDBusCallFlags            flags,
                                                         int                       timeout_msec,
-                                                        GUnixFDList              *fd_list);
+                                                        GUnixFDList              *fd_list)
+  G_GNUC_WARN_UNUSED_RESULT;
 #endif
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_dbus_connection_send_message_with_reply (GDBusConnection          *connection,
                                                         GDBusMessage             *message,
                                                         GDBusSendMessageFlags     flags,
                                                         int                       timeout_msec,
-                                                        guint32                  *out_serial);
+                                                        guint32                  *out_serial)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_subprocess_wait_check                   (GSubprocess              *subprocess);
+DexFuture *dex_subprocess_wait_check                   (GSubprocess              *subprocess)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_file_query_exists                       (GFile                    *file);
+DexFuture *dex_file_query_exists                       (GFile                    *file)
+  G_GNUC_WARN_UNUSED_RESULT;
 
 G_END_DECLS
