@@ -1,3 +1,13 @@
+libdex 0.5.0
+============
+
+This is a beta release for GNOME 46.
+
+ * Various API now warns about unused results to help avoid unintended
+   leaks of futures.
+ * dex_file_query_exists() is a new wrapper for g_file_query_exists()
+ * Documentation fixes
+
 libdex 0.4.3
 ============
 
