@@ -24,6 +24,16 @@
 #include "dex-future-private.h"
 #include "dex-promise.h"
 
+/**
+ * DexPromise:
+ *
+ * #DexPromise is a convenient #DexFuture for prpoagating a result or
+ * rejection in appliction and library code.
+ *
+ * Use this when there is not a more specialized #DexFuture for your needs to
+ * propagate a result or rejection to the caller in an asynchronous fashion.
+ */
+
 typedef struct _DexPromise
 {
   DexFuture parent_instance;
