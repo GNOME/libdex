@@ -24,6 +24,16 @@
 #include "dex-delayed.h"
 #include "dex-future-private.h"
 
+/**
+ * DexDelayed:
+ *
+ * #DexDelayed is a future which will resolve or reject the value of another
+ * #DexFuture when dex_delayed_release() is called.
+ *
+ * This allows you to gate the resolution of a future which has already
+ * resolved or rejected until a later moment.
+ */
+
 struct _DexDelayed
 {
   DexFuture parent_instance;
