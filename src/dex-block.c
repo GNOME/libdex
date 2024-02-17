@@ -24,6 +24,16 @@
 #include "dex-block-private.h"
 #include "dex-thread-storage-private.h"
 
+/**
+ * DexBlock:
+ *
+ * `class@Block` represents a callback closure that can be scheduled to run
+ * within a specific `struct@GLib.MainContext`.
+ *
+ * You create these by chaining futures together using `dex_future_then()`,
+ * `dex_future_catch()`, `dex_future_finally()` and similar.
+ */
+
 typedef struct _DexBlock
 {
   DexFuture          parent_instance;
