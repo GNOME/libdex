@@ -209,6 +209,76 @@ dex_future_get_status (DexFuture *future)
   return status;
 }
 
+/**
+ * dex_future_is_resolved:
+ * @future: a #DexFuture
+ *
+ * This is a convenience function equivalent to calling
+ * dex_future_get_status() and checking for %DEX_FUTURE_STATUS_RESOLVED.
+ *
+ * Returns: %TRUE if the future has successfully resolved with a value;
+ *   otherwise %FALSE
+ */
+gboolean
+dex_future_is_resolved (DexFuture *future)
+{
+  gboolean ret;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  dex_object_lock (DEX_OBJECT (future));
+  ret = future->status == DEX_FUTURE_STATUS_RESOLVED;
+  dex_object_unlock (DEX_OBJECT (future));
+
+  return ret;
+}
+
+/**
+ * dex_future_is_rejected:
+ * @future: a #DexFuture
+ *
+ * This is a convenience function equivalent to calling
+ * dex_future_get_status() and checking for %DEX_FUTURE_STATUS_REJECTED.
+ *
+ * Returns: %TRUE if the future was rejected with an error; otherwise %FALSE
+ */
+gboolean
+dex_future_is_rejected (DexFuture *future)
+{
+  gboolean ret;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  dex_object_lock (DEX_OBJECT (future));
+  ret = future->status == DEX_FUTURE_STATUS_REJECTED;
+  dex_object_unlock (DEX_OBJECT (future));
+
+  return ret;
+}
+
+/**
+ * dex_future_is_pending:
+ * @future: a #DexFuture
+ *
+ * This is a convenience function equivalent to calling
+ * dex_future_get_status() and checking for %DEX_FUTURE_STATUS_PENDING.
+ *
+ * Returns: %TRUE if the future is still pending; otherwise %FALSE
+ */
+gboolean
+dex_future_is_pending (DexFuture *future)
+{
+  gboolean ret;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  dex_object_lock (DEX_OBJECT (future));
+  ret = future->status == DEX_FUTURE_STATUS_PENDING;
+  dex_object_unlock (DEX_OBJECT (future));
+
+  return ret;
+}
+
 static void
 dex_future_finalize (DexObject *object)
 {

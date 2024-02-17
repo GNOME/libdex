@@ -61,6 +61,12 @@ GType            dex_future_get_type        (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
 DexFutureStatus  dex_future_get_status      (DexFuture          *future);
 DEX_AVAILABLE_IN_ALL
+gboolean         dex_future_is_resolved     (DexFuture          *future);
+DEX_AVAILABLE_IN_ALL
+gboolean         dex_future_is_rejected     (DexFuture          *future);
+DEX_AVAILABLE_IN_ALL
+gboolean         dex_future_is_pending      (DexFuture          *future);
+DEX_AVAILABLE_IN_ALL
 const GValue    *dex_future_get_value       (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
