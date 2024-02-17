@@ -29,6 +29,13 @@
 #include "dex-scheduler.h"
 #include "dex-timeout.h"
 
+/**
+ * DexTimeout:
+ *
+ * #DexTimeout is a #DexFuture that will resolve after the configured
+ * period of time.
+ */
+
 typedef struct _DexTimeout
 {
   DexFuture parent_instance;
