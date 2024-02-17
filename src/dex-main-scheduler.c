@@ -28,6 +28,18 @@
 #include "dex-work-queue-private.h"
 #include "dex-thread-storage-private.h"
 
+/**
+ * DexMainScheduler:
+ *
+ * #DexMainScheduler is the scheduler used on the default thread of an
+ * application. It is meant to integrate with your main loop.
+ *
+ * This scheduler does the bulk of the work in an application.
+ *
+ * Use #DexThreadPoolScheduler when you want to offload work to a thread
+ * and still use future-based programming.
+ */
+
 typedef struct _DexMainWorkQueueItem
 {
   DexWorkItem work_item;

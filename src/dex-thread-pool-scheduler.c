@@ -27,6 +27,26 @@
 #include "dex-thread-storage-private.h"
 #include "dex-work-queue-private.h"
 
+/**
+ * DexThreadPoolScheduler:
+ *
+ * #DexThreadPoolScheduler is a #DexScheduler that will dispatch work items
+ * and fibers to sub-schedulers on a specific operating system thread.
+ *
+ * #DexFiber will never migrate from the thread they are created on to reduce
+ * chances of safety issues involved in tracking state between CPU.
+ *
+ * New work items are placed into a global work queue and then dispatched
+ * efficiently to a single thread pool worker using a specialized async
+ * semaphore. On modern Linux using io_uring, this wakes up a single worker
+ * thread and therefore is not subject to "thundering herd" common with
+ * global work queues.
+ *
+ * When a worker creates a new work item, it is placed into a work stealing
+ * queue owned by the thread. Other worker threads may steal work items when
+ * they have exhausted their own work queue.
+ */
+
 struct _DexThreadPoolScheduler
 {
   DexScheduler            parent_instance;
