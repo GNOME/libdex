@@ -32,6 +32,23 @@
 #include "dex-scheduler.h"
 #include "dex-static-future-private.h"
 
+/**
+ * DexFuture:
+ *
+ * #DexFuture is the base class representing a future which may resolve with
+ * a value or reject with error at some point in the future.
+ *
+ * It is the basis for libdex's concurrency and parallelism model.
+ *
+ * Use futures to represent work in progress and allow consumers to build
+ * robust processing chains up front which will complete or fail as futures
+ * resolve or reject.
+ *
+ * When running on a #DexFiber, you may use dex_await() and similar functions
+ * to suspend the current thread and return upon completion of the dependent
+ * future.
+ */
+
 static void dex_future_propagate (DexFuture *future,
                                   DexFuture *completed);
 
