@@ -29,6 +29,28 @@
 #include "dex-platform.h"
 #include "dex-thread-storage-private.h"
 
+/**
+ * DexFiber:
+ *
+ * #DexFiber is a fiber (or coroutine) which itself is a #DexFuture.
+ *
+ * When the fiber completes execution it will either resolve or reject the
+ * with the result or error.
+ *
+ * You may treat a #DexFiber like any other #DexFuture which makes it simple
+ * to integrate fibers into other processing chains.
+ *
+ * #DexFiber are provided their own stack seperate from a threads main stack,
+ * They are automatically scheduled as necessary.
+ *
+ * Use dex_await() and similar functions to await the result of another future
+ * within the fiber and the fiber will be suspended allowing another fiber to
+ * run and/or the rest of the applications main loop.
+ *
+ * Once a fiber is created, it is pinned to that scheduler. Use
+ * dex_scheduler_spawn() to create a fiber on a specific scheduler.
+ */
+
 typedef struct _DexFiberClass
 {
   DexFutureClass parent_class;
