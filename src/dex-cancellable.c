@@ -26,6 +26,17 @@
 #include "dex-cancellable.h"
 #include "dex-future-private.h"
 
+/**
+ * DexCancellable:
+ *
+ * `DexCancellable` is a simple cancellation primitive which allows
+ * for you to create `DexFuture` that will reject upon cancellation.
+ *
+ * Use this combined with other futures using dex_future_all_race()
+ * to create a future that resolves when all other futures complete
+ * or `dex_cancellable_cancel()` is called to reject.
+ */
+
 typedef struct _DexCancellable
 {
   DexFuture     parent_instance;
