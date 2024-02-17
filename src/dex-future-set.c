@@ -26,6 +26,18 @@
 #include "dex-error.h"
 #include "dex-future-set-private.h"
 
+/**
+ * DexFutureSet:
+ *
+ * #DexFutureSet represents a set of #DexFuture.
+ *
+ * You may retrieve each underlying #DexFuture using
+ * dex_future_set_get_future_at().
+ *
+ * The #DexFutureStatus of of the #DexFutureSet depends on how the set
+ * was created using dex_future_all(), dex_future_any(), and similar mmethods.
+ */
+
 typedef struct _DexFutureSet
 {
   DexFuture           parent_instance;
