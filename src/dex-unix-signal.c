@@ -27,6 +27,18 @@
 #include "dex-future-private.h"
 #include "dex-unix-signal.h"
 
+/**
+ * DexUnixSignal:
+ *
+ * #DexUnixSignal is a #DexFuture that will resolve when a specific unix
+ * signal has been received.
+ *
+ * Use this when you want to handle a signal from your main loop rather than
+ * from a resticted operating signal handler.
+ *
+ * On Linux, this uses a signalfd.
+ */
+
 struct _DexUnixSignal
 {
   DexFuture parent_instance;
