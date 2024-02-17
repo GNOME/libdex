@@ -26,6 +26,15 @@
 #include "dex-compat-private.h"
 #include "dex-error.h"
 
+/**
+ * DexAsyncResult:
+ *
+ * `DexAsyncResult` is used to integrate a `DexFuture` with `GAsyncResult`.
+ *
+ * Use this class when you need to expose the traditional async/finish
+ * behavior of `GAsyncResult`.
+ */
+
 struct _DexAsyncResult
 {
   GObject              parent_instance;
