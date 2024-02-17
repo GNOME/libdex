@@ -26,6 +26,20 @@
 #include "dex-scheduler-private.h"
 #include "dex-thread-storage-private.h"
 
+/**
+ * DexScheduler:
+ *
+ * #DexScheduler is the base class used by schedulers.
+ *
+ * Schedulers are responsible for ensuring asynchronous IO requests and
+ * completions are processed. They also schedule closures to be run as part
+ * of future result propagation. Additionally, they manage #DexFiber execution
+ * and suspension.
+ *
+ * Specialized schedulers such as #DexThreadPoolScheduler will do this for a
+ * number of threads and dispatch new work between them.
+ */
+
 static DexScheduler *default_scheduler;
 
 DEX_DEFINE_ABSTRACT_TYPE (DexScheduler, dex_scheduler, DEX_TYPE_OBJECT)
