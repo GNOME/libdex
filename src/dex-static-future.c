@@ -23,6 +23,19 @@
 #include "dex-future-private.h"
 #include "dex-static-future-private.h"
 
+/**
+ * DexStaticFuture:
+ *
+ * `DexStaticFuture` represents a future that is resolved from the initial
+ * state.
+ *
+ * Use this when you need to create a future for API reasons but already have
+ * the value or rejection at that point.
+ *
+ * #DexStaticFuture is used internally by functions like
+ * dex_future_new_for_boolean() and similar.
+ */
+
 struct _DexStaticFuture
 {
   DexFuture parent_instance;
