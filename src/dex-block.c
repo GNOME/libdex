@@ -27,11 +27,11 @@
 /**
  * DexBlock:
  *
- * `class@Block` represents a callback closure that can be scheduled to run
- * within a specific `struct@GLib.MainContext`.
+ * #DexBlock represents a callback closure that can be scheduled to run
+ * within a specific #GMainContext.
  *
- * You create these by chaining futures together using `dex_future_then()`,
- * `dex_future_catch()`, `dex_future_finally()` and similar.
+ * You create these by chaining futures together using dex_future_then(),
+ * dex_future_catch(), dex_future_finally() and similar.
  */
 
 typedef struct _DexBlock
