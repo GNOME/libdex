@@ -1,3 +1,9 @@
+libdex 0.5.1
+============
+
+ * Add convenience API for checking exact future status without enum
+ * Lots of documentation additions
+
 libdex 0.5.0
 ============
 
