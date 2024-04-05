@@ -269,3 +269,23 @@ dex_promise_resolve_object (DexPromise *promise,
   dex_promise_resolve (promise, &gvalue);
   g_clear_object (&object);
 }
+
+/**
+ * dex_promise_resolve_variant:
+ * @promise: a #DexPromise
+ * @variant: (transfer full) (nullable): a #GVariant
+ *
+ * If @variant is floating, it's reference is consumed.
+ *
+ * Since: 0.8
+ */
+void
+dex_promise_resolve_variant (DexPromise *promise,
+                             GVariant   *variant)
+{
+  GValue gvalue = G_VALUE_INIT;
+  g_value_init (&gvalue, G_TYPE_VARIANT);
+  g_value_take_variant (&gvalue, variant);
+  dex_promise_resolve (promise, &gvalue);
+  g_value_unset (&gvalue);
+}

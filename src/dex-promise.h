@@ -84,6 +84,9 @@ DEX_AVAILABLE_IN_ALL
 void          dex_promise_resolve_object  (DexPromise   *promise,
                                            gpointer      object);
 DEX_AVAILABLE_IN_ALL
+void          dex_promise_resolve_variant (DexPromise   *promise,
+                                           GVariant     *variant);
+DEX_AVAILABLE_IN_ALL
 void          dex_promise_reject          (DexPromise   *promise,
                                            GError       *error);
 
