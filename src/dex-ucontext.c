@@ -7,26 +7,26 @@
 #include "dex-ucontext-private.h"
 
 #if defined(__APPLE__)
-#if defined(__i386__)
-#define NEEDX86MAKECONTEXT
-#define NEEDSWAPCONTEXT
-#elif defined(__x86_64__)
-#define NEEDAMD64MAKECONTEXT
-#define NEEDSWAPCONTEXT
-#else
-#define NEEDPOWERMAKECONTEXT
-#define NEEDSWAPCONTEXT
-#endif
+# if defined(__i386__)
+#  define NEEDX86MAKECONTEXT
+#  define NEEDSWAPCONTEXT
+# elif defined(__x86_64__)
+#  define NEEDAMD64MAKECONTEXT
+#  define NEEDSWAPCONTEXT
+# else
+#  define NEEDPOWERMAKECONTEXT
+#  define NEEDSWAPCONTEXT
+# endif
 #endif
 
 #if defined(__FreeBSD__) && defined(__i386__) && __FreeBSD__ < 5
-#define NEEDX86MAKECONTEXT
-#define NEEDSWAPCONTEXT
+# define NEEDX86MAKECONTEXT
+# define NEEDSWAPCONTEXT
 #endif
 
 #if defined(__OpenBSD__) && defined(__i386__)
-#define NEEDX86MAKECONTEXT
-#define NEEDSWAPCONTEXT
+# define NEEDX86MAKECONTEXT
+# define NEEDSWAPCONTEXT
 #endif
 
 #ifdef NEEDPOWERMAKECONTEXT

@@ -46,8 +46,8 @@
 #define USE_UCONTEXT 1
 
 #if defined(__OpenBSD__) || defined(__mips__)
-#undef USE_UCONTEXT
-#define USE_UCONTEXT 0
+# undef USE_UCONTEXT
+# define USE_UCONTEXT 0
 #endif
 
 #if defined(__APPLE__)
@@ -65,8 +65,8 @@
 #if defined(__FreeBSD__) && __FreeBSD__ < 5
 extern int   getmcontext(mcontext_t*);
 extern void  setmcontext(const mcontext_t*);
-#define setcontext(u) setmcontext(&(u)->uc_mcontext)
-#define getcontext(u) getmcontext(&(u)->uc_mcontext)
+# define setcontext(u) setmcontext(&(u)->uc_mcontext)
+# define getcontext(u) getmcontext(&(u)->uc_mcontext)
 extern int   swapcontext(ucontext_t*, const ucontext_t*);
 extern void  makecontext(ucontext_t*, void(*)(void), int, ...);
 #endif

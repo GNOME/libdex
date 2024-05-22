@@ -3,37 +3,37 @@
 #include "config.h"
 
 #if defined(__FreeBSD__) && defined(__i386__) && __FreeBSD__ < 5
-#define NEEDX86CONTEXT 1
-#define SET setmcontext
-#define GET getmcontext
+# define NEEDX86CONTEXT 1
+# define SET setmcontext
+# define GET getmcontext
 #endif
 
 #if defined(__OpenBSD__) && defined(__i386__)
-#define NEEDX86CONTEXT 1
-#define SET setmcontext
-#define GET getmcontext
+# define NEEDX86CONTEXT 1
+# define SET setmcontext
+# define GET getmcontext
 #endif
 
 #if defined(__APPLE__)
-#if defined(__i386__)
-#define NEEDX86CONTEXT 1
-#define SET _setmcontext
-#define GET _getmcontext
-#elif defined(__x86_64__)
-#define NEEDAMD64CONTEXT 1
-#define SET _setmcontext
-#define GET _getmcontext
-#else
-#define NEEDPOWERCONTEXT 1
-#define SET __setmcontext
-#define GET __getmcontext
-#endif
+# if defined(__i386__)
+#  define NEEDX86CONTEXT 1
+#  define SET _setmcontext
+#  define GET _getmcontext
+# elif defined(__x86_64__)
+#  define NEEDAMD64CONTEXT 1
+#  define SET _setmcontext
+#  define GET _getmcontext
+# else
+#  define NEEDPOWERCONTEXT 1
+#  define SET __setmcontext
+#  define GET __getmcontext
+# endif
 #endif
 
 #if defined(__linux__) && defined(__mips__) && !defined(HAVE_UCONTEXT_H)
-#define NEEDMIPSCONTEXT 1
-#define SET setmcontext
-#define GET getmcontext
+# define NEEDMIPSCONTEXT 1
+# define SET setmcontext
+# define GET getmcontext
 #endif
 
 #ifdef NEEDX86CONTEXT
