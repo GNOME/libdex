@@ -62,7 +62,7 @@
 
 #if USE_UCONTEXT
 # if defined(__APPLE__) && !defined(_XOPEN_SOURCE)
-#  define _XOPEN_SOURCE 600L
+#  define _XOPEN_SOURCE
 # endif
 # include <ucontext.h>
 #endif
