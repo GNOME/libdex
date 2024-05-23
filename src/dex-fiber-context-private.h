@@ -104,9 +104,11 @@ _dex_fiber_context_makecontext (ucontext_t           *ucontext,
   start_hi = 0;
 #endif
 
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   makecontext (ucontext,
                G_CALLBACK (dex_fiber_context_start),
                2, start_lo, start_hi);
+  G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 static inline void
@@ -124,7 +126,10 @@ dex_fiber_context_init (DexFiberContext      *context,
 #endif
 
   memset (ucontext, 0, sizeof *ucontext);
+
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
   getcontext (ucontext);
+  G_GNUC_END_IGNORE_DEPRECATIONS
 
   /* If stack is NULL, then this is a context used to save state
    * such as from the original stack in the fiber scheduler.
@@ -159,11 +164,13 @@ dex_fiber_context_switch (DexFiberContext *old_context,
 {
   int r;
 
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #if ALIGN_OF_UCONTEXT > GLIB_SIZEOF_VOID_P
   r = swapcontext (*old_context, *new_context);
 #else
   r = swapcontext (old_context, new_context);
 #endif
+  G_GNUC_END_IGNORE_DEPRECATIONS
 
 #ifndef G_DISABLE_ASSERT
   if G_UNLIKELY (r != 0)
