@@ -55,7 +55,11 @@ endforeach
 
 if host_machine.system() == 'darwin'
   # known alignment for darwin where we're using helpers
-  config_h.set('ALIGN_OF_UCONTEXT', 8)
+  if host_machine.cpu_family() == 'aarch64'
+    config_h.set('ALIGN_OF_UCONTEXT', 16)
+  else
+    config_h.set('ALIGN_OF_UCONTEXT', 8)
+  endif
 elif host_machine.system() == 'windows'
   # Unset
 else
