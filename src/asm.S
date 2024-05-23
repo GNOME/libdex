@@ -23,6 +23,7 @@
 #  define NEEDAMD64CONTEXT 1
 #  define SET _setmcontext
 #  define GET _getmcontext
+# elif defined(__aarch64__)
 # else
 #  define NEEDPOWERCONTEXT 1
 #  define SET __setmcontext

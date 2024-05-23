@@ -53,12 +53,17 @@
 #if defined(__APPLE__)
 # include <AvailabilityMacros.h>
 # if defined(MAC_OS_X_VERSION_10_5)
-#  undef USE_UCONTEXT
-#  define USE_UCONTEXT 0
+#  if !defined(__aarch64__)
+#    undef USE_UCONTEXT
+#    define USE_UCONTEXT 0
+#  endif
 # endif
 #endif
 
 #if USE_UCONTEXT
+# if defined(__APPLE__) && !defined(_XOPEN_SOURCE)
+#  define _XOPEN_SOURCE 600L
+# endif
 # include <ucontext.h>
 #endif
 
@@ -72,16 +77,18 @@ extern void  makecontext(ucontext_t*, void(*)(void), int, ...);
 #endif
 
 #if defined(__APPLE__)
-# define mcontext libthread_mcontext
-# define mcontext_t libthread_mcontext_t
-# define ucontext libthread_ucontext
-# define ucontext_t libthread_ucontext_t
-# if defined(__i386__)
-#  include "386-ucontext.h"
-# elif defined(__x86_64__)
-#  include "amd64-ucontext.h"
-# else
-#  include "power-ucontext.h"
+# if !defined(__aarch64__)
+#  define mcontext libthread_mcontext
+#  define mcontext_t libthread_mcontext_t
+#  define ucontext libthread_ucontext
+#  define ucontext_t libthread_ucontext_t
+#  if defined(__i386__)
+#   include "386-ucontext.h"
+#  elif defined(__x86_64__)
+#   include "amd64-ucontext.h"
+#  else
+#   include "power-ucontext.h"
+#  endif
 # endif
 #endif
 
