@@ -13,6 +13,7 @@
 # elif defined(__x86_64__)
 #  define NEEDAMD64MAKECONTEXT
 #  define NEEDSWAPCONTEXT
+# elif defined(__aarch64__)
 # else
 #  define NEEDPOWERMAKECONTEXT
 #  define NEEDSWAPCONTEXT
