@@ -124,6 +124,13 @@ libdex_c_args = [
   '-DDEX_COMPILATION',
 ]
 
+if host_machine.system() == 'darwin'
+  libdex_c_args += [
+    # needed for setcontext/makecontext/swapcontext
+    '-D_XOPEN_SOURCE',
+  ]
+endif
+
 libdex_static = static_library('dex-@0@'.format(api_version), libdex_sources,
            dependencies: libdex_deps,
   gnu_symbol_visibility: 'hidden',
