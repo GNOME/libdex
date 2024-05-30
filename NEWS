@@ -1,3 +1,8 @@
+libdex 0.6.1
+============
+
+ * Adds Fiber support for macOS on Apple Silicon
+
 libdex 0.6.0
 ============
 
