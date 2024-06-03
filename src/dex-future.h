@@ -296,6 +296,9 @@ gpointer         dex_await_object           (DexFuture          *future,
 # define dex_future_new_for_pointer(...) _DEX_FUTURE_NEW(new_for_pointer, __VA_ARGS__)
 #endif
 
+#define dex_future_new_true() dex_future_new_for_boolean(TRUE)
+#define dex_future_new_false() dex_future_new_for_boolean(FALSE)
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFuture, dex_unref)
 
 G_END_DECLS
