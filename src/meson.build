@@ -91,10 +91,18 @@ if host_machine.system() != 'windows'
   # Not really used on Windows now, see also
   # https://github.com/mesonbuild/meson/issues/4366
   libdex_sources += [
-    'asm.S',
     'dex-unix-signal.c',
     'dex-ucontext.c',
   ]
+
+  # If we're on Linux and mips we might still need asm.S.
+  # But otherwise linux can do it all without any custom
+  # assembler. Failure to do this might result in CET being
+  # disabled for the process by GCC.
+  if host_machine.system() != 'linux' or host_machine.cpu_family() == 'mips'
+    libdex_sources += ['asm.S']
+  endif
+
   libdex_headers += ['dex-unix-signal.h']
 endif
 
