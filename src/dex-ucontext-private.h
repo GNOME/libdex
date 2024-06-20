@@ -52,7 +52,7 @@
 
 #if defined(__APPLE__)
 # include <AvailabilityMacros.h>
-# if defined(MAC_OS_X_VERSION_10_5)
+# if !defined(MAC_OS_X_VERSION_10_14)
 #  if !defined(__aarch64__)
 #    undef USE_UCONTEXT
 #    define USE_UCONTEXT 0
