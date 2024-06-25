@@ -1194,7 +1194,7 @@ DexFuture *
 
 /**
  * dex_future_new_take_object: (constructor)
- * @value: (transfer full) (type GObject): the value
+ * @value: (transfer full) (type GObject) (nullable): the value
  *
  * Creates a new #DexFuture that is resolved with @value.
  *
@@ -1206,9 +1206,9 @@ DexFuture *
   GValue gvalue = G_VALUE_INIT;
   DexFuture *ret;
 
-  g_return_val_if_fail (G_IS_OBJECT (value), NULL);
+  g_return_val_if_fail (!value || G_IS_OBJECT (value), NULL);
 
-  g_value_init (&gvalue, G_OBJECT_TYPE (value));
+  g_value_init (&gvalue, value ? G_OBJECT_TYPE (value) : G_TYPE_OBJECT);
   g_value_take_object (&gvalue, value);
   ret = dex_future_new_for_value (&gvalue);
   g_value_unset (&gvalue);
