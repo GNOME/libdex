@@ -1,3 +1,14 @@
+libdex 0.7.0
+============
+
+This is an alpha release for GNOME 47.alpha
+
+ * Various build fixes for macOS 14+
+ * dex_future_new_true() and dex_future_new_false() convenience macros
+ * Avoid possible linking of asm.S on Linux so that we do not make the
+   GCC annobin checker unhappy.
+ * Allow a NULL GObject for dex_future_new_take_object().
+
 libdex 0.6.0
 ============
 
