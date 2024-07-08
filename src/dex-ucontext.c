@@ -6,23 +6,6 @@
 
 #include "dex-ucontext-private.h"
 
-#if defined(__APPLE__)
-# include <AvailabilityMacros.h>
-# if !defined(MAC_OS_X_VERSION_10_14)
-#  if defined(__i386__)
-#   define NEEDX86MAKECONTEXT
-#   define NEEDSWAPCONTEXT
-#  elif defined(__x86_64__)
-#   define NEEDAMD64MAKECONTEXT
-#   define NEEDSWAPCONTEXT
-#  elif defined(__aarch64__)
-#  else
-#   define NEEDPOWERMAKECONTEXT
-#   define NEEDSWAPCONTEXT
-#  endif
-# endif
-#endif
-
 #if defined(__FreeBSD__) && defined(__i386__) && __FreeBSD__ < 5
 # define NEEDX86MAKECONTEXT
 # define NEEDSWAPCONTEXT
