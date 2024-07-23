@@ -126,7 +126,7 @@ test_c_args = [
   ['-Werror=format-security', '-Werror=format=2'],
   '-FImsvc_recommended_pragmas.h',
 ]
-if get_option('buildtype') != 'plain'
+if get_option('buildtype') != 'plain' and get_option('stack-protector')
   if host_machine.system() != 'windows'
     test_c_args += '-fstack-protector-strong'
   endif
