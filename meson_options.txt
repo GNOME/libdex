@@ -4,6 +4,9 @@ option('docs',
 option('examples',
        type: 'boolean', value: true,
        description: 'Build example programs')
+option('stack-protector',
+       type: 'boolean', value: true,
+       description: 'Enable stack-protector')
 option('vapi',
        type: 'boolean', value: true,
        description: 'Generate vapi data (requires vapigen)')
