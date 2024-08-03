@@ -1,3 +1,11 @@
+libdex 0.7.1
+============
+
+This is an beta release for GNOME 47.beta
+
+ * Allow disabling stack protector on systems that do not support it
+ * Always use ucontext.h on macOS to simplify integration there
+
 libdex 0.7.0
 ============
 
