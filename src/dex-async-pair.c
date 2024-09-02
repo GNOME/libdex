@@ -219,7 +219,7 @@ dex_async_pair_new (gpointer                instance,
  *
  * Gets the cancellable for the async pair.
  *
- * If the DexAsyncPair is discarded by it's callers, then it will automatically
+ * If the DexAsyncPair is discarded by its callers, then it will automatically
  * be cancelled using g_cancellable_cancel().
  *
  * Returns: (transfer none): a #GCancellable

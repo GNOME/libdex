@@ -47,7 +47,7 @@
 /*
  * NOTES:
  *
- * The DexSemaphore class works in it's ideal state by using an
+ * The DexSemaphore class works in its ideal state by using an
  * eventfd() to notify other threads of work to be done using the
  * EFD_SEMPAHORE eventfd type.
  *

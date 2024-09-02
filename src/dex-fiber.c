@@ -366,9 +366,9 @@ dex_fiber_scheduler_finalize (GSource *source)
  * #DexFiberScheduler is a sub-scheduler to a #DexScheduler that can swap
  * into and schedule runnable #DexFiber.
  *
- * A #DexScheduler should have one of these #GSource attached to it's
+ * A #DexScheduler should have one of these #GSource attached to its
  * #GMainContext so that fibers can be executed there. When a thread
- * exits, it's fibers may need to be migrated. Currently that is not
+ * exits, its fibers may need to be migrated. Currently that is not
  * implemented as we do not yet destroy #DexThreadPoolWorker.
  */
 DexFiberScheduler *

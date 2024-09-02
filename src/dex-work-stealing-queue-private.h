@@ -20,7 +20,7 @@
  */
 
 /* This code is heavily based upon wsq.hpp¹ from Tsung-Wei Huang, under
- * the MIT license. It's original license is provided below.
+ * the MIT license. Its original license is provided below.
  *
  * ¹ https://github.com/taskflow/work-stealing-queue/tree/master/wsq.hpp
  *
@@ -175,7 +175,7 @@ dex_work_stealing_queue_size (DexWorkStealingQueue *work_stealing_queue)
  *
  * This adds @work_item to the queue so that it can be processed by the
  * local worker, or optionally, stolen by another worker after there are
- * no more items to process in it's queue or the global queue.
+ * no more items to process in its queue or the global queue.
  *
  * This may _ONLY_ be called by the thread that owns @work_stealing_queue.
  *

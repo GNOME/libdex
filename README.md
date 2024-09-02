@@ -67,7 +67,7 @@ past two decades of contributing to GNOME and GTK.
 
 ## Implementation Notes
 
-While Dex is using GObject and GIO, it implements it's own fundamental type
+While Dex is using GObject and GIO, it implements its own fundamental type
 (DexObject) for which all other types inherit. Given the concurrent and
 parallel nature of futures and the many situations to support, it is the
 authors opinion that the performance drawbacks of such a flexible type as
