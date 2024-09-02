@@ -41,6 +41,8 @@ dex_aio_context_current (void)
 
 /**
  * dex_aio_read:
+ * @buffer: (array length=count) (element-type guint8) (out caller-allocates)
+ * @count: (in)
  *
  * An asynchronous `pread()` wrapper.
  *
@@ -63,6 +65,7 @@ dex_aio_read (DexAioContext *aio_context,
 
 /**
  * dex_aio_write:
+ * @buffer: (array length=count) (element-type guint8)
  *
  * An asynchronous `pwrite()` wrapper.
  *

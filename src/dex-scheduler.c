@@ -181,9 +181,9 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
  * dex_scheduler_spawn:
  * @scheduler: (nullable): a #DexScheduler
  * @stack_size: stack size in bytes or 0
- * @func: (scope async): a #DexFiberFunc
- * @func_data: (closure func): closure data for @func
- * @func_data_destroy: (destroy func): closure notify for @func_data
+ * @func: (scope notified) (closure func_data) (destroy func_data_destroy): a #DexFiberFunc
+ * @func_data: closure data for @func
+ * @func_data_destroy: closure notify for @func_data
  *
  * Request @scheduler to spawn a #DexFiber.
  *

@@ -247,7 +247,7 @@ dex_object_remove_weak (gpointer    mem_block,
 
 /**
  * dex_weak_ref_init: (skip)
- * @weak_ref: uninitialized memory to store a weak ref
+ * @weak_ref: (out caller-allocates): uninitialized memory to store a weak ref
  * @mem_block: (nullable): the mem_block weak reference
  *
  * Creates a new weak reference to @mem_block.

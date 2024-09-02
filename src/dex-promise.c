@@ -257,7 +257,7 @@ dex_promise_resolve_string (DexPromise *promise,
 /**
  * dex_promise_resolve_object:
  * @promise: a #DexPromise
- * @object: (transfer full) (nullable): a #GObject
+ * @object: (type GObject) (transfer full) (nullable): a #GObject
  *
  */
 void

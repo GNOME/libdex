@@ -450,7 +450,7 @@ dex_future_discard (DexFuture *future,
 /**
  * dex_future_then: (constructor)
  * @future: (transfer full): a #DexFuture
- * @callback: (scope async): a callback to execute
+ * @callback: (scope notified): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
@@ -480,7 +480,7 @@ DexFuture *
 /**
  * dex_future_then_loop: (constructor)
  * @future: (transfer full): a #DexFuture
- * @callback: (scope async): a callback to execute
+ * @callback: (scope notified) (closure callback_data) (destroy callback_data_destroy): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
@@ -512,7 +512,7 @@ DexFuture *
 /**
  * dex_future_catch_loop: (constructor)
  * @future: (transfer full): a #DexFuture
- * @callback: (scope async): a callback to execute
+ * @callback: (scope notified) (closure callback_data) (destroy callback_data_destroy): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
@@ -544,7 +544,7 @@ DexFuture *
 /**
  * dex_future_finally_loop: (constructor)
  * @future: (transfer full): a #DexFuture
- * @callback: (scope async): a callback to execute
+ * @callback: (scope notified) (closure callback_data) (destroy callback_data_destroy): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
@@ -576,7 +576,7 @@ DexFuture *
 /**
  * dex_future_catch: (constructor)
  * @future: (transfer full): a #DexFuture
- * @callback: (scope async): a callback to execute
+ * @callback: (scope notified) (closure callback_data) (destroy callback_data_destroy): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
@@ -606,7 +606,7 @@ DexFuture *
 /**
  * dex_future_finally: (constructor)
  * @future: (transfer full): a #DexFuture
- * @callback: (scope async): a callback to execute
+ * @callback: (scope notified) (closure callback_data) (destroy callback_data_destroy): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
@@ -1126,7 +1126,7 @@ DexFuture *
 
 /**
  * dex_future_new_take_variant: (constructor) (skip)
- * @v_variant: the variant to take ownership of
+ * @v_variant: (transfer full): the variant to take ownership of
  *
  * Creates a new #DexFuture that is resolved with @v_variant.
  *
