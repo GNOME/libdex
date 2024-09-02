@@ -47,7 +47,7 @@ void     dex_unref           (gpointer  object);
 static inline void
 dex_clear (gpointer data)
 {
-  DexObject **objptr = data;
+  DexObject **objptr = (DexObject **)data;
   DexObject *obj = *objptr;
   *objptr = NULL;
   if (obj != NULL)
