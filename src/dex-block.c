@@ -253,7 +253,7 @@ dex_block_init (DexBlock *block)
  * @future: (transfer full): a #DexFuture to process
  * @scheduler: (nullable): a #DexScheduler or %NULL
  * @kind: the kind of block
- * @callback: (scope async): the callback for the block
+ * @callback: (scope notified): the callback for the block
  * @callback_data: the data for the callback
  * @callback_data_destroy: closure destroy for @callback_data
  *

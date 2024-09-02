@@ -257,7 +257,7 @@ dex_promise_resolve_string (DexPromise *promise,
 /**
  * dex_promise_resolve_object:
  * @promise: a #DexPromise
- * @object: (transfer full) (nullable): a #GObject
+ * @object: (type GObject) (transfer full) (nullable): a #GObject
  *
  */
 void
@@ -275,7 +275,7 @@ dex_promise_resolve_object (DexPromise *promise,
  * @promise: a #DexPromise
  * @variant: (transfer full) (nullable): a #GVariant
  *
- * If @variant is floating, it's reference is consumed.
+ * If @variant is floating, its reference is consumed.
  *
  * Since: 0.8
  */

@@ -226,6 +226,7 @@ dex_file_replace_cb (GObject      *object,
 
 /**
  * dex_file_replace:
+ * @etag: (nullable)
  *
  * Returns: (transfer full): a #DexFuture
  */
@@ -275,6 +276,8 @@ dex_input_stream_read_cb (GObject      *object,
 
 /**
  * dex_input_stream_read:
+ * @buffer: (array length=count) (element-type guint8) (out caller-allocates)
+ * @count: (in)
  *
  * Returns: (transfer full): a #DexFuture
  */
@@ -369,6 +372,7 @@ dex_output_stream_write_cb (GObject      *object,
 
 /**
  * dex_output_stream_write:
+ * @buffer: (array length=count) (element-type guint8)
  *
  * Returns: (transfer full): a #DexFuture
  */
@@ -1007,7 +1011,7 @@ dex_dbus_connection_send_message_with_reply_cb (GObject      *object,
  * @flags:  flags for @message
  * @timeout_msec: timeout in milliseconds, or -1 for default, or %G_MAXINT
  *   for no timeout.
- * @out_serial: (out) (nullable): a location for the message serial number
+ * @out_serial: (out) (optional): a location for the message serial number
  *
  * Wrapper for g_dbus_connection_send_message_with_reply().
  *
@@ -1063,12 +1067,12 @@ dex_dbus_connection_call_cb (GObject      *object,
 
 /**
  * dex_dbus_connection_call:
- * @bus_name:
+ * @bus_name: (nullable)
  * @object_path:
  * @interface_name:
  * @method_name:
- * @parameters:
- * @reply_type:
+ * @parameters: (nullable)
+ * @reply_type: (nullable)
  * @flags:
  * @timeout_msec:
  *
@@ -1155,12 +1159,12 @@ dex_dbus_connection_call_with_unix_fd_list_cb (GObject      *object,
 
 /**
  * dex_dbus_connection_call_with_unix_fd_list:
- * @bus_name:
+ * @bus_name: (nullable)
  * @object_path:
  * @interface_name:
  * @method_name:
- * @parameters:
- * @reply_type:
+ * @parameters: (nullable)
+ * @reply_type: (nullable)
  * @flags:
  * @timeout_msec:
  * @fd_list: (nullable): a #GUnixFDList

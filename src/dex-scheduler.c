@@ -181,20 +181,20 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
  * dex_scheduler_spawn:
  * @scheduler: (nullable): a #DexScheduler
  * @stack_size: stack size in bytes or 0
- * @func: (scope async): a #DexFiberFunc
- * @func_data: (closure func): closure data for @func
- * @func_data_destroy: (destroy func): closure notify for @func_data
+ * @func: (scope notified) (closure func_data) (destroy func_data_destroy): a #DexFiberFunc
+ * @func_data: closure data for @func
+ * @func_data_destroy: closure notify for @func_data
  *
  * Request @scheduler to spawn a #DexFiber.
  *
- * The fiber will have it's own stack and cooperatively schedules among other
+ * The fiber will have its own stack and cooperatively schedules among other
  * fibers sharing the schaeduler.
  *
  * If @stack_size is 0, it will set to a sensible default. Otherwise, it is
  * rounded up to the nearest page size.
  *
  * Returns: (transfer full): a #DexFuture that will resolve or reject when
- *   @func completes (or it's resulting #DexFuture completes).
+ *   @func completes (or its resulting #DexFuture completes).
  */
 DexFuture *
 dex_scheduler_spawn (DexScheduler   *scheduler,
