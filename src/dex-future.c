@@ -389,6 +389,7 @@ dex_future_discard (DexFuture *future,
 {
   gboolean has_awaiting = FALSE;
   gboolean matched = FALSE;
+  GQueue discarded = G_QUEUE_INIT;
 
   g_return_if_fail (DEX_IS_FUTURE (future));
   g_return_if_fail (DEX_IS_FUTURE (chained));
@@ -426,11 +427,19 @@ dex_future_discard (DexFuture *future,
           has_awaiting |= cf->awaiting;
 
           g_queue_unlink (&future->chained, &cf->link);
-          dex_chained_future_free (cf);
+          g_queue_push_tail_link (&discarded, &cf->link);
         }
     }
 
   dex_object_unlock (future);
+
+  /* Release chained futures outside of the @future lock */
+  while (discarded.head != NULL)
+    {
+      DexChainedFuture *cf = discarded.head->data;
+      g_queue_unlink (&discarded, &cf->link);
+      dex_chained_future_free (cf);
+    }
 
   /* If we discarded the chained future and there are no more futures
    * awaiting our response, then request the class discard the future,
