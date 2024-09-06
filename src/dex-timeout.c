@@ -176,7 +176,7 @@ dex_timeout_new_deadline (gint64 deadline)
 DexFuture *
 dex_timeout_new_seconds (int seconds)
 {
-  gint64 usec = G_USEC_PER_SEC * seconds;
+  gint64 usec = (gint64) G_USEC_PER_SEC * seconds;
   return dex_timeout_new_deadline (g_get_monotonic_time () + usec);
 }
 
