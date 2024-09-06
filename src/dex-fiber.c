@@ -394,14 +394,14 @@ void
 dex_fiber_scheduler_register (DexFiberScheduler *fiber_scheduler,
                               DexFiber          *fiber)
 {
-  g_return_if_fail (fiber_scheduler != NULL);
-  g_return_if_fail (DEX_IS_FIBER (fiber));
-  g_return_if_fail (fiber->link.data == fiber);
-  g_return_if_fail (fiber->fiber_scheduler == NULL);
-  g_return_if_fail (fiber->exited == FALSE);
-  g_return_if_fail (fiber->running == FALSE);
-  g_return_if_fail (fiber->runnable == FALSE);
-  g_return_if_fail (fiber->released == FALSE);
+  g_assert (fiber_scheduler != NULL);
+  g_assert (DEX_IS_FIBER (fiber));
+  g_assert (fiber->link.data == fiber);
+  g_assert (fiber->fiber_scheduler == NULL);
+  g_assert (fiber->exited == FALSE);
+  g_assert (fiber->running == FALSE);
+  g_assert (fiber->runnable == FALSE);
+  g_assert (fiber->released == FALSE);
 
   dex_ref (fiber);
 
