@@ -396,6 +396,11 @@ dex_fiber_scheduler_register (DexFiberScheduler *fiber_scheduler,
 {
   g_assert (fiber_scheduler != NULL);
   g_assert (DEX_IS_FIBER (fiber));
+
+  dex_ref (fiber);
+
+  g_mutex_lock (&fiber_scheduler->mutex);
+
   g_assert (fiber->link.data == fiber);
   g_assert (fiber->fiber_scheduler == NULL);
   g_assert (fiber->exited == FALSE);
@@ -403,12 +408,10 @@ dex_fiber_scheduler_register (DexFiberScheduler *fiber_scheduler,
   g_assert (fiber->runnable == FALSE);
   g_assert (fiber->released == FALSE);
 
-  dex_ref (fiber);
-
-  g_mutex_lock (&fiber_scheduler->mutex);
   fiber->fiber_scheduler = fiber_scheduler;
   fiber->runnable = TRUE;
   g_queue_push_tail_link (&fiber_scheduler->runnable, &fiber->link);
+
   g_mutex_unlock (&fiber_scheduler->mutex);
 
   if (dex_thread_storage_get ()->fiber_scheduler != fiber_scheduler)
