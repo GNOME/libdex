@@ -122,6 +122,7 @@ test_c_args = [
   '-Wundef',
   '-Wuninitialized',
   '-Wunused',
+  '-fstrict-flex-arrays=3',
   '-fno-strict-aliasing',
   ['-Werror=format-security', '-Werror=format=2'],
   '-FImsvc_recommended_pragmas.h',

@@ -80,7 +80,7 @@ typedef struct _DexWorkStealingArray
 {
   gint64               C;
   gint64               M;
-  _Atomic(DexWorkItem) S[0];
+  _Atomic(DexWorkItem) S[];
 } DexWorkStealingArray;
 
 typedef struct _DexWorkStealingQueue
