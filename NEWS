@@ -1,3 +1,15 @@
+libdex 0.8.0
+============
+
+This is a stable release for GNOME 47.0
+
+ * Various build system improvements to help catch correctness issues.
+ * Increased assertions in fibers to help Coverity discover usage patterns.
+ * Avoid releasing discarded future until chained future is released.
+ * Fix overflow in extremely large timeout calculation.
+ * Various introspection fixes.
+ * Fix inclusion from C++.
+
 libdex 0.7.1
 ============
 
