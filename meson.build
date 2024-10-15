@@ -160,7 +160,7 @@ test_link_args = [
   '-Wl,-z,now',
   '-Wl,-z,noexecstack',
 ]
-if not get_option('debug')
+if not get_option('buildtype').startswith('debug')
   add_global_arguments('-DG_DISABLE_CAST_CHECKS', language: 'c')
   release_args += [ '-DG_DISABLE_ASSERT' ]
   test_link_args += [
