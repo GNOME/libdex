@@ -1,3 +1,10 @@
+libdex 0.8.1
+============
+
+This is a stable release for GNOME 47.0
+
+ * Fix disabling of assertions in production builds
+
 libdex 0.8.0
 ============
 
