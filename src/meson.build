@@ -9,6 +9,7 @@ libdex_sources = [
   'dex-delayed.c',
   'dex-enums.c',
   'dex-error.c',
+  'dex-fd.c',
   'dex-fiber.c',
   'dex-future.c',
   'dex-future-set.c',

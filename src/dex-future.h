@@ -217,6 +217,9 @@ DEX_AVAILABLE_IN_ALL
 guint            dex_await_enum             (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL
+int              dex_await_fd               (DexFuture          *future,
+                                             GError            **error);
+DEX_AVAILABLE_IN_ALL
 guint            dex_await_flags            (DexFuture          *future,
                                              GError            **error);
 DEX_AVAILABLE_IN_ALL

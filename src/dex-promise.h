@@ -51,6 +51,9 @@ DEX_AVAILABLE_IN_ALL
 void          dex_promise_resolve         (DexPromise   *promise,
                                            const GValue *value);
 DEX_AVAILABLE_IN_ALL
+void          dex_promise_resolve_fd      (DexPromise   *promise,
+                                           int           fd);
+DEX_AVAILABLE_IN_ALL
 void          dex_promise_resolve_int     (DexPromise   *promise,
                                            int           value);
 DEX_AVAILABLE_IN_ALL

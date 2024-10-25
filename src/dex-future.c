@@ -24,6 +24,7 @@
 #include <gio/gio.h>
 
 #include "dex-block-private.h"
+#include "dex-fd-private.h"
 #include "dex-error.h"
 #include "dex-future-private.h"
 #include "dex-future-set-private.h"
@@ -1342,6 +1343,35 @@ dex_await_pointer (DexFuture  *future,
 
   if ((value = dex_await_check (future, G_TYPE_POINTER, error)))
     ret = g_value_get_pointer (value);
+
+  dex_unref (future);
+
+  return ret;
+}
+
+/**
+ * dex_await_fd: (method)
+ * @future: (transfer full): a #DexFuture
+ * @error: a location for a #GError
+ *
+ * Awaits on @future and returns the resultint file-descriptor.
+ *
+ * The resolved value must be of type %DEX_TYPE_FD or @error is set.
+ *
+ * Returns: a valid file descriptor or -1. you may get -1 without
+ *   error being set if there was no rejected future.
+ */
+int
+dex_await_fd (DexFuture  *future,
+              GError    **error)
+{
+  const GValue *value;
+  int ret = -1;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), 0);
+
+  if ((value = dex_await_check (future, DEX_TYPE_FD, error)))
+    ret = dex_fd_steal (g_value_get_boxed (value));
 
   dex_unref (future);
 

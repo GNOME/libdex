@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include "dex-fd-private.h"
 #include "dex-future-private.h"
 #include "dex-promise.h"
 
@@ -165,6 +166,18 @@ dex_promise_reject (DexPromise *promise,
   g_return_if_fail (error != NULL);
 
   dex_future_complete (DEX_FUTURE (promise), NULL, error);
+}
+
+void
+dex_promise_resolve_fd  (DexPromise *promise,
+                         int         fd)
+{
+  GValue gvalue = G_VALUE_INIT;
+
+  g_value_init (&gvalue, DEX_TYPE_FD);
+  g_value_set_boxed (&gvalue, &fd);
+
+  dex_promise_resolve (promise, &gvalue);
 }
 
 void
