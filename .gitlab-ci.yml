@@ -3,11 +3,8 @@ stages:
     - docs
     - deploy
 
-variables:
-    FEDORA_IMAGE: "registry.gitlab.gnome.org/gnome/gtksourceview/fedora:latest"
-
 test:
-  image: 'registry.fedoraproject.org/fedora:39'
+  image: 'registry.fedoraproject.org/fedora:41'
   stage: test
   variables:
     DEPS: >-
@@ -33,7 +30,7 @@ test:
     - 'ninja test'
 
 reference:
-    image: $FEDORA_IMAGE
+    image: 'registry.fedoraproject.org/fedora:41'
     stage: docs
     needs: []
     variables:
