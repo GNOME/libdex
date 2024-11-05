@@ -46,6 +46,7 @@
 #define USE_UCONTEXT 1
 
 #if defined(__OpenBSD__) || defined(__mips__)
+#include <stdint.h>
 # undef USE_UCONTEXT
 # define USE_UCONTEXT 0
 #endif
@@ -74,7 +75,9 @@ extern void  makecontext(ucontext_t*, void(*)(void), int, ...);
 # define mcontext_t libthread_mcontext_t
 # define ucontext libthread_ucontext
 # define ucontext_t libthread_ucontext_t
-# if defined __i386__
+# if defined __amd64__
+#  include "amd64-ucontext.h"
+# elif defined __i386__
 #  include "386-ucontext.h"
 # else
 #  include "power-ucontext.h"

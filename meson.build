@@ -60,6 +60,8 @@ if host_machine.system() == 'darwin'
   else
     config_h.set('ALIGN_OF_UCONTEXT', 8)
   endif
+elif host_machine.system() == 'openbsd'
+  config_h.set('ALIGN_OF_UCONTEXT', 8)
 elif host_machine.system() == 'windows'
   # Unset
 else
