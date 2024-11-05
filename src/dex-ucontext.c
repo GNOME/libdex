@@ -11,6 +11,11 @@
 # define NEEDSWAPCONTEXT
 #endif
 
+#if defined(__OpenBSD__) && defined(__amd64__)
+# define NEEDAMD64MAKECONTEXT
+# define NEEDSWAPCONTEXT
+#endif
+
 #if defined(__OpenBSD__) && defined(__i386__)
 # define NEEDX86MAKECONTEXT
 # define NEEDSWAPCONTEXT
