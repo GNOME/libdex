@@ -172,11 +172,7 @@ void
 dex_promise_resolve_fd  (DexPromise *promise,
                          int         fd)
 {
-  GValue gvalue = G_VALUE_INIT;
-
-  g_value_init (&gvalue, DEX_TYPE_FD);
-  g_value_set_boxed (&gvalue, &fd);
-
+  GValue gvalue = {DEX_TYPE_FD, {{.v_pointer = &fd}, {.v_int = 0}}};
   dex_promise_resolve (promise, &gvalue);
 }
 
