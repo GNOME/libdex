@@ -26,5 +26,6 @@ G_BEGIN_DECLS
 
 DexFuture *dex_static_future_new_rejected (GError       *error);
 DexFuture *dex_static_future_new_resolved (const GValue *value);
+DexFuture *dex_static_future_new_steal    (GValue       *value);
 
 G_END_DECLS

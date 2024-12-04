@@ -89,3 +89,19 @@ dex_static_future_new_resolved (const GValue *value)
 
   return DEX_FUTURE (ret);
 }
+
+DexFuture *
+dex_static_future_new_steal (GValue *value)
+{
+  DexFuture *ret;
+
+  g_return_val_if_fail (G_IS_VALUE (value), NULL);
+
+  ret = (DexFuture *)dex_object_create_instance (DEX_TYPE_STATIC_FUTURE);
+  ret->status = DEX_FUTURE_STATUS_RESOLVED;
+
+  ret->resolved = *value;
+  memset (value, 0, sizeof *value);
+
+  return DEX_FUTURE (ret);
+}
