@@ -933,6 +933,23 @@ DexFuture *
 }
 
 /**
+ * dex_future_new_for_fd: (constructor)
+ * @fd: the file-descriptor to take ownership of
+ *
+ * Creates a new future that resolves to @fd.
+ *
+ * This function takes ownership of @fd.
+ *
+ * Returns: (transfer full): a resolved #DexFuture
+ */
+DexFuture *
+(dex_future_new_for_fd) (int fd)
+{
+  GValue gvalue = {DEX_TYPE_FD, {{.v_pointer = g_memdup2 (&fd, sizeof fd)}, {.v_int = 0}}};
+  return dex_static_future_new_steal (&gvalue);
+}
+
+/**
  * dex_future_new_for_int: (constructor)
  * @v_int: the resolved value for the future
  *

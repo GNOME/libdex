@@ -94,6 +94,9 @@ DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_take_string (char               *string)
   G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_for_fd      (int                 fd)
+  G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_for_int     (int                 v_int)
   G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
