@@ -21,6 +21,8 @@
 
 #include "config.h"
 
+#include <unistd.h>
+
 #include "dex-fd-private.h"
 #include "dex-future-private.h"
 #include "dex-promise.h"
@@ -168,12 +170,28 @@ dex_promise_reject (DexPromise *promise,
   dex_future_complete (DEX_FUTURE (promise), NULL, error);
 }
 
+/**
+ * dex_promise_resolve_fd:
+ * @promise: a #DexPromise
+ * @fd: a file-descriptor for the resolve to resolve to
+ *
+ * Resolves the promise to @fd.
+ *
+ * The file-descriptor may be dup()'d by this function and
+ * @fd closed immediately.
+ *
+ * Use dex_await_fd() or similar to retrieve the resolved FD.
+ */
 void
 dex_promise_resolve_fd (DexPromise *promise,
                         int         fd)
 {
   GValue gvalue = {DEX_TYPE_FD, {{.v_pointer = &fd}, {.v_int = 0}}};
+
   dex_promise_resolve (promise, &gvalue);
+
+  if (fd > -1)
+    close (fd);
 }
 
 void
