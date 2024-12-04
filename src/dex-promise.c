@@ -169,8 +169,8 @@ dex_promise_reject (DexPromise *promise,
 }
 
 void
-dex_promise_resolve_fd  (DexPromise *promise,
-                         int         fd)
+dex_promise_resolve_fd (DexPromise *promise,
+                        int         fd)
 {
   GValue gvalue = {DEX_TYPE_FD, {{.v_pointer = &fd}, {.v_int = 0}}};
   dex_promise_resolve (promise, &gvalue);
