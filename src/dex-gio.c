@@ -256,6 +256,67 @@ dex_file_replace (GFile            *file,
 }
 
 static void
+dex_file_replace_contents_bytes_cb (GObject      *object,
+                                    GAsyncResult *result,
+                                    gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  char *new_etag = NULL;
+
+  g_assert (G_IS_FILE (object));
+  g_assert (G_IS_ASYNC_RESULT (result));
+  g_assert (DEX_IS_PROMISE (promise));
+
+  if (!g_file_replace_contents_finish (G_FILE (object), result, &new_etag, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_string (promise, g_steal_pointer (&new_etag));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_replace_contents_bytes:
+ * @file: a #GFile
+ * @contents: a #GBytes
+ * @etag: (nullable): the etag or %NULL
+ * @make_backup: if a backup file should be created
+ * @flags: A set of #GFileCreateFlags
+ *
+ * Wraps g_file_replace_contents_bytes_async().
+ *
+ * Returns: (transfer full): a #DexFuture which resolves to the
+ *   new etag. Therefore, it is possible to be %NULL without an
+ *   error having occurred.
+ */
+DexFuture *
+dex_file_replace_contents_bytes (GFile            *file,
+                                 GBytes           *contents,
+                                 const char       *etag,
+                                 gboolean          make_backup,
+                                 GFileCreateFlags  flags)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+  dex_return_error_if_fail (contents != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_file_replace_contents_bytes_async (file,
+                                       contents,
+                                       etag,
+                                       make_backup,
+                                       flags,
+                                       dex_promise_get_cancellable (promise),
+                                       dex_file_replace_contents_bytes_cb,
+                                       dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_input_stream_read_cb (GObject      *object,
                           GAsyncResult *result,
                           gpointer      user_data)
