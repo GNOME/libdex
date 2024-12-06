@@ -305,6 +305,15 @@ gpointer         dex_await_object           (DexFuture          *future,
 #define dex_future_new_true() dex_future_new_for_boolean(TRUE)
 #define dex_future_new_false() dex_future_new_for_boolean(FALSE)
 
+#define dex_return_error_if_fail(expr)                       \
+  G_STMT_START {                                             \
+    if (!(expr))                                             \
+      return dex_future_new_reject (G_IO_ERROR,              \
+                                    G_IO_ERROR_INVAL,        \
+                                    "Expression failed: %s", \
+                                    G_STRINGIFY (expr));     \
+  } G_STMT_END
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFuture, dex_unref)
 
 G_END_DECLS
