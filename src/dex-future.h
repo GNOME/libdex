@@ -307,7 +307,7 @@ gpointer         dex_await_object           (DexFuture          *future,
 
 #define dex_return_error_if_fail(expr)                       \
   G_STMT_START {                                             \
-    if (!(expr))                                             \
+    if G_UNLIKELY (!(expr))                                  \
       return dex_future_new_reject (G_IO_ERROR,              \
                                     G_IO_ERROR_INVAL,        \
                                     "Expression failed: %s", \
