@@ -172,11 +172,21 @@ dex_fiber_start (DexFiber *fiber)
     }
   else
     {
-      dex_future_complete (DEX_FUTURE (fiber),
-                           NULL,
-                           g_error_new_literal (DEX_ERROR,
-                                                DEX_ERROR_FIBER_EXITED,
-                                                "The fiber exited without a result"));
+      const char *name = dex_future_get_name (DEX_FUTURE (fiber));
+      GError *error;
+
+      if (name == NULL)
+        error = g_error_new (DEX_ERROR,
+                             DEX_ERROR_FIBER_EXITED,
+                             "The fiber function at %p exited without a result",
+                             fiber->func);
+      else
+        error = g_error_new (DEX_ERROR,
+                             DEX_ERROR_FIBER_EXITED,
+                             "The fiber %s with function at %p exited without a result",
+                             name, fiber->func);
+
+      dex_future_complete (DEX_FUTURE (fiber), NULL, g_steal_pointer (&error));
     }
 
   /* Mark the fiber as exited */
