@@ -49,6 +49,10 @@ DexFuture *dex_file_copy                               (GFile                   
                                                         int                       io_priority)
   G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
+DexFuture *dex_file_delete                             (GFile                    *file,
+                                                        int                       io_priority)
+  G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_read                               (GFile                    *file,
                                                         int                       io_priority)
   G_GNUC_WARN_UNUSED_RESULT;

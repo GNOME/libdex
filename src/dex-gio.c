@@ -834,6 +834,53 @@ dex_file_copy (GFile          *source,
 }
 
 static void
+dex_file_delete_cb (GObject      *object,
+                    GAsyncResult *result,
+                    gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  g_file_delete_finish (G_FILE (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_boolean (promise, TRUE);
+  else
+    dex_promise_reject (promise, error);
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_delete:
+ * @file: a #GFile
+ * @io_priority: IO priority such as %G_PRIORITY_DEFAULT
+ *
+ * Asynchronously deletes a file and returns a #DexFuture which
+ * can be observed for the result.
+ *
+ * Returns: (transfer full): a #DexFuture
+ */
+DexFuture *
+dex_file_delete (GFile *file,
+                 int    io_priority)
+{
+  DexPromise *promise;
+
+  g_return_val_if_fail (G_IS_FILE (file), NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_file_delete_async (file,
+                       io_priority,
+                       dex_promise_get_cancellable (promise),
+                       dex_file_delete_cb,
+                       dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_socket_listener_accept_cb (GObject      *object,
                                GAsyncResult *result,
                                gpointer      user_data)
