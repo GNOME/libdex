@@ -1,19 +1,14 @@
 include:
   - project: "GNOME/citemplates"
     file: "templates/default-rules.yml"
-  - component: gitlab.gnome.org/GNOME/citemplates/gnomeos-basic-ci@master
+  - component: "gitlab.gnome.org/GNOME/citemplates/gnomeos-basic-ci@master"
     inputs:
-      job-stage: "test"
       meson-options: "-Ddocs=true -Dsysprof=true"
-  - component: gitlab.gnome.org/GNOME/citemplates/release-service@master
+  - component: "gitlab.gnome.org/GNOME/citemplates/basic-deploy-docs@master"
+  - component: "gitlab.gnome.org/GNOME/citemplates/release-service@master"
     inputs:
       dist-job-name: "build-gnomeos"
       tarball-artifact-path: "_builddir/meson-dist/$CI_PROJECT_NAME-$CI_COMMIT_TAG.tar.xz"
-
-stages:
-    - test
-    - docs
-    - deploy
 
 test:
   image: 'registry.fedoraproject.org/fedora:41'
@@ -40,31 +35,3 @@ test:
     - 'ninja test'
     - 'meson configure -Dliburing=disabled -Deventfd=disabled'
     - 'ninja test'
-
-reference:
-    image: 'registry.fedoraproject.org/fedora:41'
-    stage: docs
-    needs: []
-    variables:
-        MESON_FLAGS: "-Ddocs=true -Dexamples=false -Dvapi=false -Dintrospection=enabled -Dsysprof=false -Dtests=false"
-    script:
-        - sudo dnf install -y libatomic liburing-devel meson gcc gettext ninja-build glib2-devel gobject-introspection-devel git gi-docgen
-        - mkdir -p pfx/
-        - meson ${MESON_FLAGS} --prefix=${PWD}/pfx _build
-        - ninja -C _build install
-        - mkdir -p _reference/
-        - mv pfx/share/doc/libdex-1/ _reference/
-    artifacts:
-        paths:
-            - _reference
-
-pages:
-    stage: deploy
-    needs: ['reference']
-    script:
-        - mv _reference public/
-    artifacts:
-        paths:
-            - public
-    only:
-        - main
