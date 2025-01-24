@@ -1,3 +1,17 @@
+libdex 0.9.0
+============
+
+This is an unstable release for GNOME 48.alpha
+
+ * Support for OpenBSD
+ * Raise default mmap stack size to 128kb for fibers
+ * Add await/resolve API for file-descriptors
+ * New dex_return_error_if_fail() precondition macro similar to
+   g_return_val_if_fail()
+ * Additional GIO wrapper functions including dex_file_delete() and
+   dex_file_replace_contents_bytes()
+ * Build system improvements
+
 libdex 0.8.1
 ============
 
