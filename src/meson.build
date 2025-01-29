@@ -95,6 +95,9 @@ if host_machine.system() != 'windows'
     'dex-unix-signal.c',
     'dex-ucontext.c',
   ]
+  if libucontext_dep.found()
+    libdex_deps += [libucontext_dep]
+  endif
 
   # If we're on Linux and mips we might still need asm.S.
   # But otherwise linux can do it all without any custom

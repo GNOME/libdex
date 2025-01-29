@@ -44,14 +44,14 @@ if get_option('sysprof')
   config_h.set10('HAVE_SYSPROF', true)
 endif
 
-check_headers = [
-  'ucontext.h',
-]
-foreach h : check_headers
-  if cc.has_header(h)
-    config_h.set('HAVE_' + h.underscorify().to_upper(), 1)
+if cc.has_header('ucontext.h')
+  if not cc.has_function('makecontext', prefix : '#include <ucontext.h>')
+    libucontext_dep = dependency('libucontext', required: false)
+  else
+    libucontext_dep = disabler()
   endif
-endforeach
+  config_h.set('HAVE_UCONTEXT_H', 1)
+endif
 
 if host_machine.system() == 'darwin'
   # known alignment for darwin where we're using helpers
