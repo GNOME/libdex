@@ -188,7 +188,7 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
  * Request @scheduler to spawn a #DexFiber.
  *
  * The fiber will have its own stack and cooperatively schedules among other
- * fibers sharing the schaeduler.
+ * fibers sharing the scheduler.
  *
  * If @stack_size is 0, it will set to a sensible default. Otherwise, it is
  * rounded up to the nearest page size.
