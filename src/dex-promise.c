@@ -316,3 +316,23 @@ dex_promise_resolve_variant (DexPromise *promise,
   dex_promise_resolve (promise, &gvalue);
   g_value_unset (&gvalue);
 }
+
+/**
+ * dex_promise_resolve_boxed:
+ * @promise: a #DexPromise
+ * @boxed_type: a #GType of %G_TYPE_BOXED
+ * @instance: (transfer full): the boxed value to store
+ *
+ * Since: 0.10
+ */
+void
+dex_promise_resolve_boxed  (DexPromise *promise,
+                            GType       boxed_type,
+                            gpointer    instance)
+{
+  GValue gvalue = G_VALUE_INIT;
+  g_value_init (&gvalue, boxed_type);
+  g_value_take_boxed (&gvalue, instance);
+  dex_promise_resolve (promise, &gvalue);
+  g_value_unset (&gvalue);
+}

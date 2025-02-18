@@ -90,6 +90,10 @@ DEX_AVAILABLE_IN_ALL
 void          dex_promise_resolve_variant (DexPromise   *promise,
                                            GVariant     *variant);
 DEX_AVAILABLE_IN_ALL
+void          dex_promise_resolve_boxed  (DexPromise *promise,
+                                          GType       boxed_type,
+                                          gpointer    instance);
+DEX_AVAILABLE_IN_ALL
 void          dex_promise_reject          (DexPromise   *promise,
                                            GError       *error);
 
