@@ -69,12 +69,35 @@ static void
 dex_fiber_discard (DexFuture *future)
 {
   DexFiber *fiber = DEX_FIBER (future);
+  GSource *source = NULL;
 
   g_assert (DEX_IS_FIBER (fiber));
 
   dex_object_lock (fiber);
-  fiber->cancelled = TRUE;
+  g_mutex_lock (&fiber->fiber_scheduler->mutex);
+
+  if (!fiber->cancelled && !fiber->exited)
+    {
+      fiber->cancelled = TRUE;
+
+      if (!fiber->runnable)
+        {
+          g_queue_unlink (&fiber->fiber_scheduler->blocked, &fiber->link);
+          g_queue_push_tail_link (&fiber->fiber_scheduler->runnable, &fiber->link);
+
+          if (dex_thread_storage_get ()->fiber_scheduler != fiber->fiber_scheduler)
+            source = g_source_ref ((GSource *)fiber->fiber_scheduler);
+        }
+    }
+
+  g_mutex_unlock (&fiber->fiber_scheduler->mutex);
   dex_object_unlock (fiber);
+
+  if (source != NULL)
+    {
+      g_main_context_wakeup (g_source_get_context (source));
+      g_source_unref (source);
+    }
 }
 
 static gboolean
