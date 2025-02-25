@@ -1,3 +1,11 @@
+libdex 0.9.1
+============
+
+ * Improve build checks for libatommic
+ * Add dex_promise_resolve_boxed()
+ * Improve cancellation of fibers
+ * Use libucontext when necessary
+
 libdex 0.9.0
 ============
 
