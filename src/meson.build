@@ -61,15 +61,20 @@ libdex_headers = [
   'libdex.h',
 ]
 
-libatomic_dep = cc.find_library('atomic')
-if not cc.links('int main(){}', dependencies: [libatomic_dep])
-  error('libatomic dependency is missing!')
-endif
-
 libdex_deps = [
   glib_dep,
-  libatomic_dep,
 ]
+
+if host_machine.system() != 'darwin'
+  libatomic_dep = cc.find_library('atomic')
+  if not cc.links('int main(){}', dependencies: [libatomic_dep])
+    error('libatomic dependency is missing!')
+  endif
+
+  if libatomic_dep.found()
+    libdex_deps += [libatomic_dep]
+  endif
+endif
 
 if liburing_dep.found()
   libdex_sources += [
