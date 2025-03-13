@@ -425,10 +425,12 @@ dex_future_discard (DexFuture *future,
               cf->awaiting = FALSE;
             }
 
-          has_awaiting |= cf->awaiting;
-
           g_queue_unlink (&future->chained, &cf->link);
           g_queue_push_tail_link (&discarded, &cf->link);
+        }
+      else
+        {
+          has_awaiting |= cf->awaiting;
         }
     }
 
