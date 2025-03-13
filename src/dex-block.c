@@ -226,7 +226,12 @@ dex_block_finalize (DexObject *object)
       block->callback = NULL;
     }
 
-  dex_clear (&block->awaiting);
+  if (block->awaiting)
+    {
+      dex_future_discard (block->awaiting, DEX_FUTURE (block));
+      dex_clear (&block->awaiting);
+    }
+
   dex_clear (&block->scheduler);
 
   DEX_OBJECT_CLASS (dex_block_parent_class)->finalize (object);
