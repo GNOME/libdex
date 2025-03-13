@@ -160,6 +160,71 @@ test_fiber_scheduler_await (void)
   g_source_unref ((GSource *)fiber_scheduler);
 }
 
+static DexFuture *
+test_fiber_cancel_propagate_fiber (gpointer data)
+{
+  DexFuture *conditional = data;
+  GError *error = NULL;
+  gboolean ret;
+
+  g_assert (DEX_IS_PROMISE (conditional));
+
+  ret = dex_await (dex_ref (conditional), &error);
+  g_assert_false (ret);
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_FIBER_CANCELLED);
+
+  return dex_future_new_for_error (g_steal_pointer (&error));
+}
+
+static DexFuture *
+after_fiber_cancelled (DexFuture *future,
+                       gpointer   user_data)
+{
+  g_assert_not_reached ();
+  return NULL;
+}
+
+static void
+test_fiber_cancel_propagate (void)
+{
+  DexFiberScheduler *fiber_scheduler = dex_fiber_scheduler_new ();
+  DexPromise *conditional = dex_promise_new ();
+  DexFiber *fiber = dex_fiber_new (test_fiber_cancel_propagate_fiber, dex_ref (conditional), dex_unref, 0);
+  DexFuture *block = dex_future_then (dex_ref (DEX_FUTURE (fiber)), after_fiber_cancelled, NULL, NULL);
+
+  dex_fiber_scheduler_register (fiber_scheduler, fiber);
+
+  g_source_attach ((GSource *)fiber_scheduler, NULL);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  ASSERT_STATUS (fiber, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (block, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (conditional, DEX_FUTURE_STATUS_PENDING);
+
+  dex_clear (&block);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  ASSERT_STATUS (fiber, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (conditional, DEX_FUTURE_STATUS_PENDING);
+
+  dex_promise_resolve_boolean (conditional, TRUE);
+
+  ASSERT_STATUS (conditional, DEX_FUTURE_STATUS_RESOLVED);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  dex_clear (&fiber);
+  dex_clear (&conditional);
+
+  g_source_destroy ((GSource *)fiber_scheduler);
+  g_source_unref ((GSource *)fiber_scheduler);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -168,5 +233,6 @@ main (int argc,
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/FiberScheduler/basic", test_fiber_scheduler_basic);
   g_test_add_func ("/Dex/TestSuite/FiberScheduler/await", test_fiber_scheduler_await);
+  g_test_add_func ("/Dex/TestSuite/FiberScheduler/cancel_propagate", test_fiber_cancel_propagate);
   return g_test_run ();
 }

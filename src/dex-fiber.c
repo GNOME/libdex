@@ -111,6 +111,16 @@ dex_fiber_propagate (DexFuture *future,
   g_assert (DEX_IS_FUTURE (completed));
 
   dex_object_lock (fiber);
+
+  /* If there is no fiber scheduler, the fiber must have been
+   * cancelled before propagation could complete.
+   */
+  if (fiber->fiber_scheduler == NULL)
+    {
+      dex_object_unlock (fiber);
+      return FALSE;
+    }
+
   g_mutex_lock (&fiber->fiber_scheduler->mutex);
 
   g_assert (!fiber->runnable);
@@ -490,12 +500,21 @@ dex_await_borrowed (DexFuture  *future,
                     GError    **error)
 {
   DexFiber *fiber;
+  const GValue *ret;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
 
+  /* If the future is ready then return immediately without yielding
+   * to the scheduler. This allows using the dex_await() functions when
+   * you know the future has completed and also avoids round-tripping
+   * through the scheduler when results are already available.
+   */
   if (dex_future_get_status (future) != DEX_FUTURE_STATUS_PENDING)
     return dex_future_get_value (future, error);
 
+  /* Called on a regular thread, not a fiber, error out instead of
+   * trying to swap out of our non-existant fiber stack.
+   */
   if G_UNLIKELY (!(fiber = dex_fiber_current ()))
     {
       g_set_error_literal (error,
@@ -505,9 +524,35 @@ dex_await_borrowed (DexFuture  *future,
       return NULL;
     }
 
+  dex_ref (fiber);
+
   dex_fiber_await (fiber, future);
 
-  return dex_future_get_value (future, error);
+  ret = dex_future_get_value (future, error);
+
+  /* If we were cancelled via discard then the future we awaited
+   * on might not be done yet (causing an error from get_value()).
+   * Additionally, we want to ensure we give the right error to the
+   * fiber so they are aware they are getting torn down and awaits
+   * may not continue to occur.
+   */
+  dex_object_lock (fiber);
+  if (fiber->cancelled)
+    {
+      g_clear_error (error);
+      ret = NULL;
+
+      if (error != NULL)
+        g_set_error_literal (error,
+                             DEX_ERROR,
+                             DEX_ERROR_FIBER_CANCELLED,
+                             "Fiber cancelled");
+    }
+  dex_object_unlock (fiber);
+
+  dex_unref (fiber);
+
+  return ret;
 }
 
 /**
