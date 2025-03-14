@@ -494,6 +494,10 @@ dex_fiber_await (DexFiber  *fiber,
   /* Swap to the scheduler to continue processing fibers */
   dex_fiber_context_switch (&fiber->context, &fiber_scheduler->context);
 
+  /* If we awaited (e.g. !cancelled _before_ swapping to scheduler)
+   * and that future is still pending, then we got cancelled while
+   * we were not actively running. Discard that future now.
+   */
   if (!cancelled && dex_future_is_pending (future))
     dex_future_discard (future,  DEX_FUTURE (fiber));
 }
