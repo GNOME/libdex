@@ -493,6 +493,9 @@ dex_fiber_await (DexFiber  *fiber,
 
   /* Swap to the scheduler to continue processing fibers */
   dex_fiber_context_switch (&fiber->context, &fiber_scheduler->context);
+
+  if (!cancelled && dex_future_is_pending (future))
+    dex_future_discard (future,  DEX_FUTURE (fiber));
 }
 
 const GValue *
