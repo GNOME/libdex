@@ -1,3 +1,10 @@
+libdex 0.10.0
+=============
+
+ * Discard dependent futures if fiber was cancelled during await.
+ * Discard dependent futures when finalizing DexBlock.
+ * Build fix for macOS
+
 libdex 0.9.1
 ============
 
