@@ -27,6 +27,8 @@
 #include "dex-thread-storage-private.h"
 #include "dex-work-queue-private.h"
 
+#define MAX_WORKERS 32
+
 /**
  * DexThreadPoolScheduler:
  *
@@ -52,8 +54,9 @@ struct _DexThreadPoolScheduler
   DexScheduler            parent_instance;
   DexWorkQueue           *global_work_queue;
   DexThreadPoolWorkerSet *set;
-  GPtrArray              *workers;
   guint                   fiber_rrobin;
+  guint                   n_workers;
+  DexThreadPoolWorker    *workers[MAX_WORKERS];
 };
 
 typedef struct _DexThreadPoolSchedulerClass
@@ -112,8 +115,8 @@ dex_thread_pool_scheduler_spawn (DexScheduler *scheduler,
                                  DexFiber     *fiber)
 {
   DexThreadPoolScheduler *thread_pool_scheduler = (DexThreadPoolScheduler *)scheduler;
-  guint worker_index = g_atomic_int_add (&thread_pool_scheduler->fiber_rrobin, 1) % thread_pool_scheduler->workers->len;
-  DexThreadPoolWorker *worker = thread_pool_scheduler->workers->pdata[worker_index];
+  guint worker_index = g_atomic_int_add (&thread_pool_scheduler->fiber_rrobin, 1) % thread_pool_scheduler->n_workers;
+  DexThreadPoolWorker *worker = thread_pool_scheduler->workers[worker_index];
 
   /* TODO: This is just doing a dumb round robin for assigning a fiber to a
    * specific thread pool worker. We probably want something more interesting
@@ -139,7 +142,9 @@ dex_thread_pool_scheduler_finalize (DexObject *object)
   dex_clear (&thread_pool_scheduler->global_work_queue);
 
   g_clear_pointer (&thread_pool_scheduler->set, dex_thread_pool_worker_set_unref);
-  g_clear_pointer (&thread_pool_scheduler->workers, g_ptr_array_unref);
+
+  for (guint i = 0; i < thread_pool_scheduler->n_workers; i++)
+    dex_clear (&thread_pool_scheduler->workers[i]);
 
   DEX_OBJECT_CLASS (dex_thread_pool_scheduler_parent_class)->finalize (object);
 }
@@ -163,7 +168,6 @@ dex_thread_pool_scheduler_init (DexThreadPoolScheduler *thread_pool_scheduler)
 {
   thread_pool_scheduler->global_work_queue = dex_work_queue_new ();
   thread_pool_scheduler->set = dex_thread_pool_worker_set_new ();
-  thread_pool_scheduler->workers = g_ptr_array_new_with_free_func (dex_unref);
 }
 
 /**
@@ -184,7 +188,7 @@ dex_thread_pool_scheduler_new (void)
 
   /* TODO: let this be dynamic and tunable, as well as thread pinning */
 
-  n_procs = MIN (32, g_get_num_processors ());
+  n_procs = MIN (MAX_WORKERS, g_get_num_processors ());
 
   /* Couple things here, which we should take a look at in the future to
    * see how we can tune them correctly, but:
@@ -208,10 +212,10 @@ dex_thread_pool_scheduler_new (void)
       thread_pool_worker = dex_thread_pool_worker_new (thread_pool_scheduler->global_work_queue,
                                                        thread_pool_scheduler->set);
 
-      if (thread_pool_worker != NULL)
-        g_ptr_array_add (thread_pool_scheduler->workers, g_steal_pointer (&thread_pool_worker));
-      else
+      if (thread_pool_worker == NULL)
         break;
+
+      thread_pool_scheduler->workers[thread_pool_scheduler->n_workers++] = thread_pool_worker;
     }
 
   return DEX_SCHEDULER (thread_pool_scheduler);
