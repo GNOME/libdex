@@ -66,6 +66,8 @@ DEX_DEFINE_FINAL_TYPE (DexThreadPoolScheduler, dex_thread_pool_scheduler, DEX_TY
 #undef DEX_TYPE_THREAD_POOL_SCHEDULER
 #define DEX_TYPE_THREAD_POOL_SCHEDULER dex_thread_pool_scheduler_type
 
+static DexScheduler *default_thread_pool;
+
 static void
 dex_thread_pool_scheduler_push (DexScheduler *scheduler,
                                 DexWorkItem   work_item)
@@ -126,6 +128,13 @@ static void
 dex_thread_pool_scheduler_finalize (DexObject *object)
 {
   DexThreadPoolScheduler *thread_pool_scheduler = (DexThreadPoolScheduler *)object;
+
+  if ((DexScheduler *)thread_pool_scheduler == default_thread_pool)
+    {
+      g_critical ("Attempt to finalize default thread pool. "
+                  "This should not happen and is an error in the application.");
+      return;
+    }
 
   dex_clear (&thread_pool_scheduler->global_work_queue);
 
@@ -222,8 +231,6 @@ dex_thread_pool_scheduler_new (void)
 DexScheduler *
 dex_thread_pool_scheduler_get_default (void)
 {
-  static DexScheduler *default_thread_pool;
-
   if (g_once_init_enter (&default_thread_pool))
     {
       DexScheduler *instance = dex_thread_pool_scheduler_new ();
