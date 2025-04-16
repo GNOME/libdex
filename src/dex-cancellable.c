@@ -87,7 +87,7 @@ static void
 dex_cancellable_cancelled_cb (GCancellable *cancellable,
                               DexWeakRef   *wr)
 {
-  g_autoptr(DexCancellable) self = NULL;
+  DexCancellable *self;
 
   g_assert (G_IS_CANCELLABLE (cancellable));
   g_assert (wr != NULL);
@@ -100,6 +100,7 @@ dex_cancellable_cancelled_cb (GCancellable *cancellable,
                            g_error_new_literal (G_IO_ERROR,
                                                 G_IO_ERROR_CANCELLED,
                                                 "Operation cancelled"));
+      dex_clear (&self);
     }
 }
 
