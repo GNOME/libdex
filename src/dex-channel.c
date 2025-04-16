@@ -442,8 +442,9 @@ reject_receive:
 DexFuture *
 dex_channel_receive_all (DexChannel *channel)
 {
-  g_autoptr(GPtrArray) ret = NULL;
+  GPtrArray *ret = NULL;
   GQueue stolen = G_QUEUE_INIT;
+  DexFuture *future = NULL;
 
   g_return_val_if_fail (DEX_IS_CHANNEL (channel), NULL);
 
@@ -470,15 +471,22 @@ dex_channel_receive_all (DexChannel *channel)
   while (stolen.length > 0)
     dex_channel_item_free (g_queue_pop_head_link (&stolen)->data);
 
-  return dex_future_allv ((DexFuture **)ret->pdata, ret->len);
+  future = dex_future_allv ((DexFuture **)ret->pdata, ret->len);
+  goto cleanup;
 
 reject_receive:
   dex_object_unlock (channel);
-  return dex_future_new_for_error (g_error_copy (&channel_closed_error));
+  future = dex_future_new_for_error (g_error_copy (&channel_closed_error));
+  goto cleanup;
 
 wait_for_result:
   dex_object_unlock (channel);
-  return dex_future_all (dex_channel_receive (channel), NULL);
+  future = dex_future_all (dex_channel_receive (channel), NULL);
+  goto cleanup;
+
+cleanup:
+  g_clear_pointer (&ret, g_ptr_array_unref);
+  return future;
 }
 
 static void
