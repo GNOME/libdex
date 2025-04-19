@@ -188,7 +188,8 @@ dex_block_propagate (DexFuture *future,
       /* If we are on the same scheduler that created this block, then
        * we can execute it now.
        */
-      if (block->scheduler == dex_scheduler_get_thread_default () &&
+      if (storage->fiber_scheduler == NULL &&
+          block->scheduler == dex_scheduler_get_thread_default () &&
           storage->sync_dispatch_depth < DEX_DISPATCH_RECURSE_MAX)
         {
           gboolean ret;
