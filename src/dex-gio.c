@@ -1470,3 +1470,46 @@ dex_file_query_exists (GFile *file)
                            dex_ref (promise));
   return DEX_FUTURE (promise);
 }
+
+static void
+dex_async_initable_init_cb (GObject      *object,
+                            GAsyncResult *result,
+                            gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_async_initable_init_finish (G_ASYNC_INITABLE (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_object_ref (object));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_async_initable_init:
+ * @initable: a [class@Dex.Gio]
+ * @priority: the priority for the initialization, typically 0
+ *
+ * A helper for g_async_initable_init_async()
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to the @initable instance or rejects with error.
+ */
+DexFuture *
+dex_async_initable_init (GAsyncInitable *initable,
+                         int             priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_ASYNC_INITABLE (initable));
+
+  promise = dex_promise_new_cancellable ();
+  g_async_initable_init_async (initable,
+                               priority,
+                               dex_promise_get_cancellable (promise),
+                               dex_async_initable_init_cb,
+                               dex_ref (promise));
+  return DEX_FUTURE (promise);
+}

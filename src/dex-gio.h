@@ -146,6 +146,9 @@ DEX_AVAILABLE_IN_ALL
 DexFuture *dex_subprocess_wait_check                   (GSubprocess              *subprocess) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_query_exists                       (GFile                    *file) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
+DexFuture *dex_async_initable_init                     (GAsyncInitable           *initable,
+                                                        int                       priority) G_GNUC_WARN_UNUSED_RESULT;
 
 #ifdef G_OS_UNIX
 DEX_AVAILABLE_IN_ALL
