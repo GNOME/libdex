@@ -137,6 +137,8 @@ DexFuture *dex_dbus_connection_call                    (GDBusConnection         
                                                         GDBusCallFlags            flags,
                                                         int                       timeout_msec) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
+DexFuture *dex_dbus_connection_close                   (GDBusConnection          *connection) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
 DexFuture *dex_dbus_connection_send_message_with_reply (GDBusConnection          *connection,
                                                         GDBusMessage             *message,
                                                         GDBusSendMessageFlags     flags,

@@ -1513,3 +1513,45 @@ dex_async_initable_init (GAsyncInitable *initable,
                                dex_ref (promise));
   return DEX_FUTURE (promise);
 }
+
+static void
+dex_dbus_connection_close_cb (GObject      *object,
+                              GAsyncResult *result,
+                              gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_dbus_connection_close_finish (G_DBUS_CONNECTION (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_dbus_connection_close:
+ * @connection: a [class@Gio.DBusConnection]
+ *
+ * Asynchronously closes a connection.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to `true` or rejects with error.
+ *
+ * Since: 0.12
+ */
+DexFuture *
+dex_dbus_connection_close (GDBusConnection *connection)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_DBUS_CONNECTION (connection));
+
+  promise = dex_promise_new_cancellable ();
+  g_dbus_connection_close (connection,
+                           dex_promise_get_cancellable (promise),
+                           dex_dbus_connection_close_cb,
+                           dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
