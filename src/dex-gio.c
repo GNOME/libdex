@@ -1496,6 +1496,8 @@ dex_async_initable_init_cb (GObject      *object,
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves
  *   to the @initable instance or rejects with error.
+ *
+ * Since: 0.12
  */
 DexFuture *
 dex_async_initable_init (GAsyncInitable *initable,
