@@ -717,6 +717,8 @@ dex_file_make_directory_with_parents_worker (gpointer data)
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to
  *   a boolean or rejects with error.
+ *
+ * Since: 0.12
  */
 DexFuture *
 dex_file_make_directory_with_parents (GFile *file)
