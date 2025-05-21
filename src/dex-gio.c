@@ -26,6 +26,7 @@
 #include "dex-future-set.h"
 #include "dex-gio.h"
 #include "dex-promise.h"
+#include "dex-thread-pool-scheduler.h"
 
 typedef struct _DexFileInfoList DexFileInfoList;
 
@@ -684,6 +685,58 @@ dex_file_make_directory (GFile *file,
                                dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
+}
+
+typedef struct
+{
+  GFile *file;
+  DexPromise *promise;
+} MakeDirectory;
+
+static void
+dex_file_make_directory_with_parents_worker (gpointer data)
+{
+  MakeDirectory *state = data;
+  GError *error = NULL;
+
+  if (!g_file_make_directory_with_parents (state->file,
+                                           dex_promise_get_cancellable (state->promise),
+                                           &error))
+    dex_promise_reject (state->promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (state->promise, TRUE);
+
+  g_clear_object (&state->file);
+  dex_clear (&state->promise);
+  g_free (state);
+}
+
+/**
+ * dex_file_make_directory_with_parents:
+ * @file: a [iface@Gio.File]
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to
+ *   a boolean or rejects with error.
+ */
+DexFuture *
+dex_file_make_directory_with_parents (GFile *file)
+{
+  MakeDirectory *state;
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+
+  state = g_new0 (MakeDirectory, 1);
+  state->file = g_object_ref (file);
+  state->promise = dex_ref (promise);
+
+  dex_scheduler_push (dex_thread_pool_scheduler_get_default (),
+                      dex_file_make_directory_with_parents_worker,
+                      state);
+
+  return DEX_FUTURE (promise);
 }
 
 static void

@@ -42,6 +42,8 @@ DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_make_directory                     (GFile                    *file,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
+DexFuture *dex_file_make_directory_with_parents        (GFile                    *file) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_copy                               (GFile                    *source,
                                                         GFile                    *destination,
                                                         GFileCopyFlags            flags,
