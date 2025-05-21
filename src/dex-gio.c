@@ -697,14 +697,26 @@ static void
 dex_file_make_directory_with_parents_worker (gpointer data)
 {
   MakeDirectory *state = data;
+  GCancellable *cancellable = dex_promise_get_cancellable (state->promise);
   GError *error = NULL;
 
-  if (!g_file_make_directory_with_parents (state->file,
-                                           dex_promise_get_cancellable (state->promise),
-                                           &error))
-    dex_promise_reject (state->promise, g_steal_pointer (&error));
+  if (!g_file_make_directory_with_parents (state->file, cancellable, &error))
+    {
+      if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS) &&
+          g_file_query_file_type (state->file, G_FILE_QUERY_INFO_NONE, NULL) == G_FILE_TYPE_DIRECTORY)
+        {
+          g_clear_error (&error);
+          dex_promise_resolve_boolean (state->promise, TRUE);
+        }
+      else
+        {
+          dex_promise_reject (state->promise, g_steal_pointer (&error));
+        }
+    }
   else
-    dex_promise_resolve_boolean (state->promise, TRUE);
+    {
+      dex_promise_resolve_boolean (state->promise, TRUE);
+    }
 
   g_clear_object (&state->file);
   dex_clear (&state->promise);
@@ -714,6 +726,11 @@ dex_file_make_directory_with_parents_worker (gpointer data)
 /**
  * dex_file_make_directory_with_parents:
  * @file: a [iface@Gio.File]
+ *
+ * Creates a directory at @file.
+ *
+ * If @file already exists and is a directory, then the future
+ * will resolve to %TRUE.
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to
  *   a boolean or rejects with error.
