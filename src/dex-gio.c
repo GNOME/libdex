@@ -1557,3 +1557,54 @@ dex_dbus_connection_close (GDBusConnection *connection)
                            dex_ref (promise));
   return DEX_FUTURE (promise);
 }
+
+static void
+dex_file_set_attributes_cb (GObject      *object,
+                            GAsyncResult *result,
+                            gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GFileInfo *file_info = NULL;
+  GError *error = NULL;
+
+  if (!g_file_set_attributes_finish (G_FILE (object), result, &file_info, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&file_info));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_set_attributes:
+ * @file: a [iface@Gio.File]
+ * @file_info: a [class@Gio.FileInfo]
+ * @flags:
+ * @io_priority:
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.FileInfo] or rejects with error.
+ *
+ * Since: 0.12
+ */
+DexFuture *
+dex_file_set_attributes (GFile               *file,
+                         GFileInfo           *file_info,
+                         GFileQueryInfoFlags  flags,
+                         int                  io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+  dex_return_error_if_fail (G_IS_FILE_INFO (file_info));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_set_attributes_async (file,
+                               file_info,
+                               flags,
+                               io_priority,
+                               dex_promise_get_cancellable (promise),
+                               dex_file_set_attributes_cb,
+                               dex_ref (promise));
+  return DEX_FUTURE (promise);
+}

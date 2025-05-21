@@ -60,6 +60,11 @@ DexFuture *dex_file_query_info                         (GFile                   
                                                         GFileQueryInfoFlags       flags,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
+DexFuture *dex_file_set_attributes                     (GFile                    *file,
+                                                        GFileInfo                *file_info,
+                                                        GFileQueryInfoFlags       flags,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_replace                            (GFile                    *file,
                                                         const char               *etag,
                                                         gboolean                  make_backup,
