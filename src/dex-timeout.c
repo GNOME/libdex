@@ -32,7 +32,7 @@
 /**
  * DexTimeout:
  *
- * #DexTimeout is a #DexFuture that will resolve after the configured
+ * #DexTimeout is a #DexFuture that will reject after the configured
  * period of time.
  */
 
