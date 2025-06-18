@@ -367,9 +367,6 @@ dex_fiber_scheduler_iteration (DexFiberScheduler *fiber_scheduler)
       dex_fiber_ensure_stack (fiber, fiber_scheduler);
     }
 
-  if (fiber != NULL)
-    g_print ("Dispatch: %s\n", dex_future_get_name (DEX_FUTURE (fiber)));
-
   g_mutex_unlock (&fiber_scheduler->mutex);
 
   if (fiber == NULL)
