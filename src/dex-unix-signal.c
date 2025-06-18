@@ -95,6 +95,8 @@ dex_unix_signal_source_func (gpointer data)
       g_value_init (&value, G_TYPE_INT);
       g_value_set_int (&value, unix_signal->signum);
       dex_future_complete (DEX_FUTURE (unix_signal), &value, NULL);
+
+      dex_unref (unix_signal);
     }
 
   return G_SOURCE_REMOVE;
