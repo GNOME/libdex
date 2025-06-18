@@ -124,6 +124,8 @@ test_semaphore_threaded (void)
 
       g_test_message ("Thread %d handled %d items", i, state[i].handled);
     }
+
+  dex_unref (semaphore);
 }
 
 int
