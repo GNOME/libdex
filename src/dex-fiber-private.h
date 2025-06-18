@@ -40,6 +40,13 @@ G_BEGIN_DECLS
 
 typedef struct _DexFiberScheduler DexFiberScheduler;
 
+enum {
+  QUEUE_NONE,
+  QUEUE_RUNNABLE,
+  QUEUE_BLOCKED,
+  LAST_QUEUE
+};
+
 struct _DexFiber
 {
   DexFuture parent_instance;
@@ -55,6 +62,7 @@ struct _DexFiber
   guint exited : 1;
   guint released : 1;
   guint cancelled : 1;
+  guint queue : 2;
 
   /* The requested stack size */
   gsize stack_size;
