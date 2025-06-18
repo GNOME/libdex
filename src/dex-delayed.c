@@ -114,6 +114,12 @@ dex_delayed_init (DexDelayed *delayed)
 {
 }
 
+/**
+ * dex_delayed_new:
+ * @future: (transfer none): a [class@Dex.Future]
+ *
+ * Returns: (transfer full):
+ */
 DexFuture *
 dex_delayed_new (DexFuture *future)
 {
