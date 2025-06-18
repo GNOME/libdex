@@ -872,7 +872,7 @@ static void
 test_delayed_simple (void)
 {
   DexFuture *result = dex_future_new_for_int (123);
-  DexFuture *delayed = dex_delayed_new (dex_ref (result));
+  DexFuture *delayed = dex_delayed_new (result);
 
   ASSERT_STATUS (result, DEX_FUTURE_STATUS_RESOLVED);
   ASSERT_STATUS (delayed, DEX_FUTURE_STATUS_PENDING);
