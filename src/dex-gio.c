@@ -1561,7 +1561,7 @@ dex_async_initable_init_cb (GObject      *object,
 
 /**
  * dex_async_initable_init:
- * @initable: a [class@Dex.Gio]
+ * @initable: a [iface@Gio.AsyncInitable]
  * @priority: the priority for the initialization, typically 0
  *
  * A helper for g_async_initable_init_async()
