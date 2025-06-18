@@ -408,6 +408,7 @@ G_PASTE (test_complete_, T) (DexFuture *future, gpointer user_data) \
   g_assert_error (error, DEX_ERROR, DEX_ERROR_DEPENDENCY_FAILED); \
   g_assert_null (value); \
   g_main_loop_quit (main_loop); \
+  g_error_free (error); \
   return NULL; \
 } \
 static void \
