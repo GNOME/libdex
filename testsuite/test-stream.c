@@ -51,6 +51,7 @@ test_read_bytes (void)
     {
       g_clear_error (&error);
       g_test_skip ("/etc/os-release not available");
+      g_object_unref (stream);
       return;
     }
 
@@ -58,6 +59,9 @@ test_read_bytes (void)
   future = dex_future_then (future, quit_cb, main_loop, NULL);
 
   g_main_loop_run (main_loop);
+
+  g_object_unref (stream);
+  g_object_unref (file);
 
   value = dex_future_get_value (future, &error);
   g_assert_no_error (error);
