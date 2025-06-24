@@ -51,7 +51,6 @@ test_read_bytes (void)
     {
       g_clear_error (&error);
       g_test_skip ("/etc/os-release not available");
-      g_object_unref (stream);
       return;
     }
 
