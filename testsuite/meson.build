@@ -25,6 +25,7 @@ testsuite = {
   'test-scheduler': {},
   'test-semaphore': {},
   'test-stream': {},
+  'test-thread': {},
 }
 
 testsuite_deps = [
