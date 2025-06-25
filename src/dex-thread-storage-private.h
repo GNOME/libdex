@@ -42,6 +42,7 @@ typedef struct _DexThreadStorage
   guint                sync_dispatch_depth;
 } DexThreadStorage;
 
-DexThreadStorage *dex_thread_storage_get (void);
+DexThreadStorage *dex_thread_storage_get  (void);
+DexThreadStorage *dex_thread_storage_peek (void);
 
 G_END_DECLS

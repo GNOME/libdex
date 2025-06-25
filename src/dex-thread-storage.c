@@ -38,3 +38,9 @@ dex_thread_storage_get (void)
 
   return ret;
 }
+
+DexThreadStorage *
+dex_thread_storage_peek (void)
+{
+  return g_private_get (&dex_thread_storage_key);
+}
