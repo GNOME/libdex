@@ -290,6 +290,8 @@ dex_block_new (DexFuture         *future,
   block->callback_data = callback_data;
   block->callback_data_destroy = callback_data_destroy;
 
+  g_assert (block->scheduler != NULL);
+
   dex_future_chain (future, DEX_FUTURE (block));
 
   return DEX_FUTURE (block);
