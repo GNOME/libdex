@@ -56,6 +56,8 @@ dex_clear (gpointer data)
 #endif
 
 DEX_AVAILABLE_IN_ALL
+DexObject *dex_value_dup_object  (const GValue *value);
+DEX_AVAILABLE_IN_ALL
 DexObject *dex_value_get_object  (const GValue *value);
 DEX_AVAILABLE_IN_ALL
 void       dex_value_set_object  (GValue       *value,

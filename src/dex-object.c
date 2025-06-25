@@ -556,6 +556,27 @@ dex_object_create_instance (GType instance_type)
 }
 
 /**
+ * dex_value_dup_object:
+ * @value: a `GValue` initialized with type `DEX_TYPE_OBJECT`
+ *
+ * Retrieves the `DexObject` stored inside the given `value`.
+ *
+ * Returns: (transfer full) (nullable): a `DexObject`
+ *
+ * Since: 0.12
+ */
+DexObject *
+dex_value_dup_object (const GValue *value)
+{
+  g_return_val_if_fail (G_VALUE_HOLDS (value, DEX_TYPE_OBJECT), NULL);
+
+  if (value->data[0].v_pointer != NULL)
+    return dex_ref (value->data[0].v_pointer);
+
+  return NULL;
+}
+
+/**
  * dex_value_get_object:
  * @value: a `GValue` initialized with type `DEX_TYPE_OBJECT`
  *
