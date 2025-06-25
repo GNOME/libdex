@@ -24,11 +24,24 @@
 
 G_BEGIN_DECLS
 
+/**
+ * DexThreadFunc:
+ *
+ * A function which will be run on a dedicated thread.
+ *
+ * It must return a [class@Dex.Future] that will eventually resolve
+ * to a value or reject with error.
+ *
+ * Returns: (transfer full): a [class@Dex.Future]
+ *
+ * Since: 0.12
+ */
+typedef DexFuture *(*DexThreadFunc) (gpointer user_data);
+
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_thread_spawn (const char *name,
-                             GCallback   callback,
-                             GType       return_type,
-                             guint       n_params,
-                             ...) G_GNUC_WARN_UNUSED_RESULT;
+DexFuture *dex_thread_spawn (const char     *thread_name,
+                             DexThreadFunc   thread_func,
+                             gpointer        user_data,
+                             GDestroyNotify  user_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 
 G_END_DECLS

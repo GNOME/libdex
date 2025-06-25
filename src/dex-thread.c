@@ -23,135 +23,139 @@
 #include <gobject/gvaluecollector.h>
 
 #include "dex-block-private.h"
+#include "dex-future-private.h"
 #include "dex-promise.h"
 #include "dex-thread.h"
+#include "dex-thread-storage-private.h"
 
-typedef struct _DexTrampoline
+typedef struct _ThreadSpawn
 {
-  GCallback     callback;
-  GArray       *values;
-  DexPromise   *promise;
-  GType         return_type;
-} DexTrampoline;
+  DexScheduler   *scheduler;
+  DexPromise     *promise;
+  DexThreadFunc   thread_func;
+  gpointer        thread_func_data;
+} ThreadSpawn;
 
-static void
-dex_trampoline_free (DexTrampoline *state)
+static DexFuture *
+propagate_future (DexFuture *completed,
+                  gpointer   user_data)
 {
-  state->callback = NULL;
-  g_clear_pointer (&state->values, g_array_unref);
-  dex_clear (&state->promise);
-  g_free (state);
+  DexPromise *promise = user_data;
+  const GValue *value;
+  GError *error = NULL;
+
+  if ((value = dex_future_get_value (completed, &error)))
+    dex_promise_resolve (promise, value);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  return dex_future_new_true ();
+}
+
+static DexFuture *
+do_nothing (DexFuture *completed,
+            gpointer   user_data)
+{
+  /* This function passes through the result but the main point
+   * is that the user_data_destroy is called from this thread.
+   */
+  return dex_ref (completed);
 }
 
 static gpointer
 dex_trampoline_thread (gpointer data)
 {
-  DexTrampoline *state = data;
-  GClosure *c_closure = NULL;
-  GValue retval = G_VALUE_INIT;
+  ThreadSpawn *state = data;
+  DexFuture *future;
 
-  g_assert (state != NULL);
+  future = state->thread_func (state->thread_func_data);
 
-  c_closure = g_cclosure_new (state->callback, NULL, NULL);
-  g_closure_set_marshal (c_closure, g_cclosure_marshal_generic);
+  dex_future_disown_full (dex_block_new (g_steal_pointer (&future),
+                                         state->scheduler,
+                                         DEX_BLOCK_KIND_FINALLY,
+                                         propagate_future,
+                                         dex_ref (state->promise),
+                                         dex_unref),
+                          state->scheduler);
 
-  g_value_init (&retval, state->return_type);
-  g_closure_invoke (c_closure,
-                    &retval,
-                    state->values->len,
-                    &g_array_index (state->values, GValue, 0),
-                    NULL);
+  dex_clear (&state->scheduler);
+  dex_clear (&state->promise);
 
-  dex_promise_resolve (state->promise, &retval);
+  /* Thread func data is cleaned up in calling thread (or main thread)
+   * instead of here so that we don't risk data races on finalizers.
+   */
+  state->thread_func = NULL;
+  state->thread_func_data = NULL;
 
-  g_closure_unref (c_closure);
-  g_value_unset (&retval);
-
-  dex_trampoline_free (state);
+  g_free (state);
 
   return NULL;
 }
 
 /**
- * dex_thread_spawn: (skip)
- * @name: (nullable): the name for the thread
- * @callback: the callback to execute
- * @return_type: a GType for the return type
- * @n_params: the number of (GType, value) pairs following
- * @...: pairs of `GType` followed by the value
+ * dex_thread_spawn:
+ * @thread_name: (nullable): the name for the thread
+ * @thread_func: the function to call on a thread
+ * @user_data: closure data for @thread_func
+ * @user_data_destroy: callback to free @user_data which will be called
+ *   on the same thread calling this function.
  *
- * Spawns a new thread named @name running @callback.
+ * Spawns a new thread named @thread_name running @thread_func with
+ * @user_data passed to it.
  *
- * @return_value should be set to the GType of the return value of the
- * function. This will be propagated as the resolved value to the
- * [class@Dex.Future] returned from this function.
+ * @thread_func must return a [class@Dex.Future].
  *
- * @n_params should be the number of pairs of arguments following which
- * is in the order of (`GType`, `value`). These parameters will be passed
- * to @callback.
+ * If this function is called from a thread that is not running a
+ * [class@Dex.Scheduler] then the default scheduler will be used
+ * to call @user_data_destroy.
  *
- * Returns: (transfer full): a [class@Dex.Future] that resolves to the
- *   value returned from @callback which must match @return_type.
+ * If the resulting [class@Dex.Future] has not resolved or rejected,
+ * then the same scheduler used to call @user_data_destroy will be
+ * used to propagate the result to the caller.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves or rejects
+ *   the value or error returned from @thread_func as a [class@Dex.Future].
  *
  * Since: 0.12
  */
 DexFuture *
-dex_thread_spawn (const char *name,
-                  GCallback   callback,
-                  GType       return_type,
-                  guint       n_params,
-                  ...)
+dex_thread_spawn (const char     *thread_name,
+                  DexThreadFunc   thread_func,
+                  gpointer        user_data,
+                  GDestroyNotify  user_data_destroy)
 {
-  char *errmsg = NULL;
-  GArray *values = NULL;
-  DexTrampoline *state;
-  DexPromise *promise;
-  va_list args;
+  DexThreadStorage *storage;
+  DexScheduler *scheduler;
+  ThreadSpawn *state;
+  DexFuture *ret;
 
-  values = g_array_new (FALSE, TRUE, sizeof (GValue));
-  g_array_set_clear_func (values, (GDestroyNotify)g_value_unset);
-  g_array_set_size (values, n_params);
+  if (thread_name == NULL)
+    thread_name = "[dex-thread]";
 
-  va_start (args, n_params);
+  storage = dex_thread_storage_peek ();
 
-  for (guint i = 0; i < n_params; i++)
-    {
-      GType gtype = va_arg (args, GType);
-      GValue *dest = &g_array_index (values, GValue, i);
-      g_auto(GValue) value = G_VALUE_INIT;
+  if (storage == NULL)
+    scheduler = dex_scheduler_get_default ();
+  else
+    scheduler = storage->scheduler;
 
-      G_VALUE_COLLECT_INIT (&value, gtype, args, 0, &errmsg);
+  g_assert (DEX_IS_SCHEDULER (scheduler));
 
-      if (errmsg != NULL)
-        break;
+  state = g_new0 (ThreadSpawn, 1);
+  state->scheduler = dex_ref (scheduler);
+  state->thread_func = thread_func;
+  state->thread_func_data = user_data;
+  state->promise = dex_promise_new ();
 
-      g_value_init (dest, gtype);
-      g_value_copy (&value, dest);
-    }
+  dex_future_set_static_name (DEX_FUTURE (state->promise),
+                              g_intern_string (thread_name));
 
-  va_end (args);
+  ret = dex_future_finally (dex_ref (state->promise),
+                            do_nothing,
+                            user_data,
+                            user_data_destroy);
 
-  if (errmsg != NULL)
-    {
-      DexFuture *ret;
+  g_thread_unref (g_thread_new (thread_name, dex_trampoline_thread, state));
 
-      ret = dex_future_new_reject (G_IO_ERROR,
-                                   G_IO_ERROR_FAILED,
-                                   "Failed to trampoline to fiber: %s",
-                                   errmsg);
-      g_free (errmsg);
-      return ret;
-    }
-
-  promise = dex_promise_new ();
-
-  state = g_new0 (DexTrampoline, 1);
-  state->values = g_steal_pointer (&values);
-  state->callback = callback;
-  state->promise = dex_ref (promise);
-  state->return_type = return_type;
-
-  g_thread_unref (g_thread_new (name, dex_trampoline_thread, state));
-
-  return DEX_FUTURE (promise);
+  return DEX_FUTURE (ret);
 }

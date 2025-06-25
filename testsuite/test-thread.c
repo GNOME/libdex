@@ -20,14 +20,29 @@
 
 #include <libdex.h>
 
-static char *
-thread_func (const char *str1,
-             const char *str2)
+typedef struct
 {
-  g_assert_cmpstr (str1, ==, "string1");
-  g_assert_cmpstr (str2, ==, "string2");
+  char *str1;
+  char *str2;
+} State;
 
-  return g_strdup ("string3");
+static void
+state_free (State *state)
+{
+  g_free (state->str1);
+  g_free (state->str2);
+  g_free (state);
+}
+
+static DexFuture *
+thread_func (gpointer data)
+{
+  State *state = data;
+
+  g_assert_cmpstr (state->str1, ==, "string1");
+  g_assert_cmpstr (state->str2, ==, "string2");
+
+  return dex_future_new_take_string (g_strdup ("string3"));
 }
 
 static DexFuture *
@@ -54,13 +69,16 @@ static void
 test_thread_spawn (void)
 {
   GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
+  State *state;
+
+  state = g_new0 (State, 1);
+  state->str1 = g_strdup ("string1");
+  state->str2 = g_strdup ("string2");
 
   dex_future_disown (dex_future_finally (dex_thread_spawn ("[test-thread]",
-                                                           G_CALLBACK (thread_func),
-                                                           G_TYPE_STRING,
-                                                           2,
-                                                           G_TYPE_STRING, "string1",
-                                                           G_TYPE_STRING, "string2"),
+                                                           thread_func,
+                                                           state,
+                                                           (GDestroyNotify) state_free),
                                          after_thread_func,
                                          g_main_loop_ref (main_loop),
                                          (GDestroyNotify) g_main_loop_unref));
