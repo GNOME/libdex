@@ -1809,3 +1809,21 @@ dex_future_disown (DexFuture *future)
                                  (GDestroyNotify)pfuture_unref);
   pfuture_unref (pfuture);
 }
+
+void
+dex_future_disown_full (DexFuture    *future,
+                        DexScheduler *scheduler)
+{
+  DexFuture **pfuture;
+
+  g_return_if_fail (DEX_IS_FUTURE (future));
+
+  pfuture = g_atomic_rc_box_new0 (DexFuture *);
+  *pfuture = dex_block_new (future,
+                            scheduler,
+                            DEX_BLOCK_KIND_FINALLY,
+                            dex_future_disown_cb,
+                            pfuture_ref (pfuture),
+                            (GDestroyNotify)pfuture_unref);
+  pfuture_unref (pfuture);
+}

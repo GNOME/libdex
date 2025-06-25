@@ -33,6 +33,8 @@ G_BEGIN_DECLS
 #define DEX_FUTURE_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST(klass, DEX_TYPE_FUTURE, DexFutureClass))
 #define DEX_FUTURE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS(obj, DEX_TYPE_FUTURE, DexFutureClass))
 
+typedef struct _DexScheduler DexScheduler;
+
 typedef struct _DexFuture
 {
   DexObject parent_instance;
@@ -63,5 +65,7 @@ void          dex_future_discard       (DexFuture     *future,
                                         DexFuture     *chained);
 const GValue *dex_await_borrowed       (DexFuture     *future,
                                         GError       **error);
+void          dex_future_disown_full   (DexFuture     *future,
+                                        DexScheduler  *scheduler);
 
 G_END_DECLS
