@@ -39,9 +39,12 @@ G_BEGIN_DECLS
 typedef DexFuture *(*DexThreadFunc) (gpointer user_data);
 
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_thread_spawn (const char     *thread_name,
-                             DexThreadFunc   thread_func,
-                             gpointer        user_data,
-                             GDestroyNotify  user_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
+DexFuture *dex_thread_spawn    (const char      *thread_name,
+                                DexThreadFunc    thread_func,
+                                gpointer         user_data,
+                                GDestroyNotify   user_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
+gboolean   dex_thread_wait_for (DexFuture       *future,
+                                GError         **error);
 
 G_END_DECLS

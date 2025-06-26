@@ -27,6 +27,7 @@
 #include "dex-promise.h"
 #include "dex-thread.h"
 #include "dex-thread-storage-private.h"
+#include "dex-waiter-private.h"
 
 typedef struct _ThreadSpawn
 {
@@ -158,4 +159,34 @@ dex_thread_spawn (const char     *thread_name,
   g_thread_unref (g_thread_new (thread_name, dex_trampoline_thread, state));
 
   return DEX_FUTURE (ret);
+}
+
+/**
+ * dex_thread_wait_for:
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a #GError or %NULL
+ *
+ * Use this when running on a thread spawned with `dex_thread_spawn()` and
+ * you need to block the thread until @future has resolved or rejected.
+ *
+ * Returns: %TRUE if @future resolved, otherwise %FALSE and @error is
+ *   set to the rejection.
+ *
+ * Since: 0.12
+ */
+gboolean
+dex_thread_wait_for (DexFuture  *future,
+                     GError    **error)
+{
+  DexWaiter *waiter;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), FALSE);
+
+  if (!dex_future_is_pending (future))
+    return !!dex_future_get_value (future, error);
+
+  waiter = dex_waiter_new (future);
+  dex_waiter_wait (waiter);
+
+  return !!dex_future_get_value (DEX_FUTURE (waiter), error);
 }

@@ -87,6 +87,58 @@ test_thread_spawn (void)
   g_main_loop_unref (main_loop);
 }
 
+static DexFuture *
+test_thread_wait_for_thread (gpointer data)
+{
+  DexPromise *promise = data;
+  GError *error = NULL;
+
+  g_assert_true (dex_thread_wait_for (dex_ref (promise), &error));
+  g_assert_no_error (error);
+
+  return dex_future_new_for_int (123);
+}
+
+static DexFuture *
+quit_main (DexFuture *future,
+           gpointer   user_data)
+{
+  GMainLoop *main_loop = user_data;
+  g_main_loop_quit (main_loop);
+  return dex_ref (future);
+}
+
+static void
+test_thread_wait_for (void)
+{
+  GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
+  DexPromise *promise = dex_promise_new ();
+  DexFuture *thread;
+  const GValue *value;
+
+  thread = dex_thread_spawn ("[test-wait-for]",
+                             test_thread_wait_for_thread,
+                             dex_ref (promise),
+                             dex_unref);
+
+  dex_future_disown (dex_future_finally (dex_ref (thread),
+                                         quit_main,
+                                         g_main_loop_ref (main_loop),
+                                         (GDestroyNotify) g_main_loop_unref));
+
+  dex_promise_resolve_boolean (promise, TRUE);
+
+  g_main_loop_run (main_loop);
+
+  g_assert_true (dex_future_is_resolved (thread));
+  value = dex_future_get_value (thread, NULL);
+  g_assert_true (G_VALUE_HOLDS_INT (value));
+  g_assert_cmpint (123, ==, g_value_get_int (value));
+
+  g_main_loop_unref (main_loop);
+  dex_unref (promise);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -94,5 +146,6 @@ main (int   argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Thread/spawn", test_thread_spawn);
+  g_test_add_func ("/Dex/TestSuite/Thread/wait_for", test_thread_wait_for);
   return g_test_run ();
 }
