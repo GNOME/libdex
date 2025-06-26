@@ -108,6 +108,14 @@ quit_main (DexFuture *future,
   return dex_ref (future);
 }
 
+static gboolean
+do_resolve (gpointer data)
+{
+  DexPromise *promise = data;
+  dex_promise_resolve_boolean (promise, TRUE);
+  return G_SOURCE_REMOVE;
+}
+
 static void
 test_thread_wait_for (void)
 {
@@ -126,7 +134,10 @@ test_thread_wait_for (void)
                                          g_main_loop_ref (main_loop),
                                          (GDestroyNotify) g_main_loop_unref));
 
-  dex_promise_resolve_boolean (promise, TRUE);
+  g_idle_add_full (G_PRIORITY_DEFAULT,
+                   do_resolve,
+                   dex_ref (promise),
+                   dex_unref);
 
   g_main_loop_run (main_loop);
 
