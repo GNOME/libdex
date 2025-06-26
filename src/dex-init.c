@@ -28,6 +28,7 @@
 #include "dex-scheduler-private.h"
 #include "dex-semaphore-private.h"
 #include "dex-thread-pool-worker-private.h"
+#include "dex-waiter-private.h"
 
 #ifdef HAVE_LIBURING
 # include "dex-uring-future-private.h"
@@ -68,6 +69,7 @@ dex_init_once (void)
 #ifdef HAVE_LIBURING
   g_type_ensure (DEX_TYPE_URING_FUTURE);
 #endif
+  g_type_ensure (DEX_TYPE_WAITER);
 
   /* Misc types */
   g_type_ensure (DEX_TYPE_ASYNC_RESULT);
