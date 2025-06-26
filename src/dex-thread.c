@@ -158,10 +158,12 @@ dex_thread_spawn (const char     *thread_name,
   dex_future_set_static_name (DEX_FUTURE (state->promise),
                               g_intern_string (thread_name));
 
-  ret = dex_future_finally (dex_ref (state->promise),
-                            do_nothing,
-                            user_data,
-                            user_data_destroy);
+  ret = dex_block_new (dex_ref (state->promise),
+                       scheduler,
+                       DEX_BLOCK_KIND_FINALLY,
+                       do_nothing,
+                       user_data,
+                       user_data_destroy);
 
   g_thread_unref (g_thread_new (thread_name, dex_trampoline_thread, state));
 
