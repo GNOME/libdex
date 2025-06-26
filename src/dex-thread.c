@@ -187,9 +187,19 @@ gboolean
 dex_thread_wait_for (DexFuture  *future,
                      GError    **error)
 {
+  DexThreadStorage *storage;
   gboolean ret;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), FALSE);
+
+  if ((storage = dex_thread_storage_peek ()) && storage->scheduler != NULL)
+    {
+      g_set_error_literal (error,
+                           G_IO_ERROR,
+                           G_IO_ERROR_FAILED,
+                           "Attempt to wait for future on scheduler controlled thread. This is not allowed.");
+      return FALSE;
+    }
 
   /* Short-circuit when @future is already completed */
   if (!dex_future_is_pending (future))
