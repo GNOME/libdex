@@ -135,8 +135,13 @@ test_thread_wait_for (void)
   g_assert_true (G_VALUE_HOLDS_INT (value));
   g_assert_cmpint (123, ==, g_value_get_int (value));
 
-  g_main_loop_unref (main_loop);
   dex_unref (promise);
+  dex_unref (thread);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  g_main_loop_unref (main_loop);
 }
 
 int
