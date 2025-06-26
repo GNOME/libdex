@@ -103,6 +103,8 @@ dex_waiter_new (DexFuture *future)
   g_mutex_init (&waiter->mutex);
   g_cond_init (&waiter->cond);
 
+  dex_future_chain (future, DEX_FUTURE (waiter));
+
   return waiter;
 }
 
