@@ -69,6 +69,11 @@ dex_trampoline_thread (gpointer data)
   ThreadSpawn *state = data;
   DexFuture *future;
 
+  g_assert (state != NULL);
+  g_assert (state->thread_func != NULL);
+  g_assert (DEX_IS_SCHEDULER (state->scheduler));
+  g_assert (DEX_IS_PROMISE (state->promise));
+
   future = state->thread_func (state->thread_func_data);
 
   dex_future_disown_full (dex_block_new (g_steal_pointer (&future),
