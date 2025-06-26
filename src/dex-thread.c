@@ -179,14 +179,18 @@ dex_thread_wait_for (DexFuture  *future,
                      GError    **error)
 {
   DexWaiter *waiter;
+  gboolean ret;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), FALSE);
 
+  /* Short-circuit when @future is already completed */
   if (!dex_future_is_pending (future))
     return !!dex_future_get_value (future, error);
 
   waiter = dex_waiter_new (future);
   dex_waiter_wait (waiter);
+  ret = !!dex_future_get_value (DEX_FUTURE (waiter), error);
+  dex_unref (waiter);
 
-  return !!dex_future_get_value (DEX_FUTURE (waiter), error);
+  return ret;
 }
