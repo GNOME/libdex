@@ -105,6 +105,8 @@ dex_waiter_new (DexFuture *future)
 
   dex_future_chain (future, DEX_FUTURE (waiter));
 
+  dex_unref (future);
+
   return waiter;
 }
 
