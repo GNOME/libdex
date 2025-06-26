@@ -135,6 +135,8 @@ dex_thread_spawn (const char     *thread_name,
   ThreadSpawn *state;
   DexFuture *ret;
 
+  dex_return_error_if_fail (thread_func != NULL);
+
   if (thread_name == NULL)
     thread_name = "[dex-thread]";
 
