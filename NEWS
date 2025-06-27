@@ -1,3 +1,14 @@
+libdex 0.10.1
+=============
+
+ * Fix autoptr usage
+ * Raise critical on finalization of thread-pool-scheduler which should
+   not happen in proper usage of libdex
+ * Avoid extra pointer chase when dispatching to thread pool workers
+ * Don't dispatch blocks while on fibers, wait for scheduler
+ * Fix leak of unix signal futures
+ * Improve management of fiber run queues
+
 libdex 0.10.0
 =============
 
