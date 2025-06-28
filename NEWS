@@ -1,3 +1,16 @@
+libdex 0.11.0
+=============
+
+This is an alpha release for the upcoming GNOME 49
+
+ * New dex_thread_spawn() and dex_thread_wait_for() APIs which make
+   it easier to integrate with a non-dex scheduled thread.
+ * Add dex_value_dup_object()
+ * Add dex_async_initable_init()
+ * Add dex_dbus_connection_close()
+ * Add dex_file_set_attributes()
+ * Various testsuite improvements
+
 libdex 0.10.0
 =============
 
