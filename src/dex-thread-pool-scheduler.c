@@ -21,6 +21,8 @@
 
 #include "config.h"
 
+#include <stdatomic.h>
+
 #include "dex-scheduler-private.h"
 #include "dex-thread-pool-scheduler.h"
 #include "dex-thread-pool-worker-private.h"
@@ -217,6 +219,8 @@ dex_thread_pool_scheduler_new (void)
 
       thread_pool_scheduler->workers[thread_pool_scheduler->n_workers++] = thread_pool_worker;
     }
+
+  atomic_thread_fence (memory_order_seq_cst);
 
   return DEX_SCHEDULER (thread_pool_scheduler);
 }
