@@ -827,7 +827,12 @@ dex_file_enumerator_next_files_cb (GObject      *object,
 /**
  * dex_file_enumerator_next_files:
  *
- * Returns: (transfer full): a #DexFuture
+ * Wraps [method@Gio.FileEnumerator.next_files_async].
+ *
+ * Use [method@Dex.Future.await_boxed] to await for the result of this function.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to
+ *   a [struct@GLib.List] of [iface@Gio.File]
  */
 DexFuture *
 dex_file_enumerator_next_files (GFileEnumerator *file_enumerator,
