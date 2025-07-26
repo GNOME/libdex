@@ -615,7 +615,8 @@ dex_file_query_info_cb (GObject      *object,
 /**
  * dex_file_query_info:
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to a [class@Gio.FileInfo] or rejects with error.
  */
 DexFuture *
 dex_file_query_info (GFile               *file,
@@ -638,6 +639,58 @@ dex_file_query_info (GFile               *file,
                            dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_file_query_file_type_cb (GObject      *object,
+                             GAsyncResult *result,
+                             gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GFileInfo *file_info;
+  GError *error = NULL;
+
+  if ((file_info = g_file_query_info_finish (G_FILE (object), result, &error)))
+    {
+      GValue value = G_VALUE_INIT;
+
+      g_value_init (&value, G_TYPE_FILE_TYPE);
+      g_value_set_enum (&value, g_file_info_get_file_type (file_info));
+
+      dex_promise_resolve (promise, &value);
+
+      g_value_unset (&value);
+      g_object_unref (file_info);
+    }
+  else dex_promise_reject (promise, error);
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_query_file_type:
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [enum@Gio.FileType].
+ */
+DexFuture *
+dex_file_query_file_type (GFile               *file,
+                          GFileQueryInfoFlags  flags,
+                          int                  io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_query_info_async (file,
+                           G_FILE_ATTRIBUTE_STANDARD_TYPE,
+                           flags,
+                           io_priority,
+                           dex_promise_get_cancellable (promise),
+                           dex_file_query_file_type_cb,
+                           dex_ref (promise));
+  return DEX_FUTURE (promise);
 }
 
 static void
