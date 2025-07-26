@@ -1685,3 +1685,73 @@ dex_file_set_attributes (GFile               *file,
                                dex_ref (promise));
   return DEX_FUTURE (promise);
 }
+
+typedef struct
+{
+  GDestroyNotify notify;
+  gpointer data;
+  DexPromise *promise;
+} FileMove;
+
+static void
+dex_file_move_cb (GObject      *object,
+                  GAsyncResult *result,
+                  gpointer      user_data)
+{
+  FileMove *state = user_data;
+  GError *error = NULL;
+
+  if (!g_file_move_finish (G_FILE (object), result, &error))
+    dex_promise_reject (state->promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (state->promise, TRUE);
+
+  if (state->notify)
+    state->notify (state->data);
+  dex_clear (&state->promise);
+  g_free (state);
+}
+
+/**
+ * dex_file_move:
+ * @progress_callback: (scope notified) (closure progress_callback_data):
+ * @progress_callback_data:
+ * @progress_callback_data_destroy:
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error
+ */
+DexFuture *
+dex_file_move (GFile                 *source,
+               GFile                 *destination,
+               GFileCopyFlags         flags,
+               int                    io_priority,
+               GFileProgressCallback  progress_callback,
+               gpointer               progress_callback_data,
+               GDestroyNotify         progress_callback_data_destroy)
+{
+  FileMove *state;
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (source));
+  dex_return_error_if_fail (G_IS_FILE (destination));
+
+  promise = dex_promise_new_cancellable ();
+
+  state = g_new0 (FileMove, 1);
+  state->data = progress_callback_data;
+  state->notify = progress_callback_data_destroy;
+  state->promise = dex_ref (promise);
+
+  g_file_move_async (source,
+                     destination,
+                     flags,
+                     io_priority,
+                     dex_promise_get_cancellable (promise),
+                     progress_callback_data,
+                     progress_callback_data_destroy,
+                     dex_file_move_cb,
+                     state);
+
+  return DEX_FUTURE (promise);
+}

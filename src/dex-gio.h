@@ -156,6 +156,14 @@ DexFuture *dex_subprocess_wait_check                   (GSubprocess             
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_query_exists                       (GFile                    *file) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
+DexFuture *dex_file_move                               (GFile                    *source,
+                                                        GFile                    *destination,
+                                                        GFileCopyFlags            flags,
+                                                        int                       io_priority,
+                                                        GFileProgressCallback     progress_callback,
+                                                        gpointer                  progress_callback_data,
+                                                        GDestroyNotify            progress_callback_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
 DexFuture *dex_async_initable_init                     (GAsyncInitable           *initable,
                                                         int                       priority) G_GNUC_WARN_UNUSED_RESULT;
 
