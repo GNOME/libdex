@@ -25,7 +25,7 @@ package_string = '@0@-@1@'.format(package_name, api_version)
 
 glib_req_version = '2.68'
 glib_req = '>= @0@'.format(glib_req_version)
-glib_dep = dependency('gio-2.0', version: glib_req)
+glib_dep = dependency('gio-unix-2.0', version: glib_req)
 
 if host_machine.system() == 'linux' and not get_option('liburing').disabled()
   liburing_req_version = '0.7'
