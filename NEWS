@@ -1,3 +1,15 @@
+libdex 0.11.1
+=============
+
+This is a beta release for the upcoming GNOME 49
+
+ * Ensure a full-barrier before giving callers access to a newly
+   created thread pool scheduler via `get_default()`
+ * Various documentation additions and fixes
+ * Add async variant of `g_file_query_file_type()`
+ * Add async variant of `g_file_move()`
+ * Depend on gio-unix when not on Windows
+
 libdex 0.11.0
 =============
 
