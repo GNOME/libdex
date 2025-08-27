@@ -24,8 +24,6 @@
 
 #include <glib-object.h>
 
-G_BEGIN_DECLS
-
 #define DEX_INSIDE
 # include "dex-aio.h"
 # include "dex-async-pair.h"
@@ -56,5 +54,3 @@ G_BEGIN_DECLS
 # include "dex-version.h"
 # include "dex-version-macros.h"
 #undef DEX_INSIDE
-
-G_END_DECLS
