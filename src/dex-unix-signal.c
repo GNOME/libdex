@@ -162,3 +162,19 @@ dex_unix_signal_new (int signum)
 
   return DEX_FUTURE (unix_signal);
 }
+
+/**
+ * dex_unix_signal_get_signum:
+ * @unix_signal: a [class@Dex.UnixSignal]
+ *
+ * Get the signal number that the future represents.
+ *
+ * Since: 0.12
+ */
+int
+dex_unix_signal_get_signum (DexUnixSignal *unix_signal)
+{
+  g_return_val_if_fail (DEX_IS_UNIX_SIGNAL (unix_signal), 0);
+
+  return unix_signal->signum;
+}

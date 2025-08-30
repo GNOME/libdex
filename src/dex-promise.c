@@ -87,6 +87,14 @@ dex_promise_init (DexPromise *promise)
 {
 }
 
+/**
+ * dex_promise_new:
+ *
+ * Creates a new promise which may be completed or rejected
+ * using the available methods.
+ *
+ * Returns: (transfer full):
+ */
 DexPromise *
 (dex_promise_new) (void)
 {
@@ -194,6 +202,12 @@ dex_promise_resolve_fd (DexPromise *promise,
     close (fd);
 }
 
+/**
+ * dex_promise_resolve_int:
+ * @promise: a [class@Dex.Promise]
+ *
+ * Resolve promise to `value`.
+ */
 void
 dex_promise_resolve_int (DexPromise *promise,
                          int         value)
@@ -202,6 +216,12 @@ dex_promise_resolve_int (DexPromise *promise,
   dex_promise_resolve (promise, &gvalue);
 }
 
+/**
+ * dex_promise_resolve_uint:
+ * @promise: a [class@Dex.Promise]
+ *
+ * Resolve promise to `value`.
+ */
 void
 dex_promise_resolve_uint (DexPromise *promise,
                           guint       value)
@@ -210,6 +230,12 @@ dex_promise_resolve_uint (DexPromise *promise,
   dex_promise_resolve (promise, &gvalue);
 }
 
+/**
+ * dex_promise_resolve_int64:
+ * @promise: a [class@Dex.Promise]
+ *
+ * Resolve promise to `value`.
+ */
 void
 dex_promise_resolve_int64 (DexPromise *promise,
                            gint64      value)
@@ -218,6 +244,12 @@ dex_promise_resolve_int64 (DexPromise *promise,
   dex_promise_resolve (promise, &gvalue);
 }
 
+/**
+ * dex_promise_resolve_uint64:
+ * @promise: a [class@Dex.Promise]
+ *
+ * Resolve promise to `value`.
+ */
 void
 dex_promise_resolve_uint64 (DexPromise *promise,
                             guint64     value)
@@ -226,6 +258,12 @@ dex_promise_resolve_uint64 (DexPromise *promise,
   dex_promise_resolve (promise, &gvalue);
 }
 
+/**
+ * dex_promise_resolve_long:
+ * @promise: a [class@Dex.Promise]
+ *
+ * Resolve promise to `value`.
+ */
 void
 dex_promise_resolve_long (DexPromise *promise,
                           glong       value)
@@ -234,6 +272,12 @@ dex_promise_resolve_long (DexPromise *promise,
   dex_promise_resolve (promise, &gvalue);
 }
 
+/**
+ * dex_promise_resolve_ulong:
+ * @promise: a [class@Dex.Promise]
+ *
+ * Resolve promise to `value`.
+ */
 void
 dex_promise_resolve_ulong (DexPromise *promise,
                            glong       value)
@@ -242,6 +286,12 @@ dex_promise_resolve_ulong (DexPromise *promise,
   dex_promise_resolve (promise, &gvalue);
 }
 
+/**
+ * dex_promise_resolve_float:
+ * @promise: a [class@Dex.Promise]
+ *
+ * Resolve promise to `value`.
+ */
 void
 dex_promise_resolve_float (DexPromise *promise,
                            float       value)
@@ -250,6 +300,12 @@ dex_promise_resolve_float (DexPromise *promise,
   dex_promise_resolve (promise, &gvalue);
 }
 
+/**
+ * dex_promise_resolve_double:
+ * @promise: a [class@Dex.Promise]
+ *
+ * Resolve promise to `value`.
+ */
 void
 dex_promise_resolve_double (DexPromise *promise,
                             double      value)
@@ -258,6 +314,12 @@ dex_promise_resolve_double (DexPromise *promise,
   dex_promise_resolve (promise, &gvalue);
 }
 
+/**
+ * dex_promise_resolve_boolean:
+ * @promise: a [class@Dex.Promise]
+ *
+ * Resolve promise to `value`.
+ */
 void
 dex_promise_resolve_boolean (DexPromise *promise,
                              gboolean    value)

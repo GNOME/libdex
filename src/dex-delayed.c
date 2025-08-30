@@ -118,6 +118,8 @@ dex_delayed_init (DexDelayed *delayed)
  * dex_delayed_new:
  * @future: (transfer none): a [class@Dex.Future]
  *
+ * Creates a new [class@Dex.Delayed]
+ *
  * Returns: (transfer full):
  */
 DexFuture *
@@ -136,6 +138,12 @@ dex_delayed_new (DexFuture *future)
   return DEX_FUTURE (delayed);
 }
 
+/**
+ * dex_delayed_release:
+ * @delayed:
+ *
+ * Completes @delayed using the value provided at construction.
+ */
 void
 dex_delayed_release (DexDelayed *delayed)
 {

@@ -77,6 +77,13 @@ dex_cancellable_init (DexCancellable *cancellable)
 {
 }
 
+/**
+ * dex_cancellable_new:
+ *
+ * Create a new cancellable
+ *
+ * Returns: (transfer full):
+ */
 DexCancellable *
 dex_cancellable_new (void)
 {
@@ -111,6 +118,16 @@ weak_ref_free (gpointer data)
   g_free (data);
 }
 
+/**
+ * dex_cancellable_new_from_cancellable:
+ * @cancellable: a [class@Gio.Cancellable]
+ *
+ * Creates a new [class@Dex.Cancellable] that will reject
+ * when @cancellable is cancelled or
+ * [method@Dex.Cancellable.cancel] is called.
+ *
+ * Returns: (transfer full):
+ */
 DexFuture *
 dex_cancellable_new_from_cancellable (GCancellable *cancellable)
 {
@@ -132,6 +149,16 @@ dex_cancellable_new_from_cancellable (GCancellable *cancellable)
   return DEX_FUTURE (ret);
 }
 
+/**
+ * dex_cancellable_cancel:
+ * @cancellable: a [class@Dex.Cancellable]
+ *
+ * Rejects @cancellable.
+ *
+ * Any future that is dependent on this cancellable will be notified
+ * of the rejection. For some futures, that may cause them to also
+ * reject or resolve.
+ */
 void
 dex_cancellable_cancel (DexCancellable *cancellable)
 {

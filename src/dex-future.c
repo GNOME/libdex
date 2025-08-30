@@ -943,6 +943,8 @@ DexFuture *
  * This function takes ownership of @fd.
  *
  * Returns: (transfer full): a resolved #DexFuture
+ *
+ * Since: 0.10
  */
 DexFuture *
 (dex_future_new_for_fd) (int fd)
@@ -1379,6 +1381,8 @@ dex_await_pointer (DexFuture  *future,
  *
  * Returns: a valid file descriptor or -1. you may get -1 without
  *   error being set if there was no rejected future.
+ *
+ * Since: 0.10
  */
 int
 dex_await_fd (DexFuture  *future,

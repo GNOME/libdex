@@ -89,6 +89,17 @@ async_result_iface_init (GAsyncResultIface *iface)
 G_DEFINE_FINAL_TYPE_WITH_CODE (DexAsyncResult, dex_async_result, G_TYPE_OBJECT,
                                G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_RESULT, async_result_iface_init))
 
+/**
+ * dex_async_result_new:
+ *
+ * Creates a new [class@Dex.AsyncResult].
+ *
+ * Use this to integrate with `GAsyncResult` by calling
+ * [method@Dex.AsyncResult.await] to complete when the
+ * dependent future resolves.
+ *
+ * Returns: (transfer full):
+ */
 DexAsyncResult *
 dex_async_result_new (gpointer             source_object,
                       GCancellable        *cancellable,

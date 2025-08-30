@@ -128,6 +128,14 @@ dex_timeout_source_func (gpointer data)
   return G_SOURCE_REMOVE;
 }
 
+/**
+ * dex_timeout_new_deadline:
+ * @deadline: the deadline in usec in the monotonic clock
+ *
+ * Creates a new timeout that will reject at a deadline.
+ *
+ * Returns: (transfer full):
+ */
 DexFuture *
 dex_timeout_new_deadline (gint64 deadline)
 {
@@ -173,6 +181,14 @@ dex_timeout_new_deadline (gint64 deadline)
   return DEX_FUTURE (timeout);
 }
 
+/**
+ * dex_timeout_new_seconds:
+ * @seconds: number of seconds
+ *
+ * Create a new timeout that will reject in @seconds seconds
+ *
+ * Returns: (transfer full):
+ */
 DexFuture *
 dex_timeout_new_seconds (int seconds)
 {
@@ -180,6 +196,14 @@ dex_timeout_new_seconds (int seconds)
   return dex_timeout_new_deadline (g_get_monotonic_time () + usec);
 }
 
+/**
+ * dex_timeout_new_msec:
+ * @msec: number of milliseconds
+ *
+ * Create a new timeout that will reject in @msec milliseconds
+ *
+ * Returns: (transfer full):
+ */
 DexFuture *
 dex_timeout_new_msec (int msec)
 {
@@ -187,12 +211,29 @@ dex_timeout_new_msec (int msec)
   return dex_timeout_new_deadline (g_get_monotonic_time () + usec);
 }
 
+/**
+ * dex_timeout_new_usec:
+ * @usec: number of microseconds
+ *
+ * Create a new timeout that will reject in @usec microseconds
+ *
+ * Returns: (transfer full):
+ */
 DexFuture *
 dex_timeout_new_usec (gint64 usec)
 {
   return dex_timeout_new_deadline (g_get_monotonic_time () + usec);
 }
 
+/**
+ * dex_timeout_postpone_until:
+ * @timeout: a [class@Dex.Timeout]
+ * @deadline: a deadline in monotonic clock
+ *
+ * Postpoone @timeout to complete at @deadline in the monotonic
+ * clock. See `g_get_monotonic_clock()` for getting the
+ * monotonic clock in microseconds.
+ */
 void
 dex_timeout_postpone_until (DexTimeout *timeout,
                             gint64      deadline)
