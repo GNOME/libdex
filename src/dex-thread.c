@@ -122,7 +122,7 @@ dex_trampoline_thread (gpointer data)
  * Returns: (transfer full): a [class@Dex.Future] that resolves or rejects
  *   the value or error returned from @thread_func as a [class@Dex.Future].
  *
- * Since: 0.12
+ * Since: 1.0
  */
 DexFuture *
 dex_thread_spawn (const char     *thread_name,
@@ -181,7 +181,7 @@ dex_thread_spawn (const char     *thread_name,
  * Returns: %TRUE if @future resolved, otherwise %FALSE and @error is
  *   set to the rejection.
  *
- * Since: 0.12
+ * Since: 1.0
  */
 gboolean
 dex_thread_wait_for (DexFuture  *future,

@@ -563,7 +563,7 @@ dex_object_create_instance (GType instance_type)
  *
  * Returns: (transfer full) (nullable): a `DexObject`
  *
- * Since: 0.12
+ * Since: 1.0
  */
 DexObject *
 dex_value_dup_object (const GValue *value)

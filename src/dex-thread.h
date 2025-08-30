@@ -34,7 +34,7 @@ G_BEGIN_DECLS
  *
  * Returns: (transfer full): a [class@Dex.Future]
  *
- * Since: 0.12
+ * Since: 1.0
  */
 typedef DexFuture *(*DexThreadFunc) (gpointer user_data);
 

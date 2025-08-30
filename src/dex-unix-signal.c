@@ -169,7 +169,7 @@ dex_unix_signal_new (int signum)
  *
  * Get the signal number that the future represents.
  *
- * Since: 0.12
+ * Since: 1.0
  */
 int
 dex_unix_signal_get_signum (DexUnixSignal *unix_signal)

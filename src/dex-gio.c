@@ -788,7 +788,7 @@ dex_file_make_directory_with_parents_worker (gpointer data)
  * Returns: (transfer full): a [class@Dex.Future] that resolves to
  *   a boolean or rejects with error.
  *
- * Since: 0.12
+ * Since: 1.0
  */
 DexFuture *
 dex_file_make_directory_with_parents (GFile *file)
@@ -1627,7 +1627,7 @@ dex_async_initable_init_cb (GObject      *object,
  * Returns: (transfer full): a [class@Dex.Future] that resolves
  *   to the @initable instance or rejects with error.
  *
- * Since: 0.12
+ * Since: 1.0
  */
 DexFuture *
 dex_async_initable_init (GAsyncInitable *initable,
@@ -1671,7 +1671,7 @@ dex_dbus_connection_close_cb (GObject      *object,
  * Returns: (transfer full): a [class@Dex.Future] that resolves
  *   to `true` or rejects with error.
  *
- * Since: 0.12
+ * Since: 1.0
  */
 DexFuture *
 dex_dbus_connection_close (GDBusConnection *connection)
@@ -1715,7 +1715,7 @@ dex_file_set_attributes_cb (GObject      *object,
  * Returns: (transfer full): a [class@Dex.Future] that resolves to a
  *   [class@Gio.FileInfo] or rejects with error.
  *
- * Since: 0.12
+ * Since: 1.0
  */
 DexFuture *
 dex_file_set_attributes (GFile               *file,
