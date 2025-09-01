@@ -21,6 +21,11 @@ search_index = true
   description = "The base type system library"
   docs_url = "https://docs.gtk.org/glib/"
 
+  [dependencies."GLibUnix-2.0"]
+  name = "GLibUnix"
+  description = "The base type system library"
+  docs_url = "https://docs.gtk.org/glib-unix/"
+
   [dependencies."Gio-2.0"]
   name = "GIO"
   description = "GObject Interfaces and Objects, Networking, IPC, and I/O"
@@ -38,6 +43,7 @@ base_url = "https://gitlab.gnome.org/GNOME/libdex/-/blob/main/"
 # The same order will be used when generating the index
 content_files = [
   "overview.md",
+  "terminology.md",
 ]
 
 urlmap_file = "urlmap.js"
