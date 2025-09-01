@@ -132,6 +132,8 @@ In this case, the timeout will reject after a time period has passed.
 
 A [class@Dex.Timeout] will only ever reject.
 
+This future is implemented ontop of [struct@GLib.MainContext] via API like `g_timeout_add()`.
+
 ```c
 DexFuture *future = dex_timeout_new_seconds (60);
 ```
@@ -184,6 +186,8 @@ The main thread of an application has the default sheduler which is a [class@Dex
 Libdex also has a managed thread pool of schedulers via the [class@Dex.ThreadPoolScheduler].
 
 Schedulers manage short tasks, executing [class@Dex.Block] when they are ready, finalizing objects on their owning thread, and running fibers.
+
+Schedulers integrate with the current threads [struct@GLib.MainContext] via `GSource` making it easy to use Libdex with GTK and Clutter-based applications.
 
 # Channels
 
