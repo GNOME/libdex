@@ -107,6 +107,29 @@ If you find you have a case where you want a [class@Dex.Block] to loop indefinit
 See [ctor@Dex.Future.then_loop], [ctor@Dex.Future.catch_loop], or [ctor@Dex.Future.finally_loop].
 This is generally useful when your block's callback will begin the next stage of work as the result of the callback.
 
+## Future Sets
+
+A [class@Dex.FutureSet] is a type of future that contains the result of multiple futures.
+This is an extremely useful construct because it allows you to do work concurrently and then process the results in a sort of "reduce" phase.
+
+For example, you could make a request to a database, cache server, and a timeout and process the first that completes.
+
+There are multiple types of future sets based on the type of problem you want to solve.
+
+[ctor@Dex.Future.all] can be used to resolve when all dependent futures have resolved, otherwise it will reject with error once they are complete.
+If you want to reject as soon as the first item rejects, [ctor@Dex.Future.all_race] will get you that behavior.
+
+Other useful [class@Dex.FutureSet] construtors include [ctor@Dex.Future.any] and [ctor@Dex.Future.first].
+
+```c
+/* Either timeout or propagate result of cache/db query */
+return dex_future_first (dex_timeout_new_seconds (60),
+                         dex_future_any (query_db_server (),
+                                         query_cache_server (),
+                                         NULL),
+                         NULL);
+```
+
 ## Cancellable
 
 Many programmers who use GTK and GIO are familiar with [class@Gio.Cancellable].
