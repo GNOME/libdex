@@ -95,6 +95,18 @@ catch_rejection (DexFuture *future,
 }
 ```
 
+### "Finally" Blocks
+
+There may be times when you want to handle completion of a future whether it resolved or rejected.
+For this case, use a "finally" block by calling [ctor@Dex.Future.finally].
+
+### Infinite Loops
+
+If you find you have a case where you want a [class@Dex.Block] to loop indefinitely, you can use the "_loop" variants of the block APIs.
+
+See [ctor@Dex.Future.then_loop], [ctor@Dex.Future.catch_loop], or [ctor@Dex.Future.finally_loop].
+This is generally useful when your block's callback will begin the next stage of work as the result of the callback.
+
 ## Cancellable
 
 Many programmers who use GTK and GIO are familiar with [class@Gio.Cancellable].
