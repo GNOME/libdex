@@ -884,6 +884,12 @@ dex_file_enumerator_next_files_cb (GObject      *object,
  *
  * Use [method@Dex.Future.await_boxed] to await for the result of this function.
  *
+ * When on a fiber, you can do:
+ *
+ * ```c
+ * g_autolist(GFileInfo) infos = dex_await_boxed (dex_file_enumerator_next_files (enumerator, 100, 0), &error);
+ * ```
+ *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to
  *   a [struct@GLib.List] of [class@Gio.FileInfo]
  */

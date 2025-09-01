@@ -1,4 +1,4 @@
-Title: Integration with GIO
+Title: Integrating GAsyncResult
 
 Historically if you wanted to do asynchronous work in GObject-based applications you would use [callback@Gio.AsyncReadyCallback] and [iface@Gio.AsyncResult].
 
