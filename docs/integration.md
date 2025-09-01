@@ -73,3 +73,9 @@ thing_finish (Thing         *thing,
   return dex_async_result_propagate_boolean (DEX_ASYNC_RESULT (result), error);
 }
 ```
+
+# Safety Notes
+
+One thing that Libdex handles better than `GTask` is ensuring that your `user_data` is destroyed on the proper thread.
+The design of [class@Dex.Block] was done in such a way that both the result and `user_data` are passed back to the owning thread at the same time.
+This ensures that your `user_data` will never be finalized on the wrong thread.
