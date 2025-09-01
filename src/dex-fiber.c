@@ -32,7 +32,7 @@
 /**
  * DexFiber:
  *
- * #DexFiber is a fiber (or coroutine) which itself is a #DexFuture.
+ * #DexFiber is a fiber (a stack-based coroutine) which itself is a #DexFuture.
  *
  * When the fiber completes execution it will either resolve or reject the
  * with the result or error.
