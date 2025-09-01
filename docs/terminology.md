@@ -165,6 +165,15 @@ More care will be spent on fibers later on but suffice to say that the result of
 DexFuture *future = dex_scheduler_spawn (NULL, 0, my_fiber, state, state_free);
 ```
 
+# Cancellation Propagation
+
+Futures within your application will enevitably depend on other futures.
+
+If all of the futures depending on a future have been released, the dependent future will have the opportunity to cancel itself.
+This allows for cascading cancellation so that unnecessary work may be elided.
+
+You can use [method@Dex.Future.disown] to ensure that a future will continue to be run even if the dependent futures are released.
+
 # Schedulers
 
 Libdex requires much processing that needs to be done on the main loop of a thread.
