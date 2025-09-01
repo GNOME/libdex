@@ -45,6 +45,7 @@ content_files = [
   "overview.md",
   "terminology.md",
   "integration.md",
+  "threads.md",
 ]
 
 urlmap_file = "urlmap.js"
