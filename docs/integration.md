@@ -18,12 +18,13 @@ my_callback (GObject      *object,
              GAsyncResult *result,
              gpointer      user_data)
 {
-  GError *error = NULL;
+  g_autoptr(DexPromise) promise = user_data;
+  g_autoptr(GError) error = NULL;
 
   if (thing_finish (THING (object), result, &error))
     dex_promise_resolve_boolean (promise, TRUE);
   else
-    dex_promise_reject (promise, error);
+    dex_promise_reject (promise, g_steal_pointer (&error));
 }
 
 static DexFuture *
@@ -31,7 +32,10 @@ my_wrapper (Thing *thing)
 {
   DexPromise *promise = dex_promise_new_cancellable ();
 
-  thing_async (thing, my_callback, dex_ref (promise), dex_unref);
+  thing_async (thing,
+               dex_promise_get_cancellable (promise),
+               my_callback,
+               dex_ref (promise));
 
   return DEX_FUTURE (promise);
 }
