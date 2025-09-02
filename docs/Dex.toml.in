@@ -46,6 +46,7 @@ content_files = [
   "terminology.md",
   "integration.md",
   "aio.md",
+  "schedulers.md",
   "threads.md",
   "channels.md",
   "debugging.md",
