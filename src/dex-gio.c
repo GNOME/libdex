@@ -95,7 +95,10 @@ dex_input_stream_read_bytes_cb (GObject      *object,
 /**
  * dex_input_stream_read_bytes:
  *
- * Returns: (transfer full): a #DexFuture
+ * Reads @count bytes from the stream.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to a [struct@GLib.Bytes].
  */
 DexFuture *
 dex_input_stream_read_bytes (GInputStream *stream,
@@ -140,7 +143,13 @@ dex_output_stream_write_bytes_cb (GObject      *object,
 /**
  * dex_output_stream_write_bytes:
  *
- * Returns: (transfer full): a #DexFuture
+ * Writes @bytes to @stream.
+ *
+ * This function takes a reference to @bytes and may be released after
+ * calling this function.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to
+ *   a `gint64`.
  */
 DexFuture *
 dex_output_stream_write_bytes (GOutputStream *stream,
@@ -187,7 +196,8 @@ dex_file_read_cb (GObject      *object,
  *
  * Asynchronously opens a file for reading.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to a [class@Gio.FileInputStream].
  */
 DexFuture *
 dex_file_read (GFile *file,
@@ -229,7 +239,11 @@ dex_file_replace_cb (GObject      *object,
  * dex_file_replace:
  * @etag: (nullable)
  *
- * Returns: (transfer full): a #DexFuture
+ * Opens a stream that will replace @file on disk when the input
+ * stream is closed.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to a [class@Gio.FileInputStream].
  */
 DexFuture *
 dex_file_replace (GFile            *file,
@@ -279,15 +293,15 @@ dex_file_replace_contents_bytes_cb (GObject      *object,
 
 /**
  * dex_file_replace_contents_bytes:
- * @file: a #GFile
- * @contents: a #GBytes
+ * @file: a [iface@Gio.File]
+ * @contents: a [struct@GLib.Bytes]
  * @etag: (nullable): the etag or %NULL
  * @make_backup: if a backup file should be created
  * @flags: A set of #GFileCreateFlags
  *
- * Wraps g_file_replace_contents_bytes_async().
+ * Wraps [method@Gio.File.replace_contents_bytes_async]
  *
- * Returns: (transfer full): a #DexFuture which resolves to the
+ * Returns: (transfer full): a [class@Dex.Future] which resolves to the
  *   new etag. Therefore, it is possible to be %NULL without an
  *   error having occurred.
  */
@@ -339,9 +353,11 @@ dex_input_stream_read_cb (GObject      *object,
 /**
  * dex_input_stream_read:
  * @buffer: (array length=count) (element-type guint8) (out caller-allocates)
- * @count: (in)
  *
- * Returns: (transfer full): a #DexFuture
+ * @buffer must stay valid for the lifetime of this future.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that reads @counts bytes
+ *   into @buffer
  */
 DexFuture *
 dex_input_stream_read (GInputStream *self,
@@ -390,7 +406,8 @@ dex_input_stream_skip_cb (GObject      *object,
  * @count: the number of bytes to skip
  * @io_priority: %G_PRIORITY_DEFAULT or similar priority value
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to the number of bytes skipped as a gint64.
  */
 DexFuture *
 dex_input_stream_skip (GInputStream *self,
@@ -436,7 +453,8 @@ dex_output_stream_write_cb (GObject      *object,
  * dex_output_stream_write:
  * @buffer: (array length=count) (element-type guint8)
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to the number of bytes written as a gint64
  */
 DexFuture *
 dex_output_stream_write (GOutputStream *self,
@@ -482,7 +500,8 @@ dex_output_stream_close_cb (GObject      *object,
 /**
  * dex_output_stream_close:
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to true or rejects with error.
  */
 DexFuture *
 dex_output_stream_close (GOutputStream *self,
@@ -524,7 +543,8 @@ dex_input_stream_close_cb (GObject      *object,
 /**
  * dex_input_stream_close:
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to true if successful or rejects with error.
  */
 DexFuture *
 dex_input_stream_close (GInputStream *self,
@@ -567,7 +587,8 @@ dex_output_stream_splice_cb (GObject      *object,
 /**
  * dex_output_stream_splice:
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to the
+ *   number of bytes spliced as a gint64 or rejects with error.
  */
 DexFuture *
 dex_output_stream_splice (GOutputStream            *output,
@@ -833,7 +854,8 @@ dex_file_enumerate_children_cb (GObject      *object,
 /**
  * dex_file_enumerate_children:
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.FileEnumerator] or rejects with error.
  */
 DexFuture *
 dex_file_enumerate_children (GFile               *file,
@@ -942,7 +964,8 @@ dex_file_copy_cb (GObject      *object,
  * Asynchronously copies a file and returns a #DexFuture which
  * can be observed for the result.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to true if successful otherwise rejects with error.
  */
 DexFuture *
 dex_file_copy (GFile          *source,
@@ -995,7 +1018,8 @@ dex_file_delete_cb (GObject      *object,
  * Asynchronously deletes a file and returns a #DexFuture which
  * can be observed for the result.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to true or rejects with error.
  */
 DexFuture *
 dex_file_delete (GFile *file,
@@ -1038,7 +1062,8 @@ dex_socket_listener_accept_cb (GObject      *object,
 /**
  * dex_socket_listener_accept:
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to
+ *   a [class@Gio.SocketConnection] or rejects with error.
  */
 DexFuture *
 dex_socket_listener_accept (GSocketListener *listener)
@@ -1079,7 +1104,8 @@ dex_socket_client_connect_cb (GObject      *object,
 /**
  * dex_socket_client_connect:
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.SocketConnection] or rejects with error.
  */
 DexFuture *
 dex_socket_client_connect (GSocketClient      *socket_client,
@@ -1122,7 +1148,8 @@ dex_io_stream_close_cb (GObject      *object,
 /**
  * dex_io_stream_close:
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to
+ *   true or rejects with error.
  */
 DexFuture *
 dex_io_stream_close (GIOStream *io_stream,
@@ -1165,7 +1192,8 @@ dex_resolver_lookup_by_name_cb (GObject      *object,
 /**
  * dex_resolver_lookup_by_name:
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [struct@GLib.List] of [class@Gio.InetAddress].
  */
 DexFuture *
 dex_resolver_lookup_by_name (GResolver  *resolver,
@@ -1259,8 +1287,8 @@ dex_dbus_connection_send_message_with_reply_cb (GObject      *object,
  *
  * Wrapper for g_dbus_connection_send_message_with_reply().
  *
- * Returns: (transfer full): a #DexFuture that will resolve to a #GDBusMessage
- *   or reject with failure.
+ * Returns: (transfer full): a [class@Dex.Future] that will resolve to a
+ *   [class@Gio.DBusMessage] or reject with failure.
  *
  * Since: 0.4
  */
@@ -1322,7 +1350,7 @@ dex_dbus_connection_call_cb (GObject      *object,
  *
  * Wrapper for g_dbus_connection_call().
  *
- * Returns: (transfer full): a #DexFuture that resolves to a #GVariant
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a #GVariant
  *   or rejects with error.
  *
  * Since: 0.4
@@ -1415,9 +1443,11 @@ dex_dbus_connection_call_with_unix_fd_list_cb (GObject      *object,
  *
  * Wrapper for g_dbus_connection_call_with_unix_fd_list().
  *
- * Returns: (transfer full): a #DexFutureSet that resolves to a #GVariant.
- *   The #DexFuture containing the resulting #GUnixFDList can be retrieved
- *   with dex_future_set_get_future_at() with an index of 1.
+ * Returns: (transfer full): a [class@Dex.FutureSet] that resolves to a
+ *   #GVariant.
+ *
+ *   The [class@Dex.Future] containing the resulting [class@Gio.UnixFDList]
+ *   can be retrieved with dex_future_set_get_future_at() with an index of 1.
  *
  * Since: 0.4
  */
