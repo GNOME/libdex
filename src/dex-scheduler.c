@@ -193,6 +193,31 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
  * If @stack_size is 0, it will set to a sensible default. Otherwise, it is
  * rounded up to the nearest page size.
  *
+ * ```c
+ * static DexFuture *
+ * fiber_func (gpointer data)
+ * {
+ *   GInputStream *stream = data;
+ *   g_autoptr(GError) error = NULL;
+ *   g_autoptr(GBytes) bytes = NULL;
+ *
+ *   if (!(bytes = dex_await_boxed (dex_input_stream_read_bytes (stream, 4096, 0), &error)))
+ *     return dex_future_new_for_error (g_steal_pointer (&error));
+ *
+ *   ...
+ *
+ *   return dex_future_new_true ();
+ * }
+ *
+ * DexFuture *
+ * spawn_fiber (GInputStream *stream)
+ * {
+ *   return dex_scheduler_spawn (NULL, 0, fiber_func,
+ *                               g_object_ref (stream),
+ *                               g_object_unref);
+ * }
+ * ```
+ *
  * Returns: (transfer full): a #DexFuture that will resolve or reject when
  *   @func completes (or its resulting #DexFuture completes).
  */
