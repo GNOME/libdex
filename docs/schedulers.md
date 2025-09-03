@@ -46,6 +46,9 @@ Fiber stacks are pooled so that they may be reused during heavy use.
 
 Fibers are a [class@Dex.Future] which means you can await the completion of a fiber just like any other future.
 
+Note that fibers are pinned to a scheduler.
+They will not be migrated between schedulers even when a thread pool is in use.
+
 ## Cancellation
 
 Fibers may be cancelled if the fiber has been discarded by all futures awaiting completion.
