@@ -41,10 +41,15 @@ dex_aio_context_current (void)
 
 /**
  * dex_aio_read:
- * @buffer: (array length=count) (element-type guint8) (out caller-allocates)
- * @count: (in)
+ * @aio_context: (nullable):
+ * @buffer: (array length=count) (element-type guint8) (out caller-allocates):
+ * @count: the number of bytes to read
+ * @offset: the positioned offset within @fd to read from
  *
  * An asynchronous `pread()` wrapper.
+ *
+ * Generally you want to provide `NULL` for the @aio_context as that
+ * will get the default aio context for your scheduler.
  *
  * Returns: (transfer full): a future that will resolve when the
  *   read completes or rejects with error.
@@ -65,9 +70,15 @@ dex_aio_read (DexAioContext *aio_context,
 
 /**
  * dex_aio_write:
- * @buffer: (array length=count) (element-type guint8)
+ * @aio_context: (nullable):
+ * @buffer: (array length=count) (element-type guint8):
+ * @count: the number of bytes to write from @buffer
+ * @offset: the positioned offset within @fd to write at
  *
  * An asynchronous `pwrite()` wrapper.
+ *
+ * Generally you want to provide `NULL` for the @aio_context as that
+ * will get the default aio context for your scheduler.
  *
  * Returns: (transfer full): a future that will resolve when the
  *   write completes or rejects with error.
