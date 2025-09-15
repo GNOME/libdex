@@ -137,6 +137,12 @@ DexFuture *dex_resolver_lookup_by_name                 (GResolver               
                                                         const char               *address) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_bus_get                                 (GBusType                  bus_type) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_1
+void       dex_bus_own_name_on_connection              (GDBusConnection          *connection,
+                                                        const char               *name,
+                                                        GBusNameOwnerFlags        flags,
+                                                        DexFuture               **out_name_acquired_future,
+                                                        DexFuture               **out_name_lost_future);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_dbus_connection_call                    (GDBusConnection          *connection,
                                                         const char               *bus_name,

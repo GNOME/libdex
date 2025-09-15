@@ -1542,6 +1542,131 @@ dex_bus_get (GBusType bus_type)
   return DEX_FUTURE (async_pair);
 }
 
+typedef struct
+{
+  DexPromise *name_acquired;
+  gulong acquired_cancelled_id;
+  DexPromise *name_lost;
+  gulong lost_cancelled_id;
+  guint own_name_id;
+} BusOwnNameData;
+
+static void
+dex_bus_own_name_data_free (BusOwnNameData *data)
+{
+
+  g_signal_handler_disconnect (dex_promise_get_cancellable (data->name_acquired),
+                               data->acquired_cancelled_id);
+  g_signal_handler_disconnect (dex_promise_get_cancellable (data->name_lost),
+                               data->lost_cancelled_id);
+
+  if (dex_future_is_pending (DEX_FUTURE (data->name_acquired)))
+    {
+      dex_promise_reject (data->name_acquired,
+                          g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+                                               "Failed to acquire dbus name"));
+    }
+
+  if (dex_future_is_pending (DEX_FUTURE (data->name_lost)))
+    {
+      dex_promise_reject (data->name_lost,
+                          g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+                                               "Lost dbus name"));
+    }
+
+  g_clear_pointer (&data->name_acquired, dex_unref);
+  g_clear_pointer (&data->name_lost, dex_unref);
+  free (data);
+}
+
+static void
+dex_bus_name_acquired_cb (GDBusConnection *connection,
+                          const char      *name,
+                          gpointer         user_data)
+{
+  BusOwnNameData *data = user_data;
+
+  dex_promise_resolve_boolean (data->name_acquired, TRUE);
+}
+
+static void
+dex_bus_name_lost_cb (GDBusConnection *connection,
+                      const char      *name,
+                      gpointer         user_data)
+{
+  BusOwnNameData *data = user_data;
+
+  g_clear_handle_id (&data->own_name_id, g_bus_unown_name);
+}
+
+static void
+dex_bus_name_cancelled_cb (GCancellable *cancellable,
+                           gpointer      user_data)
+{
+  BusOwnNameData *data = user_data;
+
+  g_clear_handle_id (&data->own_name_id, g_bus_unown_name);
+}
+
+/**
+ * dex_bus_own_name_on_connection:
+ * @connection: The [class@Gio.DBusConnection] to own a name on.
+ * @name: The well-known name to own.
+ * @flags: A set of flags with ownership options.
+ * @out_name_acquired_future: (out) (optional): a location for the name acquired future
+ * @out_name_lost_future: (out) (optional): a location for the name lost future
+ *
+ * Wrapper for g_bus_own_name().
+ *
+ * Asks the D-Bus broker to own the well-known name @name on the connection @connection.
+ *
+ * @out_name_acquired_future is a future that awaits owning the name and either
+ * resolves to true, or rejects with an error.
+ *
+ * @out_name_lost_future is a future that rejects when the name was lost.
+ *
+ * If either future is canceled, the name will be unowned.
+ *
+ * Since: 1.1
+ */
+void
+dex_bus_own_name_on_connection (GDBusConnection     *connection,
+                                const char          *name,
+                                GBusNameOwnerFlags   flags,
+                                DexFuture          **out_name_acquired_future,
+                                DexFuture          **out_name_lost_future)
+{
+  BusOwnNameData *data = g_new0 (BusOwnNameData, 1);
+
+  data->name_acquired = dex_promise_new_cancellable ();
+  data->name_lost = dex_promise_new_cancellable ();
+
+  data->acquired_cancelled_id =
+    g_signal_connect_swapped (dex_promise_get_cancellable (data->name_acquired),
+                              "cancelled",
+                              G_CALLBACK (dex_bus_name_cancelled_cb),
+                              data);
+
+  data->lost_cancelled_id =
+    g_signal_connect_swapped (dex_promise_get_cancellable (data->name_lost),
+                              "cancelled",
+                              G_CALLBACK (dex_bus_name_cancelled_cb),
+                              data);
+  data->own_name_id =
+    g_bus_own_name_on_connection (connection,
+                                  name,
+                                  flags,
+                                  dex_bus_name_acquired_cb,
+                                  dex_bus_name_lost_cb,
+                                  data,
+                                  (GDestroyNotify) dex_bus_own_name_data_free);
+
+  if (out_name_acquired_future)
+    *out_name_acquired_future = DEX_FUTURE (dex_ref (data->name_acquired));
+  if (out_name_lost_future)
+    *out_name_lost_future = DEX_FUTURE (dex_ref (data->name_lost));
+}
+
 static void
 dex_subprocess_wait_check_cb (GObject      *object,
                               GAsyncResult *result,
