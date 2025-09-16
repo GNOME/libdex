@@ -125,10 +125,16 @@ endif
 
 version_split = meson.project_version().split('.')
 version_conf = configuration_data()
+major_version = version_split[0]
+minor_version = version_split[1]
+micro_version = version_split[2]
+if micro_version[0] in ['a', 'b', 'r']
+  micro_version = '0'
+endif
 version_conf.set('VERSION', meson.project_version())
-version_conf.set('MAJOR_VERSION', version_split[0])
-version_conf.set('MINOR_VERSION', version_split[1])
-version_conf.set('MICRO_VERSION', version_split[2])
+version_conf.set('MAJOR_VERSION', major_version)
+version_conf.set('MINOR_VERSION', minor_version)
+version_conf.set('MICRO_VERSION', micro_version)
 
 configure_file(
           input: 'dex-version.h.in',

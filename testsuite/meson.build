@@ -26,6 +26,7 @@ testsuite = {
   'test-semaphore': {},
   'test-stream': {},
   'test-thread': {},
+  'test-version': {},
 }
 
 testsuite_deps = [
