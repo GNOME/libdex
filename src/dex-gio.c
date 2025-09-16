@@ -2028,3 +2028,41 @@ dex_mkdir_with_parents (const char *path,
                            state,
                            (GDestroyNotify) mkdir_with_parents_free);
 }
+
+static DexFuture *
+dex_find_program_in_path_thread (gpointer data)
+{
+  const char *program = data;
+  char *path;
+
+  if ((path = g_find_program_in_path (program)))
+    return dex_future_new_take_string (g_steal_pointer (&path));
+
+  return dex_future_new_reject (G_FILE_ERROR,
+                                g_file_error_from_errno (ENOENT),
+                                "%s", g_strerror (ENOENT));
+}
+
+/**
+ * dex_find_program_in_path:
+ * @program: the name of the executable such as "grep"
+ *
+ * Locates the first executable named program in the user’s path.
+ *
+ * This runs [func@GLib.find_program_in_path] on a dedicated thread.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   string containing the path or rejects with eror.
+ *
+ * Since: 1.1
+ */
+DexFuture *
+dex_find_program_in_path (const char *program)
+{
+  dex_return_error_if_fail (program != NULL);
+
+  return dex_thread_spawn ("[find-program-in-path]",
+                           dex_find_program_in_path_thread,
+                           g_strdup (program),
+                           g_free);
+}
