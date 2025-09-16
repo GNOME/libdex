@@ -21,6 +21,8 @@
 
 #include "config.h"
 
+#include <glib/gstdio.h>
+
 #include "dex-async-pair-private.h"
 #include "dex-future-private.h"
 #include "dex-future-set.h"
@@ -2064,5 +2066,38 @@ dex_find_program_in_path (const char *program)
   return dex_thread_spawn ("[find-program-in-path]",
                            dex_find_program_in_path_thread,
                            g_strdup (program),
+                           g_free);
+}
+
+static DexFuture *
+dex_unlink_thread (gpointer data)
+{
+  const char *path = data;
+
+  if (g_unlink (path) == -1)
+    return dex_future_new_for_errno (errno);
+
+  return dex_future_new_for_int (0);
+}
+
+/**
+ * dex_unlink:
+ * @path: the path to unlink
+ *
+ * This runs `g_unlink()` on a dedicated thread.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to an
+ *   int of 0 on success or rejects with error.
+ *
+ * Since: 1.1
+ */
+DexFuture *
+dex_unlink (const char *path)
+{
+  dex_return_error_if_fail (path != NULL);
+
+  return dex_thread_spawn ("[unlink]",
+                           dex_unlink_thread,
+                           g_strdup (path),
                            g_free);
 }
