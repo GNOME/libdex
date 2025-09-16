@@ -176,6 +176,9 @@ DexFuture *dex_file_move                               (GFile                   
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_async_initable_init                     (GAsyncInitable           *initable,
                                                         int                       priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_1
+DexFuture *dex_mkdir_with_parents                      (const char               *path,
+                                                        int                       mode) G_GNUC_WARN_UNUSED_RESULT;
 
 #ifdef G_OS_UNIX
 DEX_AVAILABLE_IN_ALL

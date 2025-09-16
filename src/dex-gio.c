@@ -27,6 +27,7 @@
 #include "dex-gio.h"
 #include "dex-promise.h"
 #include "dex-thread-pool-scheduler.h"
+#include "dex-thread.h"
 
 typedef struct _DexFileInfoList DexFileInfoList;
 
@@ -1968,4 +1969,62 @@ dex_file_move (GFile                 *source,
                      state);
 
   return DEX_FUTURE (promise);
+}
+
+typedef struct _MkdirWithParents
+{
+  char *path;
+  int mode;
+} MkdirWithParents;
+
+static void
+mkdir_with_parents_free (MkdirWithParents *state)
+{
+  g_free (state->path);
+  g_free (state);
+}
+
+static DexFuture *
+dex_mkdir_with_parents_thread (gpointer data)
+{
+  MkdirWithParents *state = data;
+
+  if (g_mkdir_with_parents (state->path, state->mode) == -1)
+    return dex_future_new_for_errno (errno);
+  else
+    return dex_future_new_for_int (0);
+}
+
+/**
+ * dex_mkdir_with_parents:
+ * @path: a path to a directory to create
+ * @mode: the mode for the directory such as `0750`
+ *
+ * Similar to `g_mkdir_with_parents()` but runs on a dedicated thread.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to 0
+ *   if successful, otherwise rejects with error.
+ *
+ * Since: 1.1
+ */
+DexFuture *
+dex_mkdir_with_parents (const char *path,
+                        int         mode)
+{
+  MkdirWithParents *state;
+
+  dex_return_error_if_fail (path != NULL);
+
+  /* NOTE: It may be wise in the future to do this with io_uring
+   *       for the cases where we can to avoid a thread.
+   */
+
+  state = g_new0 (MkdirWithParents, 1);
+  state->path = g_strdup (path);
+  state->mode = mode;
+
+  return dex_thread_spawn ("[mkdir-with-parents]",
+                           dex_mkdir_with_parents_thread,
+                           state,
+                           (GDestroyNotify) mkdir_with_parents_free);
 }
