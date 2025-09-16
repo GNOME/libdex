@@ -56,6 +56,13 @@ $ wine $builddir/examples/tcp-echo.exe
  * Windows
  * Illumos
 
+## Library Versioning
+
+Libdex follows a somewhat modern library scheme of GNOME libraries.
+Before libdex 1.0, an odd semantic minor number indicated unstable releases.
+From 1.0 on, the minor number does not have such meaning.
+The micro number now indicates alpha, beta, and rc for release-candidates.
+
 ## More Information
 
 You can read about why this is being created and what led to it over the
