@@ -38,6 +38,7 @@
 # include "dex-future.h"
 # include "dex-future-list-model.h"
 # include "dex-future-set.h"
+# include "dex-gdbus.h"
 # include "dex-gio.h"
 # include "dex-init.h"
 # include "dex-main-scheduler.h"
