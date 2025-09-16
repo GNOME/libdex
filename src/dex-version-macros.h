@@ -119,3 +119,14 @@
 #else
 # define DEX_AVAILABLE_IN_1_1 _DEX_EXTERN
 #endif
+
+G_BEGIN_DECLS
+
+DEX_AVAILABLE_IN_1_1
+int dex_get_major_version (void);
+DEX_AVAILABLE_IN_1_1
+int dex_get_minor_version (void);
+DEX_AVAILABLE_IN_1_1
+int dex_get_micro_version (void);
+
+G_END_DECLS
