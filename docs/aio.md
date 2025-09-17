@@ -55,11 +55,7 @@ The [func@Dex.socket_listener_accept], [func@Dex.socket_client_connect], and [fu
 
 # D-Bus
 
-Light integration exists for D-Bus to perform asynchronous method calls.
-
-See [func@Dex.dbus_connection_call], [func@Dex.dbus_connection_call_with_unix_fd_list], [func@Dex.dbus_connection_send_message_with_reply] and [func@Dex.dbus_connection_close].
-
-We expect additional support for D-Bus to come at a later time.
+[See the page about D-Bus](dbus.html)
 
 # Subprocesses
 

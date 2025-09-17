@@ -49,6 +49,7 @@ content_files = [
   "schedulers.md",
   "threads.md",
   "channels.md",
+  "dbus.md",
   "debugging.md",
 ]
 
