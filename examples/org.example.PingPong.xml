@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<node name="/" xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
+  <!--
+      org.example.PingPong:
+  -->
+  <interface name="org.example.PingPong">
+
+    <method name="Ping">
+      <arg type="s" name="name" direction="in"/>
+      <arg type="s" name="pong" direction="out"/>
+    </method>
+
+    <signal name="Reloading">
+      <arg type="b" name="active"/>
+      <arg type="a{sv}" name="options"/>
+    </signal>
+
+    <property name="Version" type="s" access="read"/>
+
+  </interface>
+</node>
