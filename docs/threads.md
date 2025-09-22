@@ -11,7 +11,7 @@ When the thread completes the resulting future will either resolve or reject.
 ```c
 typedef DexFuture *(*DexThreadFunc) (gpointer user_data);
 
-DexFuture *future = dex_thread_spawn ("[my-thredad]", thread_func, thread_data,
+DexFuture *future = dex_thread_spawn ("[my-thread]", thread_func, thread_data,
                                       (GDestroyNotify)thread_data_free);
 ```
 

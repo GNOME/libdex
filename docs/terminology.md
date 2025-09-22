@@ -119,7 +119,7 @@ There are multiple types of future sets based on the type of problem you want to
 [ctor@Dex.Future.all] can be used to resolve when all dependent futures have resolved, otherwise it will reject with error once they are complete.
 If you want to reject as soon as the first item rejects, [ctor@Dex.Future.all_race] will get you that behavior.
 
-Other useful [class@Dex.FutureSet] construtors include [ctor@Dex.Future.any] and [ctor@Dex.Future.first].
+Other useful [class@Dex.FutureSet] constructors include [ctor@Dex.Future.any] and [ctor@Dex.Future.first].
 
 ```c
 /* Either timeout or propagate result of cache/db query */
@@ -155,7 +155,7 @@ In this case, the timeout will reject after a time period has passed.
 
 A [class@Dex.Timeout] will only ever reject.
 
-This future is implemented ontop of [struct@GLib.MainContext] via API like `g_timeout_add()`.
+This future is implemented on top of [struct@GLib.MainContext] via API like `g_timeout_add()`.
 
 ```c
 DexFuture *future = dex_timeout_new_seconds (60);
@@ -192,7 +192,7 @@ DexFuture *future = dex_scheduler_spawn (NULL, 0, my_fiber, state, state_free);
 
 # Cancellation Propagation
 
-Futures within your application will enevitably depend on other futures.
+Futures within your application will inevitably depend on other futures.
 
 If all of the futures depending on a future have been released, the dependent future will have the opportunity to cancel itself.
 This allows for cascading cancellation so that unnecessary work may be elided.
@@ -204,7 +204,7 @@ You can use [method@Dex.Future.disown] to ensure that a future will continue to 
 Libdex requires much processing that needs to be done on the main loop of a thread.
 This is generally handled by a [class@Dex.Scheduler].
 
-The main thread of an application has the default sheduler which is a [class@Dex.MainScheduler].
+The main thread of an application has the default scheduler which is a [class@Dex.MainScheduler].
 
 Libdex also has a managed thread pool of schedulers via the [class@Dex.ThreadPoolScheduler].
 
