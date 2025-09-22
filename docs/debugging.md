@@ -5,7 +5,7 @@ Title: Debugging
 Many if not most APIs in Libdex will transfer ownership as part of the constructor or methods.
 That typically plays nicely with chaining futures together when writing code in C.
 
-Be aware that if you are doing something with a future like [method@Dex.Future.await] that ownership of the future is transfered to the method.
+Be aware that if you are doing something with a future like [method@Dex.Future.await] that ownership of the future is transferred to the method.
 The same goes for methods like [ctor@Dex.Future.all].
 
 # Performance

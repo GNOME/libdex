@@ -55,7 +55,7 @@ The [func@Dex.socket_listener_accept], [func@Dex.socket_client_connect], and [fu
 
 # D-Bus
 
-Light integration exists for D-Bus to perform asychronous method calls.
+Light integration exists for D-Bus to perform asynchronous method calls.
 
 See [func@Dex.dbus_connection_call], [func@Dex.dbus_connection_call_with_unix_fd_list], [func@Dex.dbus_connection_send_message_with_reply] and [func@Dex.dbus_connection_close].
 
@@ -67,7 +67,7 @@ You can await completion of a subprocess using [func@Dex.subprocess_wait_check].
 
 # Asynchronous IO with File Descriptors
 
-[class@Gio.IOStream] and related APIs provides much opertunity for streams to be used asynchronously.
+[class@Gio.IOStream] and related APIs provides much opportunity for streams to be used asynchronously.
 There may be cases where you want similar behavior with traditional file-descriptors.
 
 Libdex provides a set of AIO-like functions for traditional file-descriptors which may be backed with more efficient mechanisms.

@@ -54,7 +54,7 @@ It is designed to feel familiar to those that have used [class@Gio.Task].
 Then call [method@Dex.AsyncResult.await] providing the future that will resolve or reject with error.
 One completed, the users provided `callback` will be executed within the active scheduler at time of creation.
 
-From your finish function, call the appropriate propgate API such as [method@Dex.AsyncResult.propagate_int].
+From your finish function, call the appropriate propagate API such as [method@Dex.AsyncResult.propagate_int].
 
 ```c
 void

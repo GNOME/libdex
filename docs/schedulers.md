@@ -34,7 +34,7 @@ Doing so also helps improve cacheline effectiveness.
 
 # Fibers
 
-Fibers are a type of stackfull co-routine.
+Fibers are a type of stackful co-routine.
 A new stack is created and a trampoline is performed onto the stack from the current thread.
 
 Use [method@Scheduler.spawn] to create a new fiber.
