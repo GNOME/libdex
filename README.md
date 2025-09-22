@@ -72,6 +72,15 @@ past two decades of contributing to GNOME and GTK.
  * https://blogs.gnome.org/chergert/2022/12/13/threading-fibers/
  * https://blogs.gnome.org/chergert/2022/12/16/dex-examples-and-windows-support/
 
+## Projects using Libdex
+
+These projects may serve as inspiration for how to use Libdex.
+
+ * https://gitlab.gnome.org/GNOME/foundry
+ * https://gitlab.gnome.org/GNOME/sysprof
+ * https://gitlab.gnome.org/GNOME/manuals
+ * https://gitlab.gnome.org/GNOME/gnome-builder
+
 ## Implementation Notes
 
 While Dex is using GObject and GIO, it implements its own fundamental type
