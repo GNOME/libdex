@@ -1,4 +1,4 @@
-Title: Schedulers & FIbers
+Title: Schedulers & Fibers
 
 # Schedulers
 
