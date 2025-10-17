@@ -191,12 +191,12 @@ dex_async_result_set_static_name (DexAsyncResult *async_result,
 
 /**
  * dex_async_result_dup_future:
- * @async_result: a #DexAsyncResult
+ * @async_result: a [class@Dex.AsyncResult]
  *
- * Gets the future for the #DexAsyncResult, or %NULL if a future
+ * Gets the future for the [class@Dex.AsyncResult], or %NULL if a future
  * is not available.
  *
- * Returns: (transfer full) (nullable): a #DexFuture or %NULL
+ * Returns: (transfer full) (nullable): a [class@Dex.Future] or %NULL
  */
 DexFuture *
 dex_async_result_dup_future (DexAsyncResult *async_result)
@@ -393,11 +393,11 @@ dex_async_result_await_cb (DexFuture *future,
 
 /**
  * dex_async_result_await:
- * @async_result: a #GAsyncResult
- * @future: (transfer full): a #DexFuture
+ * @async_result: a [iface@Gio.AsyncResult]
+ * @future: (transfer full): a [class@Dex.Future]
  *
  * Tracks the result of @future and uses the value to complete @async_result,
- * eventually calling the registered #GAsyncReadyCallback.
+ * eventually calling the registered [callback@Gio.AsyncReadyCallback].
  */
 void
 dex_async_result_await (DexAsyncResult *async_result,
