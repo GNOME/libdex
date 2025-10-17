@@ -337,37 +337,18 @@ dex_bus_get (GBusType bus_type)
 typedef struct
 {
   DexPromise *name_acquired;
-  gulong acquired_cancelled_id;
+  gulong name_acquired_cancelled_id;
   DexPromise *name_lost;
-  gulong lost_cancelled_id;
+  gulong name_lost_cancelled_id;
   guint own_name_id;
 } BusOwnNameData;
 
 static void
 dex_bus_own_name_data_free (BusOwnNameData *data)
 {
-
-  g_signal_handler_disconnect (dex_promise_get_cancellable (data->name_acquired),
-                               data->acquired_cancelled_id);
-  g_signal_handler_disconnect (dex_promise_get_cancellable (data->name_lost),
-                               data->lost_cancelled_id);
-
-  if (dex_future_is_pending (DEX_FUTURE (data->name_acquired)))
-    {
-      dex_promise_reject (data->name_acquired,
-                          g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
-                                               "Failed to acquire dbus name"));
-    }
-
-  if (dex_future_is_pending (DEX_FUTURE (data->name_lost)))
-    {
-      dex_promise_reject (data->name_lost,
-                          g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
-                                               "Lost dbus name"));
-    }
-
   g_clear_pointer (&data->name_acquired, dex_unref);
   g_clear_pointer (&data->name_lost, dex_unref);
+
   free (data);
 }
 
@@ -377,6 +358,10 @@ dex_bus_name_acquired_cb (GDBusConnection *connection,
                           gpointer         user_data)
 {
   BusOwnNameData *data = user_data;
+
+  g_cancellable_disconnect (dex_promise_get_cancellable (data->name_acquired),
+                            data->name_acquired_cancelled_id);
+  data->name_acquired_cancelled_id = 0;
 
   dex_promise_resolve_boolean (data->name_acquired, TRUE);
 }
@@ -388,6 +373,25 @@ dex_bus_name_lost_cb (GDBusConnection *connection,
 {
   BusOwnNameData *data = user_data;
 
+  if (dex_future_is_pending (DEX_FUTURE (data->name_acquired)))
+    {
+      g_cancellable_disconnect (dex_promise_get_cancellable (data->name_acquired),
+                                data->name_acquired_cancelled_id);
+      data->name_acquired_cancelled_id = 0;
+
+      dex_promise_reject (data->name_acquired,
+                          g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+                                               "Failed to acquire dbus name"));
+    }
+
+  g_cancellable_disconnect (dex_promise_get_cancellable (data->name_lost),
+                            data->name_lost_cancelled_id);
+  data->name_lost_cancelled_id = 0;
+
+  dex_promise_reject (data->name_lost,
+                      g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+                                           "Lost dbus name"));
+
   g_clear_handle_id (&data->own_name_id, g_bus_unown_name);
 }
 
@@ -396,6 +400,37 @@ dex_bus_name_cancelled_cb (GCancellable *cancellable,
                            gpointer      user_data)
 {
   BusOwnNameData *data = user_data;
+
+  /* Disconnect the other cancellable. This way, neither will signal anymore, and the remaining one
+   * will get cleaned up when the respective future gets cleaned up. */
+  if (dex_promise_get_cancellable (data->name_acquired) != cancellable &&
+      data->name_acquired_cancelled_id)
+    {
+      g_cancellable_disconnect (dex_promise_get_cancellable (data->name_acquired),
+                                data->name_acquired_cancelled_id);
+      data->name_acquired_cancelled_id = 0;
+    }
+  else if (dex_promise_get_cancellable (data->name_lost) != cancellable &&
+           data->name_lost_cancelled_id)
+    {
+      g_cancellable_disconnect (dex_promise_get_cancellable (data->name_lost),
+                                data->name_lost_cancelled_id);
+      data->name_lost_cancelled_id = 0;
+    }
+
+  if (dex_future_is_pending (DEX_FUTURE (data->name_acquired)))
+    {
+      dex_promise_reject (data->name_acquired,
+                          g_error_new_literal (G_IO_ERROR, G_IO_ERROR_CANCELLED,
+                                               "Cancelled"));
+    }
+
+  if (dex_future_is_pending (DEX_FUTURE (data->name_lost)))
+    {
+      dex_promise_reject (data->name_lost,
+                          g_error_new_literal (G_IO_ERROR, G_IO_ERROR_CANCELLED,
+                                               "Cancelled"));
+    }
 
   g_clear_handle_id (&data->own_name_id, g_bus_unown_name);
 }
@@ -433,17 +468,16 @@ dex_bus_own_name_on_connection (GDBusConnection     *connection,
   data->name_acquired = dex_promise_new_cancellable ();
   data->name_lost = dex_promise_new_cancellable ();
 
-  data->acquired_cancelled_id =
-    g_signal_connect_swapped (dex_promise_get_cancellable (data->name_acquired),
-                              "cancelled",
-                              G_CALLBACK (dex_bus_name_cancelled_cb),
-                              data);
+  data->name_acquired_cancelled_id =
+    g_cancellable_connect (dex_promise_get_cancellable (data->name_acquired),
+                           G_CALLBACK (dex_bus_name_cancelled_cb),
+                           data, NULL);
 
-  data->lost_cancelled_id =
-    g_signal_connect_swapped (dex_promise_get_cancellable (data->name_lost),
-                              "cancelled",
-                              G_CALLBACK (dex_bus_name_cancelled_cb),
-                              data);
+  data->name_lost_cancelled_id =
+    g_cancellable_connect (dex_promise_get_cancellable (data->name_lost),
+                           G_CALLBACK (dex_bus_name_cancelled_cb),
+                           data, NULL);
+
   data->own_name_id =
     g_bus_own_name_on_connection (connection,
                                   name,
