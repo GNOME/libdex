@@ -215,14 +215,15 @@ dex_async_pair_new (gpointer                instance,
 
 /**
  * dex_async_pair_get_cancellable:
- * @async_pair: a #DexAsyncPair
+ * @async_pair: a [class@Dex.AsyncPair]
  *
  * Gets the cancellable for the async pair.
  *
- * If the DexAsyncPair is discarded by its callers, then it will automatically
- * be cancelled using g_cancellable_cancel().
+ * If the [class@Dex.AsyncPair] is discarded by its callers, then it will
+ * automatically be cancelled using [method@Gio.Cancellable.cancel].
  *
- * Returns: (transfer none): a #GCancellable
+ * Returns: (transfer none): the [class@Gio.Cancellable] associated with the
+ *   @async_pair
  */
 GCancellable *
 dex_async_pair_get_cancellable (DexAsyncPair *async_pair)
@@ -234,13 +235,13 @@ dex_async_pair_get_cancellable (DexAsyncPair *async_pair)
 
 /**
  * dex_async_pair_return_object:
- * @async_pair: a #DexAsyncPair
- * @instance: (type GObject) (transfer full): a #GObject
+ * @async_pair: a [class@Dex.AsyncPair]
+ * @instance: (type GObject) (transfer full): a [class@GObject.Object]
  *
  * Resolves @async_pair with a value of @instance.
  *
  * This function is meant to be used when manually wrapping
- * various #GAsyncReadyCallback based API.
+ * various [callback@Gio.AsyncReadyCallback] based API.
  *
  * The ownership of @instance is taken when calling this function.
  */
@@ -261,13 +262,13 @@ dex_async_pair_return_object (DexAsyncPair *async_pair,
 
 /**
  * dex_async_pair_return_error:
- * @async_pair: a #DexAsyncPair
- * @error: (transfer full): a #GError
+ * @async_pair: a [class@Dex.AsyncPair]
+ * @error: (transfer full): a [struct@GLib.Error]
  *
  * Rejects @async_pair with @error.
  *
  * This function is meant to be used when manually wrapping
- * various #GAsyncReadyCallback based API.
+ * various [callback@Gio.AsyncReadyCallback] based API.
  *
  * The ownership of @error is taken when calling this function.
  */
@@ -310,7 +311,7 @@ dex_async_pair_return_boolean (DexAsyncPair *async_pair,
 
 /**
  * dex_async_pair_return_string:
- * @async_pair: a #DexAsyncPair
+ * @async_pair: a [class@Dex.AsyncPair]
  * @value: (transfer full) (nullable): a string or %NULL
  *
  * Resolves @async_pair with @value.
@@ -331,8 +332,8 @@ dex_async_pair_return_string (DexAsyncPair *async_pair,
 
 /**
  * dex_async_pair_return_boxed: (skip)
- * @async_pair: a #DexAsyncPair
- * @boxed_type: a #GType of %G_TYPE_BOXED
+ * @async_pair: a [class@Dex.AsyncPair]
+ * @boxed_type: a `GType` of %G_TYPE_BOXED
  * @instance: (transfer full): the boxed value to store
  *
  * Resolves @async_pair with @instance.
@@ -355,8 +356,8 @@ dex_async_pair_return_boxed (DexAsyncPair *async_pair,
 
 /**
  * dex_async_pair_return_variant:
- * @async_pair: a #DexAsyncPair
- * @variant: (transfer full): the variant to resolve with
+ * @async_pair: a [class@Dex.AsyncPair]
+ * @variant: (transfer full): the [struct@GLib.Variant] to resolve with
  *
  * Resolves @async_pair with @variant.
  */
@@ -376,7 +377,7 @@ dex_async_pair_return_variant (DexAsyncPair *async_pair,
 
 /**
  * dex_async_pair_set_cancel_on_discard:
- * @async_pair: a #DexAsyncPair
+ * @async_pair: a [class@Dex.AsyncPair]
  * @cancel_on_discard: if the operation should cancel when the future is discarded
  *
  * Sets whether or not the future should cancel the async operation when
