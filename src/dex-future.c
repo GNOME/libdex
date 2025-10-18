@@ -36,7 +36,7 @@
 /**
  * DexFuture:
  *
- * #DexFuture is the base class representing a future which may resolve with
+ * `DexFuture` is the base class representing a future which may resolve with
  * a value or reject with error at some point in the future.
  *
  * It is the basis for libdex's concurrency and parallelism model.
@@ -45,9 +45,9 @@
  * robust processing chains up front which will complete or fail as futures
  * resolve or reject.
  *
- * When running on a #DexFiber, you may use dex_await() and similar functions
- * to suspend the current thread and return upon completion of the dependent
- * future.
+ * When running on a [class@Dex.Fiber], you may use [method@Dex.Future.await]
+ * and similar functions to suspend the current thread and return upon
+ * completion of the dependent future.
  */
 
 static void dex_future_propagate (DexFuture *future,
@@ -229,10 +229,10 @@ dex_future_get_status (DexFuture *future)
 
 /**
  * dex_future_is_resolved:
- * @future: a #DexFuture
+ * @future: a [class@Dex.Future]
  *
  * This is a convenience function equivalent to calling
- * dex_future_get_status() and checking for %DEX_FUTURE_STATUS_RESOLVED.
+ * [method@Dex.Future.get_status] and checking for %DEX_FUTURE_STATUS_RESOLVED.
  *
  * Returns: %TRUE if the future has successfully resolved with a value;
  *   otherwise %FALSE
@@ -253,10 +253,10 @@ dex_future_is_resolved (DexFuture *future)
 
 /**
  * dex_future_is_rejected:
- * @future: a #DexFuture
+ * @future: a [class@Dex.Future]
  *
  * This is a convenience function equivalent to calling
- * dex_future_get_status() and checking for %DEX_FUTURE_STATUS_REJECTED.
+ * [method@Dex.Future.get_status] and checking for %DEX_FUTURE_STATUS_REJECTED.
  *
  * Returns: %TRUE if the future was rejected with an error; otherwise %FALSE
  */
@@ -276,10 +276,10 @@ dex_future_is_rejected (DexFuture *future)
 
 /**
  * dex_future_is_pending:
- * @future: a #DexFuture
+ * @future: a [class@Dex.Future]
  *
  * This is a convenience function equivalent to calling
- * dex_future_get_status() and checking for %DEX_FUTURE_STATUS_PENDING.
+ * [method@Dex.Future.get_status] and checking for %DEX_FUTURE_STATUS_PENDING.
  *
  * Returns: %TRUE if the future is still pending; otherwise %FALSE
  */
@@ -461,7 +461,7 @@ dex_future_discard (DexFuture *future,
 
 /**
  * dex_future_then: (constructor)
- * @future: (transfer full): a #DexFuture
+ * @future: (transfer full): a [class@Dex.Future]
  * @callback: (scope notified): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
@@ -470,7 +470,7 @@ dex_future_discard (DexFuture *future,
  *
  * If @future rejects, then @callback will not be called.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_then) (DexFuture         *future,
@@ -491,18 +491,18 @@ DexFuture *
 
 /**
  * dex_future_then_loop: (constructor)
- * @future: (transfer full): a #DexFuture
+ * @future: (transfer full): a [class@Dex.Future]
  * @callback: (scope notified) (closure callback_data) (destroy callback_data_destroy): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
  * Asynchronously calls @callback when @future resolves.
  *
- * This is similar to dex_future_then() except that it will call
- * @callback multiple times as each returned #DexFuture resolves or
+ * This is similar to [ctor@Dex.Future.then] except that it will call
+ * @callback multiple times as each returned [class@Dex.Future] resolves or
  * rejects, allowing for infinite loops.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_then_loop) (DexFuture         *future,
@@ -523,18 +523,18 @@ DexFuture *
 
 /**
  * dex_future_catch_loop: (constructor)
- * @future: (transfer full): a #DexFuture
+ * @future: (transfer full): a [class@Dex.Future]
  * @callback: (scope notified) (closure callback_data) (destroy callback_data_destroy): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
  * Asynchronously calls @callback when @future rejects.
  *
- * This is similar to dex_future_catch() except that it will call
- * @callback multiple times as each returned #DexFuture rejects,
+ * This is similar to [ctor@Dex.Future.catch] except that it will call
+ * @callback multiple times as each returned [class@Dex.Future] rejects,
  * allowing for infinite loops.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_catch_loop) (DexFuture         *future,
@@ -555,18 +555,18 @@ DexFuture *
 
 /**
  * dex_future_finally_loop: (constructor)
- * @future: (transfer full): a #DexFuture
+ * @future: (transfer full): a [class@Dex.Future]
  * @callback: (scope notified) (closure callback_data) (destroy callback_data_destroy): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
  * Asynchronously calls @callback when @future rejects or resolves.
  *
- * This is similar to dex_future_finally() except that it will call
- * @callback multiple times as each returned #DexFuture rejects or resolves,
+ * This is similar to [ctor@Dex.Future.finally] except that it will call
+ * @callback multiple times as each returned [class@Dex.Future] rejects or resolves,
  * allowing for infinite loops.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_finally_loop) (DexFuture         *future,
@@ -587,7 +587,7 @@ DexFuture *
 
 /**
  * dex_future_catch: (constructor)
- * @future: (transfer full): a #DexFuture
+ * @future: (transfer full): a [class@Dex.Future]
  * @callback: (scope notified) (closure callback_data) (destroy callback_data_destroy): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
@@ -596,7 +596,7 @@ DexFuture *
  *
  * If @future resolves, then @callback will not be called.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_catch) (DexFuture         *future,
@@ -617,14 +617,14 @@ DexFuture *
 
 /**
  * dex_future_finally: (constructor)
- * @future: (transfer full): a #DexFuture
+ * @future: (transfer full): a [class@Dex.Future]
  * @callback: (scope notified) (closure callback_data) (destroy callback_data_destroy): a callback to execute
  * @callback_data: closure data for @callback
  * @callback_data_destroy: destroy notify for @callback_data
  *
  * Calls @callback when @future resolves or rejects.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_finally) (DexFuture         *future,
@@ -645,17 +645,17 @@ DexFuture *
 
 /**
  * dex_future_all: (constructor)
- * @first_future: (transfer full): a #DexFuture
+ * @first_future: (transfer full): a [class@Dex.Future]
  * @...: a %NULL terminated list of futures
  *
- * Creates a new #DexFuture that will resolve or reject when all futures
+ * Creates a new [class@Dex.Future] that will resolve or reject when all futures
  * either resolve or reject.
  *
- * This method will return a #DexFutureSet which provides API to get
+ * This method will return a [class@Dex.FutureSet] which provides API to get
  * the exact values of the dependent futures. The value of the future
  * if resolved will be a %G_TYPE_BOOLEAN of %TRUE.
  *
- * Returns: (transfer full) (type DexFuture): a #DexFutureSet
+ * Returns: (transfer full) (type DexFuture): a [class@Dex.FutureSet]
  */
 DexFuture *
 (dex_future_all) (DexFuture *first_future,
@@ -673,15 +673,15 @@ DexFuture *
 
 /**
  * dex_future_any: (constructor)
- * @first_future: (transfer full): a #DexFuture
+ * @first_future: (transfer full): a [class@Dex.Future]
  * @...: a %NULL terminated list of futures
  *
- * Creates a new #DexFuture that will resolve when any dependent future
+ * Creates a new [class@Dex.Future] that will resolve when any dependent future
  * resolves, providing the same result as the resolved future.
  *
  * If no futures resolve, then the future will reject.
  *
- * Returns: (transfer full) (type DexFuture): a #DexFutureSet
+ * Returns: (transfer full) (type DexFuture): a [class@Dex.FutureSet]
  */
 DexFuture *
 (dex_future_any) (DexFuture *first_future,
@@ -701,20 +701,21 @@ DexFuture *
 
 /**
  * dex_future_all_race: (constructor)
- * @first_future: (transfer full): a #DexFuture
+ * @first_future: (transfer full): a [class@Dex.Future]
  * @...: a %NULL terminated list of futures
  *
- * Creates a new #DexFuture that will resolve when all futures resolve
+ * Creates a new [class@Dex.Future] that will resolve when all futures resolve
  * or reject as soon as the first future rejects.
  *
- * This method will return a #DexFutureSet which provides API to get
+ * This method will return a [class@Dex.FutureSet] which provides API to get
  * the exact values of the dependent futures. The value of the future
  * will be propagated from the resolved or rejected future.
  *
  * Since the futures race to complete, some futures retrieved with the
- * dex_future_set_get_future() API will still be %DEX_FUTURE_STATUS_PENDING.
+ * [method@Dex.FutureSet.get_future_at] API will still be
+ * %DEX_FUTURE_STATUS_PENDING.
  *
- * Returns: (transfer full) (type DexFuture): a #DexFutureSet
+ * Returns: (transfer full) (type DexFuture): a [class@Dex.FutureSet]
  */
 DexFuture *
 (dex_future_all_race) (DexFuture *first_future,
@@ -734,13 +735,13 @@ DexFuture *
 
 /**
  * dex_future_first: (constructor)
- * @first_future: (transfer full): a #DexFuture
+ * @first_future: (transfer full): a [class@Dex.Future]
  * @...: a %NULL terminated list of futures
  *
- * Creates a new #DexFuture that resolves or rejects as soon as the
+ * Creates a new [class@Dex.Future] that resolves or rejects as soon as the
  * first dependent future resolves or rejects, sharing the same result.
  *
- * Returns: (transfer full) (type DexFuture): a #DexFutureSet
+ * Returns: (transfer full) (type DexFuture): a [class@Dex.FutureSet]
  */
 DexFuture *
 (dex_future_first) (DexFuture *first_future,
@@ -764,10 +765,10 @@ DexFuture *
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
- * Creates a new #DexFuture that resolves or rejects as soon as the
+ * Creates a new [class@Dex.Future] that resolves or rejects as soon as the
  * first dependent future resolves or rejects, sharing the same result.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_firstv) (DexFuture * const *futures,
@@ -784,11 +785,11 @@ DexFuture *
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
- * Creates a new #DexFuture that resolves when the first future resolves.
+ * Creates a new [class@Dex.Future] that resolves when the first future resolves.
  *
- * If all futures reject, then the #DexFuture returned will also reject.
+ * If all futures reject, then the [class@Dex.Future] returned will also reject.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_anyv) (DexFuture * const *futures,
@@ -804,11 +805,11 @@ DexFuture *
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
- * Creates a new #DexFuture that resolves when all futures resolve.
+ * Creates a new [class@Dex.Future] that resolves when all futures resolve.
  *
- * If any future rejects, the resulting #DexFuture also rejects immediately.
+ * If any future rejects, the resulting [class@Dex.Future] also rejects immediately.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_all_racev) (DexFuture * const *futures,
@@ -824,12 +825,12 @@ DexFuture *
  * @futures: (array length=n_futures) (transfer none): an array of futures
  * @n_futures: the number of futures
  *
- * Creates a new #DexFuture that resolves when all futures resolve.
+ * Creates a new [class@Dex.Future] that resolves when all futures resolve.
  *
- * The resulting #DexFuture will not resolve or reject until all futures
+ * The resulting [class@Dex.Future] will not resolve or reject until all futures
  * have either resolved or rejected.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_allv) (DexFuture * const *futures,
@@ -840,13 +841,13 @@ DexFuture *
 
 /**
  * dex_future_set_static_name: (skip)
- * @future: a #DexFuture
+ * @future: a [class@Dex.Future]
  * @name: the name of the future
  *
  * Sets the name of the future with a static/internal string.
  *
  * @name will not be copied, so it must be static/internal which can be done
- * either by using string literals or by using g_string_intern().
+ * either by using string literals or by using [func@GLib.intern_string].
  */
 void
 dex_future_set_static_name (DexFuture  *future,
@@ -875,11 +876,11 @@ dex_future_get_name (DexFuture *future)
 
 /**
  * dex_future_new_for_value:
- * @value: the resolved #GValue
+ * @value: the resolved [struct@GObject.Value]
  *
- * Creates a read-only #DexFuture that has resolved.
+ * Creates a read-only [class@Dex.Future] that has resolved.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_value) (const GValue *value)
@@ -891,11 +892,11 @@ DexFuture *
 
 /**
  * dex_future_new_for_error: (constructor)
- * @error: (transfer full): a #GError
+ * @error: (transfer full): a [struct@GLib.Error]
  *
- * Creates a read-only #DexFuture that has rejected.
+ * Creates a read-only [class@Dex.Future] that has rejected.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_error) (GError *error)
@@ -909,9 +910,9 @@ DexFuture *
  * dex_future_new_for_boolean: (constructor)
  * @v_bool: the resolved value for the future
  *
- * Creates a new #DexFuture and resolves it with @v_bool.
+ * Creates a new [class@Dex.Future] and resolves it with @v_bool.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_boolean) (gboolean v_bool)
@@ -942,7 +943,7 @@ DexFuture *
  *
  * This function takes ownership of @fd.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  *
  * Since: 0.10
  */
@@ -957,9 +958,9 @@ DexFuture *
  * dex_future_new_for_int: (constructor)
  * @v_int: the resolved value for the future
  *
- * Creates a new #DexFuture and resolves it with @v_int.
+ * Creates a new [class@Dex.Future] and resolves it with @v_int.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_int) (int v_int)
@@ -979,9 +980,9 @@ DexFuture *
  * dex_future_new_for_int64: (constructor)
  * @v_int64: the resolved value for the future
  *
- * Creates a new #DexFuture and resolves it with @v_int64.
+ * Creates a new [class@Dex.Future] and resolves it with @v_int64.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_int64) (gint64 v_int64)
@@ -1001,9 +1002,9 @@ DexFuture *
  * dex_future_new_for_uint64: (constructor)
  * @v_uint64: the resolved value for the future
  *
- * Creates a new #DexFuture and resolves it with @v_uint64.
+ * Creates a new [class@Dex.Future] and resolves it with @v_uint64.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_uint64) (guint64 v_uint64)
@@ -1023,9 +1024,9 @@ DexFuture *
  * dex_future_new_for_float: (constructor)
  * @v_float: the resolved value for the future
  *
- * Creates a new #DexFuture and resolves it with @v_float.
+ * Creates a new [class@Dex.Future] and resolves it with @v_float.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_float) (gfloat v_float)
@@ -1045,9 +1046,9 @@ DexFuture *
  * dex_future_new_for_double: (constructor)
  * @v_double: the resolved value for the future
  *
- * Creates a new #DexFuture and resolves it with @v_double.
+ * Creates a new [class@Dex.Future] and resolves it with @v_double.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_double) (gdouble v_double)
@@ -1067,9 +1068,9 @@ DexFuture *
  * dex_future_new_for_uint: (constructor)
  * @v_uint: the resolved value for the future
  *
- * Creates a new #DexFuture and resolves it with @v_uint.
+ * Creates a new [class@Dex.Future] and resolves it with @v_uint.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_uint) (guint v_uint)
@@ -1089,9 +1090,9 @@ DexFuture *
  * dex_future_new_for_string: (constructor)
  * @string: the resolved value for the future
  *
- * Creates a new #DexFuture and resolves it with @string.
+ * Creates a new [class@Dex.Future] and resolves it with @string.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_string) (const char *string)
@@ -1111,9 +1112,9 @@ DexFuture *
  * dex_future_new_take_string: (constructor)
  * @string: (transfer full): the resolved value for the future
  *
- * Creates a new #DexFuture and resolves it with @string.
+ * Creates a new [class@Dex.Future] and resolves it with @string.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_take_string) (char *string)
@@ -1134,9 +1135,9 @@ DexFuture *
  * @boxed_type: the GBoxed-based type
  * @value: (transfer full): the value for the boxed type
  *
- * Creates a new #DexFuture that is resolved with @value.
+ * Creates a new [class@Dex.Future] that is resolved with @value.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_take_boxed) (GType    boxed_type,
@@ -1159,9 +1160,9 @@ DexFuture *
  * dex_future_new_take_variant: (constructor) (skip)
  * @v_variant: (transfer full): the variant to take ownership of
  *
- * Creates a new #DexFuture that is resolved with @v_variant.
+ * Creates a new [class@Dex.Future] that is resolved with @v_variant.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_take_variant) (GVariant *v_variant)
@@ -1181,9 +1182,9 @@ DexFuture *
  * dex_future_new_for_pointer: (constructor)
  * @pointer: the resolved future value as a pointer
  *
- * Creates a new #DexFuture that is resolved with @pointer as a %G_TYPE_POINTER.
+ * Creates a new [class@Dex.Future] that is resolved with @pointer as a %G_TYPE_POINTER.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_pointer) (gpointer pointer)
@@ -1203,9 +1204,9 @@ DexFuture *
  * dex_future_new_for_object: (constructor)
  * @value: (type GObject): the value
  *
- * Creates a new #DexFuture that is resolved with @value.
+ * Creates a new [class@Dex.Future] that is resolved with @value.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_object) (gpointer value)
@@ -1227,9 +1228,9 @@ DexFuture *
  * dex_future_new_take_object: (constructor)
  * @value: (transfer full) (type GObject) (nullable): the value
  *
- * Creates a new #DexFuture that is resolved with @value.
+ * Creates a new [class@Dex.Future] that is resolved with @value.
  *
- * Returns: (transfer full): a resolved #DexFuture
+ * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_take_object) (gpointer value)
@@ -1253,9 +1254,9 @@ DexFuture *
  * @error_code: the error code
  * @format: a printf-style format string
  *
- * Creates a new #DexFuture that is rejeced.
+ * Creates a new [class@Dex.Future] that is rejected.
  *
- * Returns: (transfer full): a new #DexFuture
+ * Returns: (transfer full): a new [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_reject) (GQuark      domain,
@@ -1284,7 +1285,7 @@ DexFuture *
  *
  * The resulting error domain will be %G_IO_ERROR.
  *
- * Returns: (transfer full): a rejected #DexFuture.
+ * Returns: (transfer full): a rejected [class@Dex.Future].
  *
  * Since: 0.4
  */
@@ -1307,7 +1308,7 @@ DexFuture *
  * be useful when you want to mock a situation of "run forever" unless
  * another future rejects or resolves.
  *
- * Returns: (transfer full): a #DexFuture that will never complete or reject
+ * Returns: (transfer full): a [class@Dex.Future] that will never complete or reject
  *
  * Since: 0.4
  */
@@ -1345,11 +1346,12 @@ dex_await_check (DexFuture  *future,
 
 /**
  * dex_await_pointer: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
- * Calls dex_await() and returns the value of g_value_get_pointer(),
- * otherwise @error is set if the future rejected.
+ * Calls [method@Dex.Future.await] and returns the value of
+ * [method@GObject.Value.get_pointer], otherwise @error is set if the future
+ * rejected.
  *
  * Returns: (nullable): a pointer or %NULL
  */
@@ -1372,10 +1374,10 @@ dex_await_pointer (DexFuture  *future,
 
 /**
  * dex_await_fd: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
- * Awaits on @future and returns the resultint file-descriptor.
+ * Awaits on @future and returns the resulting file-descriptor.
  *
  * The resolved value must be of type %DEX_TYPE_FD or @error is set.
  *
@@ -1403,8 +1405,8 @@ dex_await_fd (DexFuture  *future,
 
 /**
  * dex_await_int: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the result as an int.
  *
@@ -1431,8 +1433,8 @@ dex_await_int (DexFuture  *future,
 
 /**
  * dex_await_uint: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the result as an uint.
  *
@@ -1459,8 +1461,8 @@ dex_await_uint (DexFuture  *future,
 
 /**
  * dex_await_int64: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the result as an int64.
  *
@@ -1487,8 +1489,8 @@ dex_await_int64 (DexFuture  *future,
 
 /**
  * dex_await_uint64: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the result as an uint64.
  *
@@ -1515,8 +1517,8 @@ dex_await_uint64 (DexFuture  *future,
 
 /**
  * dex_await_double: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the result as an double.
  *
@@ -1543,8 +1545,8 @@ dex_await_double (DexFuture  *future,
 
 /**
  * dex_await_float: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the result as an float.
  *
@@ -1571,8 +1573,8 @@ dex_await_float (DexFuture  *future,
 
 /**
  * dex_await_boxed: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the %G_TYPE_BOXED based result.
  *
@@ -1597,8 +1599,8 @@ dex_await_boxed (DexFuture  *future,
 
 /**
  * dex_await_variant: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the %G_TYPE_VARIANT based result.
  *
@@ -1625,10 +1627,10 @@ dex_await_variant (DexFuture  *future,
 
 /**
  * dex_await_object: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
- * Awaits on @future and returns the #GObject-based result.
+ * Awaits on @future and returns the [class@GObject.Object]-based result.
  *
  * Returns: (type GObject) (transfer full): the object, or %NULL and @error is set.
  */
@@ -1651,14 +1653,14 @@ dex_await_object (DexFuture  *future,
 
 /**
  * dex_await_boolean: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the gboolean result.
  *
- * If the result is not a #gboolean, @error is set.
+ * If the result is not a `gboolean`, @error is set.
  *
- * Returns: the #gboolean, or %FALSE and @error is set
+ * Returns: the `gboolean`, or %FALSE and @error is set
  */
 gboolean
 dex_await_boolean (DexFuture  *future,
@@ -1679,8 +1681,8 @@ dex_await_boolean (DexFuture  *future,
 
 /**
  * dex_await_string: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the string result.
  *
@@ -1707,8 +1709,8 @@ dex_await_string (DexFuture  *future,
 
 /**
  * dex_await_enum: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the enum result.
  *
@@ -1735,8 +1737,8 @@ dex_await_enum (DexFuture  *future,
 
 /**
  * dex_await_flags: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error]
  *
  * Awaits on @future and returns the flags result.
  *
@@ -1792,7 +1794,7 @@ dex_future_disown_cb (DexFuture *resolved,
 
 /**
  * dex_future_disown:
- * @future: (transfer full): a #DexFuture
+ * @future: (transfer full): a [class@Dex.Future]
  *
  * Disowns a future, allowing it to run to completion even though there may
  * be no observer interested in the futures completion or rejection.

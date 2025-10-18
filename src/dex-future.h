@@ -38,20 +38,20 @@ typedef struct _DexFuture DexFuture;
 
 /**
  * DexFutureCallback:
- * @future: a resolved or rejected #DexFuture
+ * @future: a resolved or rejected [class@Dex.Future]
  * @user_data: closure data associated with the callback
  *
- * A #DexFutureCallback can be executed from a #DexBlock as response to
- * another #DexFuture resolving or rejecting.
+ * A `DexFutureCallback` can be executed from a [class@Dex.Block] as response to
+ * another [class@Dex.Future] resolving or rejecting.
  *
- * The callback will be executed within the scheduler environment the
- * block is created within when using dex_future_then(), dex_future_catch(),
- * dex_future_finally(), dex_future_all(), and similar functions.
+ * The callback will be executed within the scheduler environment the block is
+ * created within when using [ctor@Dex.Future.then], [ctor@Dex.Future.catch]
+ * [ctor@Dex.Future.finally], [ctor@Dex.Future.all], and similar functions.
  *
  * This is the expected way to handle completion of a future when not using
- * #DexFiber via dex_scheduler_spawn().
+ * [class@Dex.Fiber] via [method@Dex.Scheduler.spawn].
  *
- * Returns: (transfer full) (nullable): a #DexFuture or %NULL
+ * Returns: (transfer full) (nullable): a [class@Dex.Future] or %NULL
  */
 typedef DexFuture *(*DexFutureCallback) (DexFuture *future,
                                          gpointer   user_data);
