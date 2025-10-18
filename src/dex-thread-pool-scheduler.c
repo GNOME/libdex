@@ -34,11 +34,11 @@
 /**
  * DexThreadPoolScheduler:
  *
- * #DexThreadPoolScheduler is a #DexScheduler that will dispatch work items
- * and fibers to sub-schedulers on a specific operating system thread.
+ * `DexThreadPoolScheduler` is a [class@Dex.Scheduler] that will dispatch work
+ * items and fibers to sub-schedulers on a specific operating system thread.
  *
- * #DexFiber will never migrate from the thread they are created on to reduce
- * chances of safety issues involved in tracking state between CPU.
+ * [class@Dex.Fiber] will never migrate from the thread they are created on to
+ * reduce chances of safety issues involved in tracking state between CPU.
  *
  * New work items are placed into a global work queue and then dispatched
  * efficiently to a single thread pool worker using a specialized async
@@ -175,9 +175,9 @@ dex_thread_pool_scheduler_init (DexThreadPoolScheduler *thread_pool_scheduler)
 /**
  * dex_thread_pool_scheduler_new:
  *
- * Creates a new #DexScheduler that executes work items on a thread pool.
+ * Creates a new [class@Dex.Scheduler] that executes work items on a thread pool.
  *
- * Returns: (transfer full): a #DexThreadPoolScheduler
+ * Returns: (transfer full): a [class@Dex.ThreadPoolScheduler]
  */
 DexScheduler *
 dex_thread_pool_scheduler_new (void)
@@ -234,7 +234,7 @@ dex_thread_pool_scheduler_new (void)
  * an off-main-thread scheduler without having to coordinate on where
  * the scheduler instance is created or owned.
  *
- * Returns: (transfer none): a #DexScheduler
+ * Returns: (transfer none): a [class@Dex.Scheduler]
  */
 DexScheduler *
 dex_thread_pool_scheduler_get_default (void)
