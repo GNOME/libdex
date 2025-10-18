@@ -423,21 +423,21 @@ reject_receive:
 
 /**
  * dex_channel_receive_all:
- * @channel: a #DexChannel
+ * @channel: a [class@Dex.Channel]
  *
- * Will attempt to receive all items in the channel as a #DexResultSet.
+ * Will attempt to receive all items in the channel as a [class@Dex.FutureSet].
  *
  * If the receive side of the channel is closed, then the future will
  * reject with an error.
  *
  * If there are items in the queue, then they will be returned as part
- * of a #DexResultSet containing each of the futures.
+ * of a [class@Dex.FutureSet] containing each of the futures.
  *
- * Otherwise, a #DexFutureSet will be returned which will resolve or
+ * Otherwise, a [class@Dex.FutureSet] will be returned which will resolve or
  * reject when the next item is available in the channel (or the send
  * or receive sides are closed).
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 dex_channel_receive_all (DexChannel *channel)
