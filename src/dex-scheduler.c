@@ -29,15 +29,15 @@
 /**
  * DexScheduler:
  *
- * #DexScheduler is the base class used by schedulers.
+ * `DexScheduler` is the base class used by schedulers.
  *
  * Schedulers are responsible for ensuring asynchronous IO requests and
  * completions are processed. They also schedule closures to be run as part
- * of future result propagation. Additionally, they manage #DexFiber execution
- * and suspension.
+ * of future result propagation. Additionally, they manage [class@Dex.Fiber]
+ * execution and suspension.
  *
- * Specialized schedulers such as #DexThreadPoolScheduler will do this for a
- * number of threads and dispatch new work between them.
+ * Specialized schedulers such as [class@Dex.ThreadPoolScheduler] will do this
+ * for a number of threads and dispatch new work between them.
  */
 
 static DexScheduler *default_scheduler;
@@ -62,10 +62,11 @@ dex_scheduler_init (DexScheduler *scheduler)
  *
  * Gets the default scheduler for the process.
  *
- * The default scheduler executes tasks within the default #GMainContext.
- * Typically that is the main thread of the application.
+ * The default scheduler executes tasks within the default
+ * [struct@GLib.MainContext].  Typically that is the main thread of the
+ * application.
  *
- * Returns: (transfer none) (not nullable): a #DexScheduler
+ * Returns: (transfer none) (not nullable): a [class@Dex.Scheduler]
  */
 DexScheduler *
 dex_scheduler_get_default (void)
@@ -87,7 +88,7 @@ dex_scheduler_set_default (DexScheduler *scheduler)
  *
  * Gets the default scheduler for the thread.
  *
- * Returns: (transfer none) (nullable): a #DexScheduler or %NULL
+ * Returns: (transfer none) (nullable): a [class@Dex.Scheduler] or %NULL
  */
 DexScheduler *
 dex_scheduler_get_thread_default (void)
@@ -106,7 +107,7 @@ dex_scheduler_set_thread_default (DexScheduler *scheduler)
  *
  * Gets the thread default scheduler with the reference count incremented.
  *
- * Returns: (transfer full) (nullable): a #DexScheduler or %NULL
+ * Returns: (transfer full) (nullable): a [class@Dex.Scheduler] or %NULL
  */
 DexScheduler *
 dex_scheduler_ref_thread_default (void)
@@ -121,7 +122,7 @@ dex_scheduler_ref_thread_default (void)
 
 /**
  * dex_scheduler_push:
- * @scheduler: a #DexScheduler
+ * @scheduler: a [class@Dex.Scheduler]
  * @func: (scope async): the function callback
  * @func_data: the closure data for @func
  *
@@ -140,20 +141,20 @@ dex_scheduler_push (DexScheduler     *scheduler,
 
 /**
  * dex_scheduler_get_main_context:
- * @scheduler: a #DexScheduler
+ * @scheduler: a [class@Dex.Scheduler]
  *
  * Gets the default main context for a scheduler.
  *
  * This may be a different value depending on the calling thread.
  *
- * For example, calling this on the #DexThreadPoolScheduer from outside
- * a worker thread may result in getting a shared #GMainContext for the
- * process.
+ * For example, calling this on the [class@Dex.ThreadPoolScheduler] from
+ * outside a worker thread may result in getting a shared
+ * [struct@GLib.MainContext] for the process.
  *
- * However, calling from a worker thread may give you a #GMainContext
+ * However, calling from a worker thread may give you a [struct@GLib.MainContext]
  * specifically for that thread.
  *
- * Returns: (transfer none): a #GMainContext
+ * Returns: (transfer none): a [struct@GLib.MainContext]
  */
 GMainContext *
 dex_scheduler_get_main_context (DexScheduler *scheduler)
@@ -163,13 +164,15 @@ dex_scheduler_get_main_context (DexScheduler *scheduler)
 
 /**
  * dex_scheduler_get_aio_context: (skip)
- * @scheduler: a #DexScheduler
+ * @scheduler: a [class@Dex.Scheduler]
  *
- * Gets a #DexAioContext for the scheduler.
+ * Gets a `DexAioContext` for the scheduler.
  *
  * This context can be used to execute asyncronous operations within the
  * context of the scheduler. Generally this is done using asynchronous
  * operations and submission/completions managed by the threads scheduler.
+ *
+ * Stability: Private
  */
 DexAioContext *
 dex_scheduler_get_aio_context (DexScheduler *scheduler)
@@ -179,13 +182,13 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
 
 /**
  * dex_scheduler_spawn:
- * @scheduler: (nullable): a #DexScheduler
+ * @scheduler: (nullable): a [class@Dex.Scheduler]
  * @stack_size: stack size in bytes or 0
- * @func: (scope notified) (closure func_data) (destroy func_data_destroy): a #DexFiberFunc
+ * @func: (scope notified) (closure func_data) (destroy func_data_destroy): a [callback@Dex.FiberFunc]
  * @func_data: closure data for @func
  * @func_data_destroy: closure notify for @func_data
  *
- * Request @scheduler to spawn a #DexFiber.
+ * Request @scheduler to spawn a [class@Dex.Fiber].
  *
  * The fiber will have its own stack and cooperatively schedules among other
  * fibers sharing the scheduler.
@@ -218,8 +221,8 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
  * }
  * ```
  *
- * Returns: (transfer full): a #DexFuture that will resolve or reject when
- *   @func completes (or its resulting #DexFuture completes).
+ * Returns: (transfer full): a [class@Dex.Future] that will resolve or reject when
+ *   @func completes (or its resulting `DexFuture` completes).
  */
 DexFuture *
 dex_scheduler_spawn (DexScheduler   *scheduler,
