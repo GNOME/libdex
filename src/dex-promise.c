@@ -30,10 +30,10 @@
 /**
  * DexPromise:
  *
- * #DexPromise is a convenient #DexFuture for prpoagating a result or
- * rejection in appliction and library code.
+ * `DexPromise` is a convenient [class@Dex.Future] for propagating a result or
+ * rejection in application and library code.
  *
- * Use this when there is not a more specialized #DexFuture for your needs to
+ * Use this when there is not a more specialized `DexFuture` for your needs to
  * propagate a result or rejection to the caller in an asynchronous fashion.
  */
 
@@ -104,13 +104,13 @@ DexPromise *
 /**
  * dex_promise_new_cancellable:
  *
- * Creates a new #DexPromise that can propagate cancellation if the
+ * Creates a new [class@Dex.Promise] that can propagate cancellation if the
  * promise is discarded.
  *
  * This can be used to plumb cancellation between promises and
- * #GAsyncReadyCallback based APIs.
+ * [callback@Gio.AsyncReadyCallback] based APIs.
  *
- * Returns: (transfer full): a #DexPromise
+ * Returns: (transfer full): a [class@Dex.Promise]
  */
 DexPromise *
 (dex_promise_new_cancellable) (void)
@@ -124,17 +124,17 @@ DexPromise *
 
 /**
  * dex_promise_get_cancellable:
- * @promise: a #DexPromise
+ * @promise: a [class@Dex.Promise]
  *
- * Gets a #GCancellable that will cancel when the promise has
+ * Gets a [class@Gio.Cancellable] that will cancel when the promise has
  * been discarded (and therefore result no longer necessary).
  *
  * This is useful when manually implementing wrappers around various
- * #GAsyncReadyCallback based API.
+ * [callback@Gio.AsyncReadyCallback] based API.
  *
- * If @promise was created with dex_promise_new(), then %NULL is returned.
+ * If @promise was created with [ctor@Dex.Promise.new], then %NULL is returned.
  *
- * Returns: (transfer none) (nullable): a #GCancellable or %NULL
+ * Returns: (transfer none) (nullable): a [class@Gio.Cancellable] or %NULL
  */
 GCancellable *
 dex_promise_get_cancellable (DexPromise *promise)
@@ -146,10 +146,10 @@ dex_promise_get_cancellable (DexPromise *promise)
 
 /**
  * dex_promise_resolve:
- * @promise: a #DexPromise
- * @value: a #GValue containing the resolved value
+ * @promise: a [class@Dex.Promise]
+ * @value: a [struct@GObject.Value] containing the resolved value
  *
- * Sets the result for a #DexPromise.
+ * Sets the result for a [class@Dex.Promise].
  */
 void
 dex_promise_resolve (DexPromise   *promise,
@@ -163,8 +163,8 @@ dex_promise_resolve (DexPromise   *promise,
 
 /**
  * dex_promise_reject:
- * @promise: a #DexPromise
- * @error: (transfer full): a #GError
+ * @promise: a [class@Dex.Promise]
+ * @error: (transfer full): a [struct@GLib.Error]
  *
  * Marks the promise as rejected, indicating a failure.
  */
@@ -180,7 +180,7 @@ dex_promise_reject (DexPromise *promise,
 
 /**
  * dex_promise_resolve_fd:
- * @promise: a #DexPromise
+ * @promise: a [class@Dex.Promise]
  * @fd: a file-descriptor for the resolve to resolve to
  *
  * Resolves the promise to @fd.
@@ -330,7 +330,7 @@ dex_promise_resolve_boolean (DexPromise *promise,
 
 /**
  * dex_promise_resolve_string:
- * @promise: a #DexPromise
+ * @promise: a [class@Dex.Promise]
  * @value: (transfer full): a string to use to resolve the promise
  *
  */
@@ -345,8 +345,8 @@ dex_promise_resolve_string (DexPromise *promise,
 
 /**
  * dex_promise_resolve_object:
- * @promise: a #DexPromise
- * @object: (type GObject) (transfer full) (nullable): a #GObject
+ * @promise: a [class@Dex.Promise]
+ * @object: (type GObject) (transfer full) (nullable): a [class@GObject.Object]
  *
  */
 void
@@ -361,8 +361,8 @@ dex_promise_resolve_object (DexPromise *promise,
 
 /**
  * dex_promise_resolve_variant:
- * @promise: a #DexPromise
- * @variant: (transfer full) (nullable): a #GVariant
+ * @promise: a [class@Dex.Promise]
+ * @variant: (transfer full) (nullable): a [struct@GLib.Variant]
  *
  * If @variant is floating, its reference is consumed.
  *
@@ -381,8 +381,8 @@ dex_promise_resolve_variant (DexPromise *promise,
 
 /**
  * dex_promise_resolve_boxed:
- * @promise: a #DexPromise
- * @boxed_type: a #GType of %G_TYPE_BOXED
+ * @promise: a [class@Dex.Promise]
+ * @boxed_type: a `GType` of %G_TYPE_BOXED
  * @instance: (transfer full): the boxed value to store
  *
  * Since: 0.10
