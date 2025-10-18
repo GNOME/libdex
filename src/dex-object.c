@@ -34,7 +34,7 @@
  *   (get-value-func dex_value_get_object)
  *
  * `DexObject` is the basic building block of types defined within
- * libdex. Futures, Schedulers, and Channels all inherit from DexObject
+ * libdex. Futures, Schedulers, and Channels all inherit from `DexObject`
  * which provides features like thread-safe weak pointers and memory
  * management operations.
  *
@@ -318,17 +318,19 @@ dex_weak_ref_get_locked (DexWeakRef *weak_ref)
 
 /**
  * dex_weak_ref_get: (skip)
- * @weak_ref: a #DexWeakRef
+ * @weak_ref: a `DexWeakRef`
  *
  * Converts a weak ref into a full reference.
  *
- * This attempts to convert the #DexWeakRef created with
+ * This attempts to convert the `DexWeakRef` created with
  * dex_weak_ref_init() into a full reference.
  *
  * If the mem_block pointed to by @weak_ref has already been released, or
  * is racing against disposal, %NULL is returned.
  *
  * Returns: (transfer full) (nullable): the mem_block or %NULL
+ *
+ * Stability: Private
  */
 gpointer
 dex_weak_ref_get (DexWeakRef *weak_ref)
@@ -346,13 +348,15 @@ dex_weak_ref_get (DexWeakRef *weak_ref)
 
 /**
  * dex_weak_ref_clear: (skip)
- * @weak_ref: a #DexWeakRef
+ * @weak_ref: a `DexWeakRef`
  *
- * Clears a #DexWeakRef that was previous registered with a mem_block
- * using dex_weak_ref_init().
+ * Clears a `DexWeakRef` that was previous registered with a mem_block
+ * using `dex_weak_ref_init()`.
  *
  * It is an error to call this method while other threads are accessing
- * the #DexWeakRef.
+ * the `DexWeakRef`.
+ * 
+ * Stability: Private
  */
 void
 dex_weak_ref_clear (DexWeakRef *weak_ref)
@@ -387,16 +391,18 @@ dex_weak_ref_clear (DexWeakRef *weak_ref)
 
 /**
  * dex_weak_ref_set: (skip)
- * @weak_ref: a #DexWeakRef
+ * @weak_ref: a `DexWeakRef`
  * @mem_block: (nullable): the mem_block or %NULL
  *
- * Sets a #DexWeakRef to @mem_block.
+ * Sets a `DexWeakRef` to @mem_block.
  *
- * @mem_block must be a type allocated with dex_object_alloc0() or
+ * @mem_block must be a type allocated with `dex_object_alloc0()` or
  * equivalent allocator.
  *
  * It is an error to call this method without a full reference to
  * @mem_block.
+ *
+ * Stability: Private
  */
 void
 dex_weak_ref_set (DexWeakRef *weak_ref,
