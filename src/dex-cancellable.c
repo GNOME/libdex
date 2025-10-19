@@ -30,11 +30,11 @@
  * DexCancellable:
  *
  * `DexCancellable` is a simple cancellation primitive which allows
- * for you to create `DexFuture` that will reject upon cancellation.
+ * for you to create [class@Dex.Future] that will reject upon cancellation.
  *
- * Use this combined with other futures using dex_future_all_race()
+ * Use this combined with other futures using [ctor@Dex.Future.all_race]
  * to create a future that resolves when all other futures complete
- * or `dex_cancellable_cancel()` is called to reject.
+ * or [method@Dex.Cancellable.cancel] is called to reject.
  */
 
 typedef struct _DexCancellable
