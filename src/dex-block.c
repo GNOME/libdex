@@ -27,11 +27,11 @@
 /**
  * DexBlock:
  *
- * #DexBlock represents a callback closure that can be scheduled to run
- * within a specific #GMainContext.
+ * `DexBlock` represents a callback closure that can be scheduled to run
+ * within a specific [struct@GLib.MainContext].
  *
- * You create these by chaining futures together using dex_future_then(),
- * dex_future_catch(), dex_future_finally() and similar.
+ * You create these by chaining futures together using [ctor@Dex.Future.then],
+ * [ctor@Dex.Future.catch], [ctor@Dex.Future.finally] and similar.
  */
 
 typedef struct _DexBlock
@@ -256,8 +256,8 @@ dex_block_init (DexBlock *block)
 
 /**
  * dex_block_new:
- * @future: (transfer full): a #DexFuture to process
- * @scheduler: (nullable): a #DexScheduler or %NULL
+ * @future: (transfer full): a [class@Dex.Future] to process
+ * @scheduler: (nullable): a [class@Dex.Scheduler] or %NULL
  * @kind: the kind of block
  * @callback: (scope notified): the callback for the block
  * @callback_data: the data for the callback
@@ -268,7 +268,7 @@ dex_block_init (DexBlock *block)
  * The result of @callback will be assigned to the future returned
  * from this method.
  *
- * Returns: (transfer full): a #DexBlock
+ * Returns: (transfer full): a newly allocated [class@Dex.Block]
  */
 DexFuture *
 dex_block_new (DexFuture         *future,
@@ -299,7 +299,7 @@ dex_block_new (DexFuture         *future,
 
 /**
  * dex_block_get_kind:
- * @block: a #DexBlock
+ * @block: a [class@Dex.Block]
  *
  * Gets the kind of block.
  *
@@ -307,7 +307,7 @@ dex_block_new (DexFuture         *future,
  * executed such as for handling a future resolution, rejection, or
  * both.
  *
- * Returns: a #DexBlockKind
+ * Returns: the [enum@Dex.BlockKind] associated with the @block
  */
 DexBlockKind
 dex_block_get_kind (DexBlock *block)
@@ -319,11 +319,11 @@ dex_block_get_kind (DexBlock *block)
 
 /**
  * dex_block_get_scheduler:
- * @block: a #DexBlock
+ * @block: a [class@Dex.Block]
  *
  * Gets the scheduler to use when executing a block.
  *
- * Returns: (transfer none): a #DexScheduler
+ * Returns: (transfer none): the [class@Dex.Scheduler] associated with the @block
  */
 DexScheduler *
 dex_block_get_scheduler (DexBlock *block)

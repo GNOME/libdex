@@ -30,8 +30,8 @@
 /**
  * DexUnixSignal:
  *
- * #DexUnixSignal is a #DexFuture that will resolve when a specific unix
- * signal has been received.
+ * `DexUnixSignal` is a [class@Dex.Future] that will resolve when a specific
+ * unix signal has been received.
  *
  * Use this when you want to handle a signal from your main loop rather than
  * from a resticted operating signal handler.
@@ -113,7 +113,7 @@ clear_weak_ref (gpointer data)
  * dex_unix_signal_new:
  * @signum: a unix signal number
  *
- * Creates a new #DexUnixSignal that completes when @signum is delivered
+ * Creates a new [class@Dex.UnixSignal] that completes when @signum is delivered
  * to the process.
  *
  * @signum must be one of SIGHUP, SIGINT, SIGTERM, SIGUSR1, SIGUSR2, or
@@ -121,7 +121,7 @@ clear_weak_ref (gpointer data)
  *
  * This API is only supported on UNIX-like systems.
  *
- * Returns: (transfer full): a new #DexFuture
+ * Returns: (transfer full): a new [class@Dex.Future]
  */
 DexFuture *
 dex_unix_signal_new (int signum)

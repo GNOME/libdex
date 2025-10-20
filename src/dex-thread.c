@@ -173,7 +173,7 @@ dex_thread_spawn (const char     *thread_name,
 /**
  * dex_thread_wait_for:
  * @future: (transfer full): a [class@Dex.Future]
- * @error: a location for a #GError or %NULL
+ * @error: a location for a [struct@GLib.Error] or %NULL
  *
  * Use this when running on a thread spawned with `dex_thread_spawn()` and
  * you need to block the thread until @future has resolved or rejected.

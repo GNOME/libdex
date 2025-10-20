@@ -104,7 +104,7 @@ DexFuture *dex_input_stream_skip                       (GInputStream            
                                                         gsize                     count,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_input_stream_read_bytes                 (GInputStream             *self,
+DexFuture *dex_input_stream_read_bytes                 (GInputStream             *stream,
                                                         gsize                     count,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
@@ -121,7 +121,7 @@ DexFuture *dex_output_stream_write                     (GOutputStream           
                                                         gsize                     count,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture *dex_output_stream_write_bytes               (GOutputStream            *self,
+DexFuture *dex_output_stream_write_bytes               (GOutputStream            *stream,
                                                         GBytes                   *bytes,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
@@ -175,7 +175,7 @@ DexFuture *dex_file_move                               (GFile                   
                                                         GDestroyNotify            progress_callback_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_async_initable_init                     (GAsyncInitable           *initable,
-                                                        int                       priority) G_GNUC_WARN_UNUSED_RESULT;
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_1
 DexFuture *dex_mkdir_with_parents                      (const char               *path,
                                                         int                       mode) G_GNUC_WARN_UNUSED_RESULT;

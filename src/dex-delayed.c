@@ -27,8 +27,8 @@
 /**
  * DexDelayed:
  *
- * #DexDelayed is a future which will resolve or reject the value of another
- * #DexFuture when dex_delayed_release() is called.
+ * `DexDelayed` is a future which will resolve or reject the value of another
+ * [class@Dex.Future] when [method@Dex.Delayed.release] is called.
  *
  * This allows you to gate the resolution of a future which has already
  * resolved or rejected until a later moment.
@@ -170,15 +170,15 @@ dex_delayed_release (DexDelayed *delayed)
 
 /**
  * dex_delayed_dup_future:
- * @delayed: a #DexDelayed
+ * @delayed: a [class@Dex.Delayed]
  *
- * Retrieves the delayed future provided to dex_delayed_new().
+ * Retrieves the delayed future provided to [ctor@Dex.Delayed.new].
  *
- * This function can only return a #DexFuture before dex_delayed_release()
- * is called. After that, the delayed future is released and this function
- * will return %NULL.
+ * This function can only return a [class@Dex.Future] before
+ * [method@Dex.Delayed.release] is called. After that, the delayed future is
+ * released and this function will return %NULL.
  *
- * Returns: (transfer full) (nullable): a #DexFuture or %NULL
+ * Returns: (transfer full) (nullable): a [class@Dex.Future] or %NULL
  */
 DexFuture *
 dex_delayed_dup_future (DexDelayed *delayed)

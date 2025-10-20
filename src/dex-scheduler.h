@@ -43,16 +43,16 @@ typedef void (*DexSchedulerFunc) (gpointer user_data);
  * This function prototype is used for spawning fibers. A fiber
  * is a lightweight, cooperative-multitasking feature where the
  * fiber is given its own stack. The fiber runs until it reaches
- * a point of suspension (using `dex_await` or similar) or exits
- * the fiber.
+ * a point of suspension (using [method@Dex.Future.await] or
+ * similar) or exits the fiber.
  *
  * When suspended, the fiber is placed onto a queue until it is
  * runnable again. Once runnable, the fiber is scheduled to run
  * from within whatever scheduler it was created with.
  *
- * See `dex_scheduler_spawn()`
+ * See [method@Dex.Scheduler.spawn]
  *
- * Returns: (transfer full) (nullable): a #DexFuture or %NULL
+ * Returns: (transfer full) (nullable): a [class@Dex.Future] or %NULL
  */
 typedef DexFuture *(*DexFiberFunc) (gpointer user_data);
 

@@ -29,13 +29,14 @@
 /**
  * DexFutureSet:
  *
- * #DexFutureSet represents a set of #DexFuture.
+ * `DexFutureSet` represents a set of [class@Dex.Future].
  *
- * You may retrieve each underlying #DexFuture using
- * dex_future_set_get_future_at().
+ * You may retrieve each underlying `DexFuture` using
+ * [method@Dex.FutureSet.get_future_at].
  *
- * The #DexFutureStatus of of the #DexFutureSet depends on how the set
- * was created using dex_future_all(), dex_future_any(), and similar mmethods.
+ * The [enum@Dex.FutureStatus] of of the `DexFutureSet` depends on how the set
+ * was created using [ctor@Dex.Future.all], [ctor@Dex.Future.any], and similar
+ * methods.
  */
 
 typedef struct _DexFutureSet
@@ -217,11 +218,11 @@ dex_future_set_init (DexFutureSet *future_set)
  * @flags: the flags for how the future set should resolve/reject
  *
  * Creates a new future set (also a future) which will resovle or reject
- * based on the completion from sub #DexFuture.
+ * based on the completion from sub [class@Dex.Future].
  *
  * There must be at least 1 future provided in @futures.
  *
- * Returns: the new #DexFutureSet
+ * Returns: the new [class@Dex.FutureSet]
  */
 DexFutureSet *
 dex_future_set_new (DexFuture * const *futures,
@@ -308,12 +309,13 @@ dex_future_set_new_va (DexFuture         *first_future,
 
 /**
  * dex_future_set_get_size:
- * @future_set: a #DexFutureSet
+ * @future_set: a [class@Dex.FutureSet]
  *
- * Gets the number of futures associated with the #DexFutureSet. You may
- * use dex_future_set_get_future_at() to obtain the individual #DexFuture.
+ * Gets the number of futures associated with the [class@Dex.FutureSet]. You
+ * may use [method@Dex.FutureSet.get_future_at] to obtain the individual
+ * [class@Dex.Future].
  *
- * Returns: the number of #DexFuture in @future_set.
+ * Returns: the number of [class@Dex.Future] in @future_set.
  */
 guint
 dex_future_set_get_size (DexFutureSet *future_set)
@@ -325,14 +327,17 @@ dex_future_set_get_size (DexFutureSet *future_set)
 
 /**
  * dex_future_set_get_future_at:
- * @future_set: a #DexFutureSet
+ * @future_set: a [class@Dex.FutureSet]
+ * @position: the position within the @future_set
  *
- * Gets a #DexFuture that was used to produce the result of @future_set.
+ * Gets the [class@Dex.Future] at @position within @future_set.
  *
- * Use dex_future_set_get_size() to determine the number of #DexFuture that
- * are contained within the #DexFutureSet.
+ * It is a programmer error to request a `DexFuture` which is outside of the
+ * range of the number of futures contained within the @future_set. Use
+ * [method@Dex.FutureSet.get_size] to determine the number of `DexFuture` that
+ * are contained within the [class@Dex.FutureSet].
  *
- * Returns: (transfer none): a #DexFuture
+ * Returns: (transfer none): the [class@Dex.Future] at @position, or %NULL
  */
 DexFuture *
 dex_future_set_get_future_at (DexFutureSet *future_set,
@@ -346,15 +351,15 @@ dex_future_set_get_future_at (DexFutureSet *future_set,
 
 /**
  * dex_future_set_get_value_at:
- * @future_set: a #DexFutureSet
- * @position: the #DexFuture position within the set
- * @error: location for a #GError, or %NULL
+ * @future_set: a [class@Dex.FutureSet]
+ * @position: the [class@Dex.Future] position within the set
+ * @error: location for a [struct@GLib.Error], or %NULL
  *
- * Gets the result from a #DexFuture that is part of the
- * #DexFutureSet.
+ * Gets the result from a [class@Dex.Future] that is part of the
+ * [class@Dex.FutureSet].
  *
- * Returns: (transfer none): a #GValue if successful; otherwise %NULL
- *   and @error is set.
+ * Returns: (transfer none): a [struct@GObject.Value] if successful; otherwise
+ *   %NULL and @error is set.
  */
 const GValue *
 dex_future_set_get_value_at (DexFutureSet  *future_set,

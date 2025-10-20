@@ -97,6 +97,10 @@ dex_input_stream_read_bytes_cb (GObject      *object,
 
 /**
  * dex_input_stream_read_bytes:
+ * @stream: a [class@Gio.InputStream]
+ * @count: size in bytes to read from the stream
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Reads @count bytes from the stream.
  *
@@ -106,7 +110,7 @@ dex_input_stream_read_bytes_cb (GObject      *object,
 DexFuture *
 dex_input_stream_read_bytes (GInputStream *stream,
                              gsize         count,
-                             int           priority)
+                             int           io_priority)
 {
   DexAsyncPair *async_pair;
 
@@ -116,7 +120,7 @@ dex_input_stream_read_bytes (GInputStream *stream,
 
   g_input_stream_read_bytes_async (stream,
                                    count,
-                                   priority,
+                                   io_priority,
                                    async_pair->cancellable,
                                    dex_input_stream_read_bytes_cb,
                                    dex_ref (async_pair));
@@ -145,6 +149,10 @@ dex_output_stream_write_bytes_cb (GObject      *object,
 
 /**
  * dex_output_stream_write_bytes:
+ * @stream: a [class@Gio.InputStream]
+ * @bytes: the [struct@GLib.Bytes] to write to the stream
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Writes @bytes to @stream.
  *
@@ -157,7 +165,7 @@ dex_output_stream_write_bytes_cb (GObject      *object,
 DexFuture *
 dex_output_stream_write_bytes (GOutputStream *stream,
                                GBytes        *bytes,
-                               int            priority)
+                               int            io_priority)
 {
   DexAsyncPair *async_pair;
 
@@ -167,7 +175,7 @@ dex_output_stream_write_bytes (GOutputStream *stream,
 
   g_output_stream_write_bytes_async (stream,
                                      bytes,
-                                     priority,
+                                     io_priority,
                                      async_pair->cancellable,
                                      dex_output_stream_write_bytes_cb,
                                      dex_ref (async_pair));
@@ -194,8 +202,9 @@ dex_file_read_cb (GObject      *object,
 
 /**
  * dex_file_read:
- * @file: a #GFile
- * @io_priority: IO priority such as %G_PRIORITY_DEFAULT
+ * @file: a [iface@Gio.File]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Asynchronously opens a file for reading.
  *
@@ -240,7 +249,9 @@ dex_file_replace_cb (GObject      *object,
 
 /**
  * dex_file_replace:
- * @etag: (nullable)
+ * @file: a [iface@Gio.File]
+ * @etag: (nullable): the etag or %NULL
+ * @flags: a set of [flags@Gio.FileCreateFlags]
  *
  * Opens a stream that will replace @file on disk when the input
  * stream is closed.
@@ -253,7 +264,7 @@ dex_file_replace (GFile            *file,
                   const char       *etag,
                   gboolean          make_backup,
                   GFileCreateFlags  flags,
-                  int               priority)
+                  int               io_priority)
 {
   DexAsyncPair *async_pair;
 
@@ -265,7 +276,7 @@ dex_file_replace (GFile            *file,
                         etag,
                         make_backup,
                         flags,
-                        priority,
+                        io_priority,
                         async_pair->cancellable,
                         dex_file_replace_cb,
                         dex_ref (async_pair));
@@ -300,7 +311,7 @@ dex_file_replace_contents_bytes_cb (GObject      *object,
  * @contents: a [struct@GLib.Bytes]
  * @etag: (nullable): the etag or %NULL
  * @make_backup: if a backup file should be created
- * @flags: A set of #GFileCreateFlags
+ * @flags: a set of [flags@Gio.FileCreateFlags]
  *
  * Wraps [method@Gio.File.replace_contents_bytes_async]
  *
@@ -355,8 +366,13 @@ dex_input_stream_read_cb (GObject      *object,
 
 /**
  * dex_input_stream_read:
+ * @self: a [class@Gio.InputStream]
  * @buffer: (array length=count) (element-type guint8) (out caller-allocates)
+ * @count: size in bytes to read from the stream into the @buffer
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
+ * Reads @count bytes from an input stream into a pre-allocated @buffer. The
  * @buffer must stay valid for the lifetime of this future.
  *
  * Returns: (transfer full): a [class@Dex.Future] that reads @counts bytes
@@ -366,7 +382,7 @@ DexFuture *
 dex_input_stream_read (GInputStream *self,
                        gpointer      buffer,
                        gsize         count,
-                       int           priority)
+                       int           io_priority)
 {
   DexAsyncPair *async_pair;
 
@@ -377,7 +393,7 @@ dex_input_stream_read (GInputStream *self,
   g_input_stream_read_async (self,
                              buffer,
                              count,
-                             priority,
+                             io_priority,
                              async_pair->cancellable,
                              dex_input_stream_read_cb,
                              dex_ref (async_pair));
@@ -406,11 +422,13 @@ dex_input_stream_skip_cb (GObject      *object,
 
 /**
  * dex_input_stream_skip:
+ * @self: a [class@Gio.InputStream]
  * @count: the number of bytes to skip
- * @io_priority: %G_PRIORITY_DEFAULT or similar priority value
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves
- *   to the number of bytes skipped as a gint64.
+ *   to the number of bytes skipped as a `gint64`.
  */
 DexFuture *
 dex_input_stream_skip (GInputStream *self,
@@ -454,16 +472,20 @@ dex_output_stream_write_cb (GObject      *object,
 
 /**
  * dex_output_stream_write:
+ * @self: a [class@Gio.OutputStream]
  * @buffer: (array length=count) (element-type guint8)
+ * @count: size in bytes to write to the output stream
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves
- *   to the number of bytes written as a gint64
+ *   to the number of bytes written as a `gint64`
  */
 DexFuture *
 dex_output_stream_write (GOutputStream *self,
                          gconstpointer  buffer,
                          gsize          count,
-                         int            priority)
+                         int            io_priority)
 {
   DexAsyncPair *async_pair;
 
@@ -474,7 +496,7 @@ dex_output_stream_write (GOutputStream *self,
   g_output_stream_write_async (self,
                                buffer,
                                count,
-                               priority,
+                               io_priority,
                                async_pair->cancellable,
                                dex_output_stream_write_cb,
                                dex_ref (async_pair));
@@ -502,13 +524,16 @@ dex_output_stream_close_cb (GObject      *object,
 
 /**
  * dex_output_stream_close:
+ * @self: a [class@Gio.OutputStream]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves
  *   to true or rejects with error.
  */
 DexFuture *
 dex_output_stream_close (GOutputStream *self,
-                         int            priority)
+                         int            io_priority)
 {
   DexAsyncPair *async_pair;
 
@@ -517,7 +542,7 @@ dex_output_stream_close (GOutputStream *self,
   async_pair = create_async_pair (G_STRFUNC);
 
   g_output_stream_close_async (self,
-                               priority,
+                               io_priority,
                                async_pair->cancellable,
                                dex_output_stream_close_cb,
                                dex_ref (async_pair));
@@ -545,13 +570,16 @@ dex_input_stream_close_cb (GObject      *object,
 
 /**
  * dex_input_stream_close:
+ * @self: a [class@Gio.InputStream]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves
  *   to true if successful or rejects with error.
  */
 DexFuture *
 dex_input_stream_close (GInputStream *self,
-                        int           priority)
+                        int           io_priority)
 {
   DexAsyncPair *async_pair;
 
@@ -560,7 +588,7 @@ dex_input_stream_close (GInputStream *self,
   async_pair = create_async_pair (G_STRFUNC);
 
   g_input_stream_close_async (self,
-                              priority,
+                              io_priority,
                               async_pair->cancellable,
                               dex_input_stream_close_cb,
                               dex_ref (async_pair));
@@ -589,9 +617,14 @@ dex_output_stream_splice_cb (GObject      *object,
 
 /**
  * dex_output_stream_splice:
+ * @output: a [class@Gio.OutputStream]
+ * @input: a [class@Gio.InputStream]
+ * @flags: a set of [flags@Gio.OutputStreamSpliceFlags]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to the
- *   number of bytes spliced as a gint64 or rejects with error.
+ *   number of bytes spliced as a `gint64` or rejects with error.
  */
 DexFuture *
 dex_output_stream_splice (GOutputStream            *output,
@@ -638,6 +671,11 @@ dex_file_query_info_cb (GObject      *object,
 
 /**
  * dex_file_query_info:
+ * @file: a [iface@Gio.File]
+ * @attributes: an attribute query string (see: [GFile documentation](iface@Gio.File))
+ * @flags: a set of [flags@Gio.FileQueryInfoFlags]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves
  *   to a [class@Gio.FileInfo] or rejects with error.
@@ -693,6 +731,10 @@ dex_file_query_file_type_cb (GObject      *object,
 
 /**
  * dex_file_query_file_type:
+ * @file: a [iface@Gio.File]
+ * @flags: a set of [flags@Gio.FileQueryInfoFlags]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to a
  *   [enum@Gio.FileType].
@@ -737,13 +779,14 @@ dex_file_make_directory_cb (GObject      *object,
 
 /**
  * dex_file_make_directory:
- * @file: a #GFile
- * @io_priority: IO priority such as %G_PRIORITY_DEFAULT
+ * @file: a [iface@Gio.File]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
- * Asynchronously creates a directory and returns #DexFuture which
+ * Asynchronously creates a directory and returns [class@Dex.Future] which
  * can be observed for the result.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 dex_file_make_directory (GFile *file,
@@ -856,6 +899,11 @@ dex_file_enumerate_children_cb (GObject      *object,
 
 /**
  * dex_file_enumerate_children:
+ * @file: a [iface@Gio.File]
+ * @attributes: an attribute query string (see: [`GFile` documentation](iface@Gio.File))
+ * @flags: a set of [flags@Gio.FileQueryInfoFlags]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to a
  *   [class@Gio.FileEnumerator] or rejects with error.
@@ -904,6 +952,10 @@ dex_file_enumerator_next_files_cb (GObject      *object,
 
 /**
  * dex_file_enumerator_next_files:
+ * @file_enumerator: a [class@Gio.FileEnumerator]
+ * @num_files: the number of files
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Wraps [method@Gio.FileEnumerator.next_files_async].
  *
@@ -959,12 +1011,13 @@ dex_file_copy_cb (GObject      *object,
 
 /**
  * dex_file_copy:
- * @source: a #GFile
- * @destination: a #GFile
- * @flags: the #GFileCopyFlags
- * @io_priority: IO priority such as %G_PRIORITY_DEFAULT
+ * @source: a [iface@Gio.File]
+ * @destination: a [iface@Gio.File]
+ * @flags: a set of [flags@Gio.FileCopyFlags]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
- * Asynchronously copies a file and returns a #DexFuture which
+ * Asynchronously copies a file and returns a [class@Dex.Future] which
  * can be observed for the result.
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves
@@ -1015,10 +1068,11 @@ dex_file_delete_cb (GObject      *object,
 
 /**
  * dex_file_delete:
- * @file: a #GFile
- * @io_priority: IO priority such as %G_PRIORITY_DEFAULT
+ * @file: a [iface@Gio.File]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
- * Asynchronously deletes a file and returns a #DexFuture which
+ * Asynchronously deletes a file and returns a [class@Dex.Future] which
  * can be observed for the result.
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves
@@ -1064,6 +1118,7 @@ dex_socket_listener_accept_cb (GObject      *object,
 
 /**
  * dex_socket_listener_accept:
+ * @listener: a [class@Gio.SocketListener]
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to
  *   a [class@Gio.SocketConnection] or rejects with error.
@@ -1106,6 +1161,8 @@ dex_socket_client_connect_cb (GObject      *object,
 
 /**
  * dex_socket_client_connect:
+ * @socket_client: a [class@Gio.SocketClient]
+ * @socket_connectable: a [iface@Gio.SocketConnectable]
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to a
  *   [class@Gio.SocketConnection] or rejects with error.
@@ -1150,6 +1207,9 @@ dex_io_stream_close_cb (GObject      *object,
 
 /**
  * dex_io_stream_close:
+ * @io_stream: a [class@Gio.IOStream]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to
  *   true or rejects with error.
@@ -1194,6 +1254,8 @@ dex_resolver_lookup_by_name_cb (GObject      *object,
 
 /**
  * dex_resolver_lookup_by_name:
+ * @resolver: a [class@Gio.Resolver]
+ * @address: the address to look up
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to a
  *   [struct@GLib.List] of [class@Gio.InetAddress].
@@ -1240,8 +1302,10 @@ dex_file_load_contents_bytes_cb (GObject      *object,
 
 /**
  * dex_file_load_contents_bytes:
+ * @file: a [iface@Gio.File]
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to a [struct@GLib.Bytes].
  */
 DexFuture *
 dex_file_load_contents_bytes (GFile *file)
@@ -1281,14 +1345,14 @@ dex_dbus_connection_send_message_with_reply_cb (GObject      *object,
 
 /**
  * dex_dbus_connection_send_message_with_reply:
- * @connection: a #GDBusConnection
- * @message: a #GDBusMessage
- * @flags:  flags for @message
+ * @connection: a [class@Gio.DBusConnection]
+ * @message: a [class@Gio.DBusMessage]
+ * @flags: a set of [flags@Gio.DBusSendMessageFlags]
  * @timeout_msec: timeout in milliseconds, or -1 for default, or %G_MAXINT
  *   for no timeout.
  * @out_serial: (out) (optional): a location for the message serial number
  *
- * Wrapper for g_dbus_connection_send_message_with_reply().
+ * Wrapper for [method@Gio.DBusConnection.send_message_with_reply].
  *
  * Returns: (transfer full): a [class@Dex.Future] that will resolve to a
  *   [class@Gio.DBusMessage] or reject with failure.
@@ -1342,19 +1406,24 @@ dex_dbus_connection_call_cb (GObject      *object,
 
 /**
  * dex_dbus_connection_call:
- * @bus_name: (nullable)
- * @object_path:
- * @interface_name:
- * @method_name:
- * @parameters: (nullable)
- * @reply_type: (nullable)
- * @flags:
- * @timeout_msec:
+ * @connection: a [class@Gio.DBusConnection]
+ * @bus_name: (nullable): a unique or well-known bus name or %NULL if
+ *   @connection is not a message bus connection
+ * @object_path: path of remote object
+ * @interface_name: D-Bus interface to invoke method on
+ * @method_name: the name of the method to invoke
+ * @parameters: (nullable): a [struct@GLib.Variant] tuple with parameters for
+ *   the method or %NULL if not passing parameters
+ * @reply_type: (nullable): the expected type of the reply (which will be a
+ *   tuple), or %NULL
+ * @flags: flags from the [flags@Gio.DBusCallFlags] enumeration
+ * @timeout_msec: the timeout in milliseconds, -1 to use the default
+ *   timeout or %G_MAXINT for no timeout
  *
- * Wrapper for g_dbus_connection_call().
+ * Wrapper for [method@Gio.DBusConnection.call].
  *
- * Returns: (transfer full): a [class@Dex.Future] that resolves to a #GVariant
- *   or rejects with error.
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [struct@GLib.Variant] or rejects with error.
  *
  * Since: 0.4
  */
@@ -1434,23 +1503,28 @@ dex_dbus_connection_call_with_unix_fd_list_cb (GObject      *object,
 
 /**
  * dex_dbus_connection_call_with_unix_fd_list:
- * @bus_name: (nullable)
- * @object_path:
- * @interface_name:
- * @method_name:
- * @parameters: (nullable)
- * @reply_type: (nullable)
- * @flags:
- * @timeout_msec:
- * @fd_list: (nullable): a #GUnixFDList
+ * @connection: a [class@Gio.DBusConnection]
+ * @bus_name: (nullable): a unique or well-known bus name or %NULL if
+ *   @connection is not a message bus connection
+ * @object_path: path of remote object
+ * @interface_name: D-Bus interface to invoke method on
+ * @method_name: the name of the method to invoke
+ * @parameters: (nullable): a [struct@GLib.Variant] tuple with parameters for
+ *   the method or %NULL if not passing parameters
+ * @reply_type: (nullable): the expected type of the reply (which will be a
+ *   tuple), or %NULL
+ * @flags: flags from the [flags@Gio.DBusCallFlags] enumeration
+ * @timeout_msec: the timeout in milliseconds, -1 to use the default
+ *   timeout or %G_MAXINT for no timeout
+ * @fd_list: (nullable): a [class@Gio.UnixFDList]
  *
- * Wrapper for g_dbus_connection_call_with_unix_fd_list().
+ * Wrapper for [method@Gio.DBusConnection.call_with_unix_fd_list].
  *
  * Returns: (transfer full): a [class@Dex.FutureSet] that resolves to a
- *   #GVariant.
+ *   [struct@GLib.Variant].
  *
- *   The [class@Dex.Future] containing the resulting [class@Gio.UnixFDList]
- *   can be retrieved with dex_future_set_get_future_at() with an index of 1.
+ *   The [class@Dex.Future] containing the resulting [class@Gio.UnixFDList] can
+ *   be retrieved with [method@Dex.FutureSet.get_future_at] with an index of 1.
  *
  * Since: 0.4
  */
@@ -1521,12 +1595,12 @@ dex_bus_get_cb (GObject      *object,
 
 /**
  * dex_bus_get:
- * @bus_type:
+ * @bus_type: the [enum@Gio.BusType]
  *
- * Wrapper for g_bus_get().
+ * Wrapper for [func@Gio.bus_get].
  *
- * Returns: (transfer full): a #DexFuture that resolves to a #GDBusConnection
- *   or rejects with error.
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.DBusConnection] or rejects with error.
  *
  * Since: 0.4
  */
@@ -1615,11 +1689,11 @@ dex_bus_name_cancelled_cb (GCancellable *cancellable,
  * dex_bus_own_name_on_connection:
  * @connection: The [class@Gio.DBusConnection] to own a name on.
  * @name: The well-known name to own.
- * @flags: A set of flags with ownership options.
+ * @flags: a set of flags with ownership options.
  * @out_name_acquired_future: (out) (optional): a location for the name acquired future
  * @out_name_lost_future: (out) (optional): a location for the name lost future
  *
- * Wrapper for g_bus_own_name().
+ * Wrapper for [func@Gio.bus_own_name].
  *
  * Asks the D-Bus broker to own the well-known name @name on the connection @connection.
  *
@@ -1688,12 +1762,12 @@ dex_subprocess_wait_check_cb (GObject      *object,
 
 /**
  * dex_subprocess_wait_check:
- * @subprocess: a #GSubprocess
+ * @subprocess: a [class@Gio.Subprocess]
  *
  * Creates a future that awaits for @subprocess to complete using
- * g_subprocess_wait_check_async().
+ * [method@Gio.Subprocess.wait_check_async].
  *
- * Returns: (transfer full): a #DexFuture that will resolve when @subprocess
+ * Returns: (transfer full): a [class@Dex.Future] that will resolve when @subprocess
  *   exits cleanly or reject upon signal or non-successful exit.
  *
  * Since: 0.4
@@ -1738,11 +1812,11 @@ dex_file_query_exists_cb (GObject      *object,
 
 /**
  * dex_file_query_exists:
- * @file: a #GFile
+ * @file: a [iface@Gio.File]
  *
  * Queries to see if @file exists asynchronously.
  *
- * Returns: (transfer full): a #DexFuture that will resolve with %TRUE
+ * Returns: (transfer full): a [class@Dex.Future] that will resolve with %TRUE
  *   if the file exists, otherwise reject with error.
  *
  * Since: 0.6
@@ -1784,9 +1858,10 @@ dex_async_initable_init_cb (GObject      *object,
 /**
  * dex_async_initable_init:
  * @initable: a [iface@Gio.AsyncInitable]
- * @priority: the priority for the initialization, typically 0
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
- * A helper for g_async_initable_init_async()
+ * A helper for [method@Gio.AsyncInitable.init_async].
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves
  *   to the @initable instance or rejects with error.
@@ -1795,7 +1870,7 @@ dex_async_initable_init_cb (GObject      *object,
  */
 DexFuture *
 dex_async_initable_init (GAsyncInitable *initable,
-                         int             priority)
+                         int             io_priority)
 {
   DexPromise *promise;
 
@@ -1803,7 +1878,7 @@ dex_async_initable_init (GAsyncInitable *initable,
 
   promise = dex_promise_new_cancellable ();
   g_async_initable_init_async (initable,
-                               priority,
+                               io_priority,
                                dex_promise_get_cancellable (promise),
                                dex_async_initable_init_cb,
                                dex_ref (promise));
@@ -1873,8 +1948,9 @@ dex_file_set_attributes_cb (GObject      *object,
  * dex_file_set_attributes:
  * @file: a [iface@Gio.File]
  * @file_info: a [class@Gio.FileInfo]
- * @flags:
- * @io_priority:
+ * @flags: a set of [flags@Gio.FileQueryInfoFlags]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to a
  *   [class@Gio.FileInfo] or rejects with error.
@@ -1931,9 +2007,16 @@ dex_file_move_cb (GObject      *object,
 
 /**
  * dex_file_move:
+ * @source: source [iface@Gio.File]
+ * @destination: destination [iface@Gio.File]
+ * @flags: a set of [flags@Gio.FileCopyFlags]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
  * @progress_callback: (scope notified) (closure progress_callback_data):
- * @progress_callback_data:
- * @progress_callback_data_destroy:
+ *   [callback@Gio.FileProgressCallback] function for updates
+ * @progress_callback_data: `gpointer` to user data for the callback function
+ * @progress_callback_data_destroy: (nullable): a function to destroy the
+ *   @progress_callback_data, or %NULL
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
  *   or rejects with error
@@ -2002,7 +2085,7 @@ dex_mkdir_with_parents_thread (gpointer data)
  * @path: a path to a directory to create
  * @mode: the mode for the directory such as `0750`
  *
- * Similar to `g_mkdir_with_parents()` but runs on a dedicated thread.
+ * Similar to [func@GLib.mkdir_with_parents] but runs on a dedicated thread.
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to 0
  *   if successful, otherwise rejects with error.
@@ -2054,7 +2137,7 @@ dex_find_program_in_path_thread (gpointer data)
  * This runs [func@GLib.find_program_in_path] on a dedicated thread.
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to a
- *   string containing the path or rejects with eror.
+ *   string containing the path or rejects with error.
  *
  * Since: 1.1
  */
@@ -2084,7 +2167,7 @@ dex_unlink_thread (gpointer data)
  * dex_unlink:
  * @path: the path to unlink
  *
- * This runs `g_unlink()` on a dedicated thread.
+ * This runs [func@GLib.unlink] on a dedicated thread.
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to an
  *   int of 0 on success or rejects with error.

@@ -32,7 +32,7 @@
 /**
  * DexTimeout:
  *
- * #DexTimeout is a #DexFuture that will reject after the configured
+ * `DexTimeout` is a [class@Dex.Future] that will reject after the configured
  * period of time.
  */
 
@@ -231,8 +231,8 @@ dex_timeout_new_usec (gint64 usec)
  * @deadline: a deadline in monotonic clock
  *
  * Postpoone @timeout to complete at @deadline in the monotonic
- * clock. See `g_get_monotonic_clock()` for getting the
- * monotonic clock in microseconds.
+ * clock. See [func@GLib.get_monotonic_time] for getting the
+ * monotonic time in microseconds.
  */
 void
 dex_timeout_postpone_until (DexTimeout *timeout,

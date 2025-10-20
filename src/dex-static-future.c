@@ -32,8 +32,8 @@
  * Use this when you need to create a future for API reasons but already have
  * the value or rejection at that point.
  *
- * #DexStaticFuture is used internally by functions like
- * dex_future_new_for_boolean() and similar.
+ * `DexStaticFuture` is used internally by functions like
+ * [ctor@Dex.Future.new_for_boolean] and similar.
  */
 
 struct _DexStaticFuture

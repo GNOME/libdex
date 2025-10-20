@@ -31,12 +31,12 @@
 /**
  * DexMainScheduler:
  *
- * #DexMainScheduler is the scheduler used on the default thread of an
+ * `DexMainScheduler` is the scheduler used on the default thread of an
  * application. It is meant to integrate with your main loop.
  *
  * This scheduler does the bulk of the work in an application.
  *
- * Use #DexThreadPoolScheduler when you want to offload work to a thread
+ * Use [class@Dex.ThreadPoolScheduler] when you want to offload work to a thread
  * and still use future-based programming.
  */
 

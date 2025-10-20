@@ -32,23 +32,24 @@
 /**
  * DexFiber:
  *
- * #DexFiber is a fiber (a stack-based coroutine) which itself is a #DexFuture.
+ * `DexFiber` is a fiber (a stack-based coroutine) which itself is a
+ * [class@Dex.Future].
  *
  * When the fiber completes execution it will either resolve or reject the
  * with the result or error.
  *
- * You may treat a #DexFiber like any other #DexFuture which makes it simple
+ * You may treat a `DexFiber` like any other `DexFuture` which makes it simple
  * to integrate fibers into other processing chains.
  *
- * #DexFiber are provided their own stack seperate from a threads main stack,
- * They are automatically scheduled as necessary.
+ * `DexFiber` are provided their own stack separate from a thread's main stack,
+ * and are automatically scheduled as necessary.
  *
- * Use dex_await() and similar functions to await the result of another future
- * within the fiber and the fiber will be suspended allowing another fiber to
- * run and/or the rest of the applications main loop.
+ * Use [method@Dex.Future.await] and similar functions to await the result of
+ * another future within the fiber and the fiber will be suspended allowing
+ * another fiber to run and/or the rest of the application's main loop.
  *
  * Once a fiber is created, it is pinned to that scheduler. Use
- * dex_scheduler_spawn() to create a fiber on a specific scheduler.
+ * [method@Dex.Scheduler.spawn] to create a fiber on a specific scheduler.
  */
 
 typedef struct _DexFiberClass
@@ -440,17 +441,19 @@ dex_fiber_scheduler_finalize (GSource *source)
 }
 
 /**
- * dex_fiber_scheduler_new:
+ * dex_fiber_scheduler_new: (skip)
  *
- * Creates a #DexFiberScheduler.
+ * Creates a `DexFiberScheduler`.
  *
- * #DexFiberScheduler is a sub-scheduler to a #DexScheduler that can swap
- * into and schedule runnable #DexFiber.
+ * `DexFiberScheduler` is a sub-scheduler to a `DexScheduler` that can swap
+ * into and schedule runnable `DexFiber`.
  *
- * A #DexScheduler should have one of these #GSource attached to its
- * #GMainContext so that fibers can be executed there. When a thread
+ * A `DexScheduler` should have one of these `GSource` attached to its
+ * `GMainContext` so that fibers can be executed there. When a thread
  * exits, its fibers may need to be migrated. Currently that is not
- * implemented as we do not yet destroy #DexThreadPoolWorker.
+ * implemented as we do not yet destroy `DexThreadPoolWorker`.
+ *
+ * Stability: Private
  */
 DexFiberScheduler *
 dex_fiber_scheduler_new (void)
@@ -602,15 +605,15 @@ dex_await_borrowed (DexFuture  *future,
 
 /**
  * dex_await: (method)
- * @future: (transfer full): a #DexFuture
- * @error: a location for a #GError, or %NULL
+ * @future: (transfer full): a [class@Dex.Future]
+ * @error: a location for a [struct@GLib.Error], or %NULL
  *
- * Suspends the current #DexFiber and resumes when @future has completed.
+ * Suspends the current [class@Dex.Fiber] and resumes when @future has completed.
  *
  * If @future is completed when this function is called, the fiber will handle
  * the result immediately.
  *
- * This function may only be called within a #DexFiber. To do otherwise will
+ * This function may only be called within a `DexFiber`. To do otherwise will
  * return %FALSE and @error set to %DEX_ERROR_NO_FIBER.
  *
  * It is an error to call this function in a way that would cause

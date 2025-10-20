@@ -226,14 +226,14 @@ dex_channel_init (DexChannel *channel)
  * dex_channel_new:
  * @capacity: the channel queue depth or 0 for unlimited
  *
- * Creates a new #DexChannel.
+ * Creates a new [class@Dex.Channel].
  *
  * If capacity is non-zero, it can be used to limit the size of the channel
  * so that functions can asynchronously stall until items have been removed
  * from the channel. This is useful in buffering situations so that the
  * producer does not outpace the consumer.
  *
- * Returns: a new #DexChannel
+ * Returns: a new [class@Dex.Channel]
  */
 DexChannel *
 dex_channel_new (guint capacity)
@@ -312,21 +312,21 @@ dex_channel_one_receive_and_unlock (DexChannel *channel)
 
 /**
  * dex_channel_send:
- * @channel: a #DexChannel
- * @future: (transfer full): a #DexFuture
+ * @channel: a [class@Dex.Channel]
+ * @future: (transfer full): a [class@Dex.Future]
  *
  * Queues @future into the channel.
  *
  * The other end of the channel can receive the future (or a future that will
- * eventually resolve to @future) using dex_channel_receive().
+ * eventually resolve to @future) using [method@Dex.Channel.receive].
  *
- * This function returns a #DexFuture that will resolve when the channels
+ * This function returns a [class@Dex.Future] that will resolve when the channels
  * capacity is low enough to queue more items.
  *
- * If the send side of the channel is closed, the returned #DexFuture will be
+ * If the send side of the channel is closed, the returned [class@Dex.Future] will be
  * rejected with %DEX_ERROR_CHANNEL_CLOSED.
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 dex_channel_send (DexChannel *channel,
@@ -374,14 +374,14 @@ dex_channel_send (DexChannel *channel,
 
 /**
  * dex_channel_receive:
- * @channel: a #DexChannel
+ * @channel: a [class@Dex.Channel]
  *
  * Receives the next item from the channel.
  *
  * The resulting future will resolve or reject when an item is available
  * to the channel or when send side has closed (in that order).
  *
- * Returns: (transfer full): a #DexFuture
+ * Returns: (transfer full): a [class@Dex.Future]
  */
 DexFuture *
 dex_channel_receive (DexChannel *channel)
