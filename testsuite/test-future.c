@@ -901,6 +901,61 @@ test_infinite_simple (void)
   dex_unref (future);
 }
 
+static DexFuture *
+then_cb_returns_null (DexFuture *future,
+                      gpointer   user_data)
+{
+  GMainLoop *main_loop = user_data;
+  const GValue *value;
+  GError *error = NULL;
+
+  value = dex_future_get_value (future, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS_INT (value));
+  g_assert_cmpint (g_value_get_int (value), ==, 42);
+
+  g_main_loop_quit (main_loop);
+
+  return NULL;
+}
+
+static void
+test_then_callback_returns_null (void)
+{
+  GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
+  DexFuture *future = dex_future_new_for_int (42);
+  DexFuture *chained_future;
+  const GValue *value;
+  GError *error = NULL;
+
+  future = dex_future_new_for_int (42);
+  chained_future = dex_future_then (dex_ref (future),
+                                    then_cb_returns_null,
+                                    g_main_loop_ref (main_loop),
+                                    (GDestroyNotify) g_main_loop_unref);
+
+  if (dex_future_is_pending (chained_future))
+    g_main_loop_run (main_loop);
+
+  g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_RESOLVED);
+  g_assert_cmpint (dex_future_get_status (chained_future), ==, DEX_FUTURE_STATUS_RESOLVED);
+
+  value = dex_future_get_value (chained_future, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS_INT (value));
+  g_assert_cmpint (g_value_get_int (value), ==, 42);
+
+  dex_unref (chained_future);
+  dex_unref (future);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  g_main_loop_unref (main_loop);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -942,6 +997,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Future/discard", test_future_discard);
   g_test_add_func ("/Dex/TestSuite/Delayed/simple", test_delayed_simple);
   g_test_add_func ("/Dex/TestSuite/Infinite/simple", test_infinite_simple);
+  g_test_add_func ("/Dex/TestSuite/Future/then_callback_returns_null", test_then_callback_returns_null);
 #ifdef G_OS_UNIX
   g_test_add_func ("/Dex/TestSuite/UnixSignal/sigusr2", test_unix_signal_sigusr2);
 #endif
