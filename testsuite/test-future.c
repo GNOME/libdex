@@ -924,7 +924,7 @@ static void
 test_then_callback_returns_null (void)
 {
   GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
-  DexFuture *future = dex_future_new_for_int (42);
+  DexFuture *future;
   DexFuture *chained_future;
   const GValue *value;
   GError *error = NULL;
@@ -949,10 +949,6 @@ test_then_callback_returns_null (void)
 
   dex_unref (chained_future);
   dex_unref (future);
-
-  g_main_context_iteration (NULL, FALSE);
-  while (g_main_context_pending (NULL))
-    g_main_context_iteration (NULL, FALSE);
 
   g_main_loop_unref (main_loop);
 }
