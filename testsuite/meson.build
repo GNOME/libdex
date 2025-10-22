@@ -16,9 +16,22 @@ testsuite_c_args = [
   '-UG_DISABLE_CAST_CHECKS',
 ]
 
+dbus_foo = []
+if have_gdbus_codegen
+  ext = meson.project_source_root() / 'src' / 'dex-gdbus-codegen-extension.py'
+  dbus_foo = gnome.gdbus_codegen(
+    'dex-test-dbus-foo',
+    sources: ['org.example.Foo.xml'],
+    interface_prefix: 'org.example',
+    namespace: 'DexTestDbus',
+    extra_args: [f'--extension-path=@ext@'],
+  )
+endif
+
 testsuite = {
   'test-async-result': {},
   'test-channel': {},
+  'test-dbus': {'extra-sources': dbus_foo, 'disable': not have_gdbus_codegen},
   'test-object': {},
   'test-fiber': {},
   'test-future': {},
@@ -40,7 +53,12 @@ if get_option('sysprof')
 endif
 
 foreach test, params: testsuite
-  test_exe = executable(test, '@0@.c'.format(test),
+  if params.get('disable', false)
+    continue
+  endif
+
+  test_exe = executable(test,
+         sources: ['@0@.c'.format(test)] + params.get('extra-sources', []),
           c_args: testsuite_c_args + deprecated_c_args,
     dependencies: testsuite_deps,
   )
