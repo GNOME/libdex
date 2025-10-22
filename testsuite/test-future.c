@@ -950,6 +950,7 @@ test_then_callback_returns_null (void)
   dex_unref (chained_future);
   dex_unref (future);
 
+  g_main_context_iteration (NULL, FALSE);
   while (g_main_context_pending (NULL))
     g_main_context_iteration (NULL, FALSE);
 
