@@ -10,29 +10,3 @@ include:
     inputs:
       dist-job-name: "build-gnomeos"
       tarball-artifact-path: "_builddir/meson-dist/$CI_PROJECT_NAME-$CI_COMMIT_TAG.tar.xz"
-
-test:
-  image: 'registry.fedoraproject.org/fedora:41'
-  stage: test
-  variables:
-    DEPS: >-
-      gcc
-      gcc-c++
-      gettext
-      libatomic
-      liburing-devel
-      meson
-      ninja-build
-      redhat-rpm-config
-      glib2-devel
-      gobject-introspection-devel
-      git
-  before_script:
-    - 'cat /proc/cpuinfo'
-    - "dnf install -y $DEPS"
-  script:
-    - 'meson setup _build . -Ddocs=false -Dexamples=false -Dvapi=false -Dintrospection=enabled -Dsysprof=false -Dtests=true -Dliburing=enabled -Deventfd=enabled'
-    - 'cd _build'
-    - 'ninja test'
-    - 'meson configure -Dliburing=disabled -Deventfd=disabled'
-    - 'ninja test'
