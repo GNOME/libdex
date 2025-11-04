@@ -211,10 +211,12 @@ dex_thread_wait_for (DexFuture  *future,
     {
       DexWaiter *waiter;
 
+      /* Keep future alive during waiter lifetime */
       waiter = dex_waiter_new (future);
       dex_waiter_wait (waiter);
       ret = !!dex_future_get_value (DEX_FUTURE (waiter), error);
       dex_unref (waiter);
+      dex_unref (future);
     }
 
   return ret;
