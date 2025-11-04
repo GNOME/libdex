@@ -1096,15 +1096,7 @@ DexFuture *
 DexFuture *
 (dex_future_new_for_string) (const char *string)
 {
-  GValue value = G_VALUE_INIT;
-  DexFuture *future;
-
-  g_value_init (&value, G_TYPE_STRING);
-  g_value_set_static_string (&value, string);
-  future = (dex_future_new_for_value) (&value);
-  g_value_unset (&value);
-
-  return future;
+  return (dex_future_new_take_string) (g_strdup (string));
 }
 
 /**
