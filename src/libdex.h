@@ -36,6 +36,7 @@
 # include "dex-error.h"
 # include "dex-fiber.h"
 # include "dex-future.h"
+# include "dex-future-list-model.h"
 # include "dex-future-set.h"
 # include "dex-gio.h"
 # include "dex-init.h"

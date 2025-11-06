@@ -22,6 +22,7 @@ testsuite = {
   'test-object': {},
   'test-fiber': {},
   'test-future': {},
+  'test-future-list-model': {},
   'test-scheduler': {},
   'test-semaphore': {},
   'test-stream': {},
