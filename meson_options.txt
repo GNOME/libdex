@@ -25,3 +25,9 @@ option('liburing',
 option('eventfd',
        type: 'feature', value: 'auto',
        description: 'Allow use of eventfd')
+option('pygobject',
+       type: 'boolean', value: true,
+       description: 'Install PyGObject overrides (requires gobject-introspection)')
+option('pygobject-override-dir',
+       type: 'string', value: '',
+       description: 'Path to pygobject overrides directory')

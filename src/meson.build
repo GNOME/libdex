@@ -235,6 +235,24 @@ if get_option('introspection').enabled()
            packages: ['gio-2.0'],
     )
   endif
+
+  if get_option('pygobject')
+    python3 = import('python').find_installation('python3')
+
+    pygobject_override_dir = get_option('pygobject-override-dir')
+    pygobject_override_files = files('Dex.py')
+
+    if pygobject_override_dir == ''
+      pygobject_override_dir = 'gi/overrides'
+    else
+      # Emulate install_data behavior
+      pygobject_override_dir = join_paths(get_option('prefix'), pygobject_override_dir)
+    endif
+
+    python3.install_sources(pygobject_override_files,
+          pure: true,
+        subdir: pygobject_override_dir)
+  endif
 endif
 
 libdex_dep = declare_dependency(
