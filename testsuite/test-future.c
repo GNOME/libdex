@@ -186,11 +186,13 @@ test_promise_type (void)
   g_assert_true (G_TYPE_IS_FINAL (dex_promise_get_type()));
 }
 
+#if !defined (_MSC_VER) && !defined (__clang__)
 static void
 test_promise_autoptr (void)
 {
   G_GNUC_UNUSED g_autoptr(DexPromise) promise = NULL;
 }
+#endif
 
 static void
 test_promise_new (void)
@@ -964,7 +966,9 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Cancellable/cancel", test_cancellable_cancel);
   g_test_add_func ("/Dex/TestSuite/StaticFuture/new", test_static_future_new);
   g_test_add_func ("/Dex/TestSuite/Promise/type", test_promise_type);
+#if !defined (_MSC_VER) && !defined (__clang__)
   g_test_add_func ("/Dex/TestSuite/Promise/autoptr", test_promise_autoptr);
+#endif
   g_test_add_func ("/Dex/TestSuite/Promise/new", test_promise_new);
   g_test_add_func ("/Dex/TestSuite/Promise/resolve", test_promise_resolve);
   g_test_add_func ("/Dex/TestSuite/Timeout/timed-out", test_timeout);
