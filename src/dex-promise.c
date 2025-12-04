@@ -21,7 +21,9 @@
 
 #include "config.h"
 
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #include "dex-fd-private.h"
 #include "dex-future-private.h"

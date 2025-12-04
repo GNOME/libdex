@@ -437,10 +437,11 @@ test_weak_ref_thread_guantlet (void)
   for (guint i = 0; i < G_N_ELEMENTS (threads); i++)
     {
       DexWeakRef *wr = g_new0 (DexWeakRef, 1);
-      g_autofree char *thread_name = g_strdup_printf ("test_weak_ref_thread_guantlet:%d", i);
+      char *thread_name = g_strdup_printf ("test_weak_ref_thread_guantlet:%d", i);
 
       dex_weak_ref_init (wr, to);
       threads[i] = g_thread_new (thread_name, test_weak_ref_thread_guantlet_worker, wr);
+      g_free (thread_name);
     }
 
   g_assert_cmpint (g_atomic_int_get (&finalize_count), ==, 0);

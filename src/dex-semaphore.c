@@ -22,7 +22,10 @@
 #include "config.h"
 
 #include <errno.h>
+
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #ifdef HAVE_EVENTFD
 # include <sys/eventfd.h>
@@ -199,7 +202,7 @@ dex_semaphore_init (DexSemaphore *semaphore)
 void
 dex_semaphore_post (DexSemaphore *semaphore)
 {
-  return dex_semaphore_post_many (semaphore, 1);
+  dex_semaphore_post_many (semaphore, 1);
 }
 
 void

@@ -20,9 +20,15 @@
 
 #include "config.h"
 
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #include "dex-fd-private.h"
+
+#ifdef G_OS_WIN32
+#include <io.h>
+#endif
 
 int
 dex_fd_peek (const DexFD *fd)

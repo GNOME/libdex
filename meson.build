@@ -139,6 +139,11 @@ if get_option('buildtype') != 'plain' and get_option('stack-protector')
     test_c_args += '-fstack-protector-strong'
   endif
 endif
+
+# Currently required for Visual Studio builds (VS2022 and 2026), for C11 _Atomic
+if cc.get_id() == 'msvc'
+  test_c_args += '-experimental:c11atomics'
+endif
 foreach arg: test_c_args
   if cc.has_multi_arguments(arg)
     project_c_args += arg
@@ -202,6 +207,10 @@ functions = [
   'mprotect',
 ]
 
+headers = [
+  'unistd.h',
+]
+
 if not get_option('eventfd').disabled()
   functions += ['eventfd']
 endif
@@ -209,6 +218,13 @@ endif
 foreach f : functions
   if cc.has_function(f)
     define = 'HAVE_' + f.underscorify().to_upper()
+    config_h.set10(define, true)
+  endif
+endforeach
+
+foreach h : headers
+  if cc.has_header(h)
+    define = 'HAVE_' + h.underscorify().to_upper()
     config_h.set10(define, true)
   endif
 endforeach
@@ -223,7 +239,8 @@ subdir('src')
 if get_option('tests')
   subdir('testsuite')
 endif
-if get_option('examples')
+# Don't build the examples for now on Visual Studio, due to g_autofoo
+if get_option('examples') and cc.get_id() != 'msvc'
   subdir('examples')
 endif
 if get_option('docs')
