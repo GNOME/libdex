@@ -239,7 +239,8 @@ subdir('src')
 if get_option('tests')
   subdir('testsuite')
 endif
-if get_option('examples')
+# Don't build the examples for now on Visual Studio, due to g_autofoo
+if get_option('examples') and cc.get_id() != 'msvc'
   subdir('examples')
 endif
 if get_option('docs')
