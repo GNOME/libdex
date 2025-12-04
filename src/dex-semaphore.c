@@ -202,7 +202,7 @@ dex_semaphore_init (DexSemaphore *semaphore)
 void
 dex_semaphore_post (DexSemaphore *semaphore)
 {
-  return dex_semaphore_post_many (semaphore, 1);
+  dex_semaphore_post_many (semaphore, 1);
 }
 
 void
