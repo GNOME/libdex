@@ -71,7 +71,7 @@ libdex_deps = [
   glib_dep,
 ]
 
-if host_machine.system() != 'darwin'
+if host_machine.system() != 'darwin' and cc.get_argument_syntax() != 'msvc'
   libatomic_dep = cc.find_library('atomic')
   if not cc.links('int main(){}', dependencies: [libatomic_dep])
     error('libatomic dependency is missing!')

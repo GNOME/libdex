@@ -139,6 +139,11 @@ if get_option('buildtype') != 'plain' and get_option('stack-protector')
     test_c_args += '-fstack-protector-strong'
   endif
 endif
+
+# Currently required for Visual Studio builds (VS2022 and 2026), for C11 _Atomic
+if cc.get_id() == 'msvc'
+  test_c_args += '-experimental:c11atomics'
+endif
 foreach arg: test_c_args
   if cc.has_multi_arguments(arg)
     project_c_args += arg
