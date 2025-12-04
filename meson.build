@@ -207,6 +207,10 @@ functions = [
   'mprotect',
 ]
 
+headers = [
+  'unistd.h',
+]
+
 if not get_option('eventfd').disabled()
   functions += ['eventfd']
 endif
@@ -214,6 +218,13 @@ endif
 foreach f : functions
   if cc.has_function(f)
     define = 'HAVE_' + f.underscorify().to_upper()
+    config_h.set10(define, true)
+  endif
+endforeach
+
+foreach h : headers
+  if cc.has_header(h)
+    define = 'HAVE_' + h.underscorify().to_upper()
     config_h.set10(define, true)
   endif
 endforeach
