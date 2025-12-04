@@ -22,7 +22,10 @@
 
 #include <errno.h>
 #include <fcntl.h>
+
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #include "dex-compat-private.h"
 #include "dex-posix-aio-backend-private.h"
