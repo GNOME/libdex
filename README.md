@@ -34,7 +34,11 @@ $ ninja
 $ ninja test
 ```
 
-You can build for Windows using mingw which is easy on Fedora Linux.
+You can build for Windows using mingw which is easy on Fedora Linux, or
+using Visual Studio 2022 17.5 or later, or with `clang-cl`. Building with
+Visual Studio or `clang-cl` would involve using a Visual Studio command
+prompt and running something like what is done on UNIX platforms above,
+and setting the envvars `CC` and `CXX` to point to `clang-cl` if needed.
 
 ```sh
 $ sudo dnf install mingw64-gcc mingw64-glib2
