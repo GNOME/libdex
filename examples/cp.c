@@ -21,7 +21,10 @@
 #include "config.h"
 
 #include <libdex.h>
+
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #define return_if_error(error) \
   G_STMT_START { \
