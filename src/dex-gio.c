@@ -184,6 +184,55 @@ dex_output_stream_write_bytes (GOutputStream *stream,
 }
 
 static void
+dex_file_create_cb (GObject      *object,
+                    GAsyncResult *result,
+                    gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GFileOutputStream *stream;
+  GError *error = NULL;
+
+  if (!(stream = g_file_create_finish (G_FILE (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&stream));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_create:
+ * @file: a [iface@Gio.File]
+ * @flags: flags for creating the file
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.File.create] as a [class@Dex.Future].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to
+ *   a [class@Gio.FileOutputStream] or rejects with error.
+ *
+ * Since: 1.1
+ */
+DexFuture *
+dex_file_create (GFile            *file,
+                 GFileCreateFlags  flags,
+                 int               io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_create_async (file,
+                       flags,
+                       io_priority,
+                       dex_promise_get_cancellable (promise),
+                       dex_file_create_cb,
+                       dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_file_read_cb (GObject      *object,
                   GAsyncResult *result,
                   gpointer      user_data)
