@@ -43,7 +43,7 @@ stack. They are represented with the [class@Dex.Fiber] type which is also a
 [class@Dex.Future].
 
 To create a fiber, use [method@Dex.Scheduler.spawn] with the appropriate
-scheduler. For thread pool usage, [func@Dex.ThreadPoolScheduler.get_default()]
+scheduler. For thread pool usage, [func@Dex.ThreadPoolScheduler.get_default]
 will get you the default thread pool.
 
 Fibers are scheduled from a [struct@GLib.Source] in a [struct@GLib.MainContext]
