@@ -111,6 +111,9 @@ DEX_AVAILABLE_IN_ALL
 DexFuture *dex_input_stream_read_bytes                 (GInputStream             *stream,
                                                         gsize                     count,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_1
+DexFuture *dex_data_input_stream_read_line             (GDataInputStream         *stream,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_close                     (GOutputStream            *self,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;

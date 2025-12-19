@@ -129,6 +129,60 @@ dex_input_stream_read_bytes (GInputStream *stream,
 }
 
 static void
+dex_data_input_stream_read_line_cb (GObject      *object,
+                                    GAsyncResult *result,
+                                    gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  char *line = NULL;
+
+  line = g_data_input_stream_read_line_finish (G_DATA_INPUT_STREAM (object), result, NULL, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_string (promise, g_steal_pointer (&line));
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_data_input_stream_read_line:
+ * @stream: a [class@Gio.DataInputStream]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
+ *
+ * Reads a line from the data input stream.
+ *
+ * Wraps [method@Gio.DataInputStream.read_line_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to a string containing the line (without the line terminator), or %NULL
+ *   if the end of the stream is reached.
+ *
+ * Since: 1.1
+ */
+DexFuture *
+dex_data_input_stream_read_line (GDataInputStream *stream,
+                                  int               io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_DATA_INPUT_STREAM (stream));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_data_input_stream_read_line_async (stream,
+                                       io_priority,
+                                       dex_promise_get_cancellable (promise),
+                                       dex_data_input_stream_read_line_cb,
+                                       dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_output_stream_write_bytes_cb (GObject      *object,
                                   GAsyncResult *result,
                                   gpointer      user_data)
