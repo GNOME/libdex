@@ -30,6 +30,7 @@
 #include "dex-promise.h"
 #include "dex-thread-pool-scheduler.h"
 #include "dex-thread.h"
+#include "dex-watch-private.h"
 
 typedef struct _DexFileInfoList DexFileInfoList;
 
@@ -2286,4 +2287,26 @@ dex_unlink (const char *path)
                            dex_unlink_thread,
                            g_strdup (path),
                            g_free);
+}
+
+/**
+ * dex_fd_watch:
+ * @fd: a file-descriptor
+ * @events: the POLLOUT|POLLIN style bitmask to watch for
+ *
+ * Creates a new GSource that will fire when @events is satisfied.
+ *
+ * This is primarily useful when integrating with legacy systems on a
+ * fiber.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to the
+ *   revents value when @events is satisfied.
+ *
+ * Since: 1.1
+ */
+DexFuture *
+dex_fd_watch (int fd,
+              int events)
+{
+  return dex_watch_new (fd, events);
 }

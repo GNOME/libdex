@@ -34,6 +34,7 @@ libdex_sources = [
   'dex-timeout.c',
   'dex-version.c',
   'dex-waiter.c',
+  'dex-watch.c',
   'dex-work-queue.c',
   'dex-work-stealing-queue.c',
 ]

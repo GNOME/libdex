@@ -28,6 +28,7 @@ testsuite = {
   'test-stream': {},
   'test-thread': {},
   'test-version': {},
+  'test-watch': {},
 }
 
 testsuite_deps = [

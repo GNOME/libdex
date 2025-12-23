@@ -190,6 +190,9 @@ DEX_AVAILABLE_IN_1_1
 DexFuture *dex_find_program_in_path                    (const char               *program) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_1
 DexFuture *dex_unlink                                  (const char               *path) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_1
+DexFuture *dex_fd_watch                                (int                       fd,
+                                                        int                       events) G_GNUC_WARN_UNUSED_RESULT;
 
 #ifdef G_OS_UNIX
 DEX_AVAILABLE_IN_ALL
