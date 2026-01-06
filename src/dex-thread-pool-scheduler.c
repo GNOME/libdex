@@ -126,6 +126,8 @@ dex_thread_pool_scheduler_spawn (DexScheduler *scheduler,
    * number of them until latency reaches some threshold.
    */
 
+  g_assert (worker != NULL);
+
   DEX_SCHEDULER_GET_CLASS (worker)->spawn (DEX_SCHEDULER (worker), fiber);
 }
 
@@ -212,13 +214,16 @@ dex_thread_pool_scheduler_new (void)
       DexThreadPoolWorker *thread_pool_worker;
 
       thread_pool_worker = dex_thread_pool_worker_new (thread_pool_scheduler->global_work_queue,
-                                                       thread_pool_scheduler->set);
+                                                       thread_pool_scheduler->set,
+                                                       i == 0);
 
       if (thread_pool_worker == NULL)
         break;
 
       thread_pool_scheduler->workers[thread_pool_scheduler->n_workers++] = thread_pool_worker;
     }
+
+  g_assert (thread_pool_scheduler->n_workers > 0);
 
   atomic_thread_fence (memory_order_seq_cst);
 

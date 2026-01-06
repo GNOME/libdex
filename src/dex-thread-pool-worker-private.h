@@ -36,7 +36,8 @@ typedef struct _DexThreadPoolWorkerSet DexThreadPoolWorkerSet;
 
 GType                   dex_thread_pool_worker_get_type  (void) G_GNUC_CONST;
 DexThreadPoolWorker    *dex_thread_pool_worker_new       (DexWorkQueue           *work_queue,
-                                                          DexThreadPoolWorkerSet *set);
+                                                          DexThreadPoolWorkerSet *set,
+                                                          gboolean                force_create);
 DexThreadPoolWorkerSet *dex_thread_pool_worker_set_new   (void);
 DexThreadPoolWorkerSet *dex_thread_pool_worker_set_ref   (DexThreadPoolWorkerSet *set);
 void                    dex_thread_pool_worker_set_unref (DexThreadPoolWorkerSet *set);

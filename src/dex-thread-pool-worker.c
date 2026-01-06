@@ -26,6 +26,7 @@
 #include "dex-aio-backend-private.h"
 #include "dex-compat-private.h"
 #include "dex-fiber-private.h"
+#include "dex-posix-aio-backend-private.h"
 #include "dex-thread-pool-worker-private.h"
 #include "dex-thread-storage-private.h"
 #include "dex-work-stealing-queue-private.h"
@@ -60,6 +61,7 @@ struct _DexThreadPoolWorker
   GCond                      setup_cond;
 
   DexThreadPoolWorkerStatus  status : 2;
+  guint                      force_create : 1;
 };
 
 typedef struct _DexThreadPoolWorkerClass
@@ -266,6 +268,15 @@ dex_thread_pool_worker_thread_func (gpointer data)
 
   aio_backend = dex_aio_backend_get_default ();
   aio_context = dex_aio_backend_create_context (aio_backend);
+
+  /* Try a fallback aio-backend (POSIX) if we _MUST_ create a
+   * worker and our preferred failed for some reason.
+   */
+  if (aio_context == NULL && thread_pool_worker->force_create)
+    {
+      aio_backend = dex_posix_aio_backend_get_fallback ();
+      aio_context = dex_aio_backend_create_context (aio_backend);
+    }
 
   /* If we fail to setup an AIO context, then there is no point in
    * adding this thread pool worker. Just bail immediately and notify
@@ -508,7 +519,8 @@ dex_thread_pool_worker_set_create_source (DexThreadPoolWorkerSet *set,
 
 DexThreadPoolWorker *
 dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
-                            DexThreadPoolWorkerSet *set)
+                            DexThreadPoolWorkerSet *set,
+                            gboolean                force_create)
 {
   DexThreadPoolWorker *thread_pool_worker;
   gboolean failed;
@@ -522,6 +534,7 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
   thread_pool_worker->global_work_queue = dex_ref (work_queue);
   thread_pool_worker->work_stealing_queue = dex_work_stealing_queue_new (255);
   thread_pool_worker->set = set;
+  thread_pool_worker->force_create = !!force_create;
 
   /* Now spawn our thread to process events via GSource */
   g_mutex_lock (&thread_pool_worker->setup_mutex);

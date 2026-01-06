@@ -68,6 +68,8 @@ typedef struct _DexPosixAioContext
 DEX_DEFINE_FINAL_TYPE (DexPosixAioBackend, dex_posix_aio_backend, DEX_TYPE_AIO_BACKEND)
 
 static GThreadPool *io_thread_pool;
+static DexAioBackend *fallback;
+static G_LOCK_DEFINE (fallback);
 
 static void
 dex_posix_aio_context_take (DexPosixAioContext *posix_aio_context,
@@ -254,5 +256,16 @@ dex_posix_aio_backend_init (DexPosixAioBackend *posix_aio_backend)
 DexAioBackend *
 dex_posix_aio_backend_new (void)
 {
-  return (DexAioBackend *)dex_object_create_instance (DEX_TYPE_POSIX_AIO_BACKEND);
+  return dex_ref (dex_posix_aio_backend_get_fallback ());
+}
+
+DexAioBackend *
+dex_posix_aio_backend_get_fallback (void)
+{
+  G_LOCK (fallback);
+  if (fallback == NULL)
+    fallback = (DexAioBackend *)dex_object_create_instance (DEX_TYPE_POSIX_AIO_BACKEND);
+  G_UNLOCK (fallback);
+
+  return fallback;
 }
