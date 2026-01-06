@@ -38,6 +38,7 @@
 struct _DexUringAioBackend
 {
   DexAioBackend parent_instance;
+  DexAioContext *first;
 };
 
 struct _DexUringAioBackendClass
@@ -265,6 +266,9 @@ dex_uring_aio_backend_create_context (DexAioBackend *aio_backend)
 
   g_assert (DEX_IS_URING_AIO_BACKEND (aio_backend));
 
+  if ((aio_context = g_atomic_pointer_exchange (&((DexUringAioBackend *)aio_backend)->first, NULL)))
+    return (DexAioContext *)aio_context;
+
   aio_context = (DexUringAioContext *)
     g_source_new (&dex_uring_aio_context_source_funcs,
                   sizeof *aio_context);
@@ -381,7 +385,8 @@ dex_uring_aio_backend_new (void)
       return NULL;
     }
 
-  g_source_unref ((GSource *)aio_context);
+  /* Save it for the first request */
+  ((DexUringAioBackend *)aio_backend)->first = g_steal_pointer (&aio_context);
 
   return aio_backend;
 }
