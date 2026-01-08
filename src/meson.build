@@ -77,6 +77,18 @@ libdex_deps = [
 features_conf = configuration_data()
 features_conf.set10('HAVE_GDBUS_CODEGEN', have_gdbus_codegen)
 
+pkgconfig_vars = []
+
+if have_gdbus_codegen
+  codegen_path = '@0@/libdex-@1@/dex-gdbus-codegen-extension.py'.format(get_option('libexecdir'), api_version)
+  pkgconfig_vars += ['gdbus_codegen_extension=${prefix}/@0@'.format(codegen_path)]
+
+  install_data(
+          sources: 'dex-gdbus-codegen-extension.py',
+          install_dir : get_option('libexecdir') / 'libdex-@0@'.format(api_version)
+  )
+endif
+
 if host_machine.system() != 'darwin' and cc.get_argument_syntax() != 'msvc'
   libatomic_dep = cc.find_library('atomic')
   if not cc.links('int main(){}', dependencies: [libatomic_dep])
@@ -221,6 +233,7 @@ pkg.generate(
      filebase: 'libdex-' + api_version,
       subdirs: 'libdex-@0@'.format(api_version),
      requires: ['gio-2.0'],
+    variables: pkgconfig_vars,
 )
 
 if get_option('introspection').enabled()
