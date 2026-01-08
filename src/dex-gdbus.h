@@ -27,9 +27,51 @@
 # include <gio/gunixfdlist.h>
 #endif
 
+#include "dex-features.h"
 #include "dex-future.h"
 
 G_BEGIN_DECLS
+
+#ifdef DEX_FEATURE_GDBUS_CODEGEN
+/**
+ * DexDBusInterfaceSkeletonFlags:
+ * @DEX_DBUS_INTERFACE_SKELETON_FLAGS_NONE: No flags set.
+ * @DEX_DBUS_INTERFACE_SKELETON_FLAGS_HANDLE_METHOD_INVOCATIONS_IN_FIBER: Each method invocation is
+ *   handled in a fiber dedicated to the invocation. This means that the method implementation can
+ *   use dex_await or similar. Authorization for method invocations uses the same fiber.
+ *   This can not be used in combination with METHOD_INVOCATIONS_IN_THREAD and trying to do so leads
+ *   to a runtime error.
+ *
+ * Flags describing the behavior of a #GDBusInterfaceSkeleton instance.
+ *
+ * Since: 1.1
+ */
+typedef enum
+{
+  DEX_DBUS_INTERFACE_SKELETON_FLAGS_NONE = 0,
+  DEX_DBUS_INTERFACE_SKELETON_FLAGS_HANDLE_METHOD_INVOCATIONS_IN_FIBER = (1 << 0),
+} DexDBusInterfaceSkeletonFlags;
+
+#define DEX_TYPE_DBUS_INTERFACE_SKELETON (dex_dbus_interface_skeleton_get_type ())
+DEX_AVAILABLE_IN_1_1
+G_DECLARE_DERIVABLE_TYPE (DexDBusInterfaceSkeleton,
+                          dex_dbus_interface_skeleton,
+                          DEX, DBUS_INTERFACE_SKELETON,
+                          GDBusInterfaceSkeleton)
+
+struct _DexDBusInterfaceSkeletonClass
+{
+  GDBusInterfaceSkeletonClass parent_class;
+};
+
+DEX_AVAILABLE_IN_1_1
+void                          dex_dbus_interface_skeleton_cancel    (DexDBusInterfaceSkeleton      *interface_);
+DEX_AVAILABLE_IN_1_1
+DexDBusInterfaceSkeletonFlags dex_dbus_interface_skeleton_get_flags (DexDBusInterfaceSkeleton      *interface_);
+DEX_AVAILABLE_IN_1_1
+void                          dex_dbus_interface_skeleton_set_flags (DexDBusInterfaceSkeleton      *interface_,
+                                                                     DexDBusInterfaceSkeletonFlags  flags);
+#endif /* DEX_FEATURE_GDBUS_CODEGEN */
 
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_bus_get                                 (GBusType                  bus_type) G_GNUC_WARN_UNUSED_RESULT;

@@ -74,6 +74,9 @@ libdex_deps = [
   glib_dep,
 ]
 
+features_conf = configuration_data()
+features_conf.set10('HAVE_GDBUS_CODEGEN', have_gdbus_codegen)
+
 if host_machine.system() != 'darwin' and cc.get_argument_syntax() != 'msvc'
   libatomic_dep = cc.find_library('atomic')
   if not cc.links('int main(){}', dependencies: [libatomic_dep])
@@ -146,6 +149,14 @@ configure_file(
           input: 'dex-version.h.in',
          output: 'dex-version.h',
   configuration: version_conf,
+        install: true,
+    install_dir: join_paths(get_option('includedir'), 'libdex-@0@'.format(api_version))
+)
+
+configure_file(
+          input: 'dex-features.h.in',
+         output: 'dex-features.h',
+  configuration: features_conf,
         install: true,
     install_dir: join_paths(get_option('includedir'), 'libdex-@0@'.format(api_version))
 )

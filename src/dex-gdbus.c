@@ -22,11 +22,237 @@
 #include "config.h"
 
 #include "dex-async-pair-private.h"
+#include "dex-cancellable.h"
 #include "dex-future-private.h"
 #include "dex-future-set.h"
 #include "dex-promise.h"
+#include "dex-scheduler.h"
 
 #include "dex-gdbus.h"
+
+#ifdef DEX_FEATURE_GDBUS_CODEGEN
+typedef struct _DexDBusInterfaceSkeletonPrivate
+{
+  GCancellable *cancellable;
+  DexDBusInterfaceSkeletonFlags flags;
+} DexDBusInterfaceSkeletonPrivate;
+
+/**
+ * DexDBusInterfaceSkeleton:
+ *
+ * #DexDBusInterfaceSkeleton provides integration between libdex and the GDBus
+ * codegen. If the gdbus-codegen dex extension is used, all generated
+ * InterfaceSkeletons inherit from #DexDBusInterfaceSkeleton instead of
+ * #GDBusInterfaceSkeleton, which allows the use of the API exposed here.
+ */
+
+G_DEFINE_ABSTRACT_TYPE_WITH_CODE (DexDBusInterfaceSkeleton,
+                                  dex_dbus_interface_skeleton,
+                                  G_TYPE_DBUS_INTERFACE_SKELETON,
+                                  G_ADD_PRIVATE (DexDBusInterfaceSkeleton))
+
+typedef struct _DispatchInFiberData
+{
+  GDBusInterfaceMethodCallFunc method_call_func;
+  GDBusMethodInvocation *invocation;
+  GDBusInterfaceSkeleton *_interface;
+  GDBusObject *object;
+} DispatchInFiberData;
+
+static void
+dispatch_in_fiber_data_free (DispatchInFiberData *data)
+{
+  g_clear_object (&data->invocation);
+  g_clear_object (&data->_interface);
+  g_clear_object (&data->object);
+  free (data);
+}
+
+static DexFuture *
+dispatch_in_fiber (gpointer user_data)
+{
+  DispatchInFiberData *data = user_data;
+  GDBusMethodInvocation *invocation = data->invocation;
+  GDBusInterfaceSkeleton *_interface = data->_interface;
+  GDBusObject *object = data->object;
+  gboolean authorized = TRUE;
+
+  if (object != NULL)
+    {
+      g_signal_emit_by_name (object,
+                             "authorize-method",
+                             _interface,
+                             invocation,
+                             &authorized);
+    }
+  if (authorized)
+    {
+      g_signal_emit_by_name (_interface,
+                             "g-authorize-method",
+                             invocation,
+                             &authorized);
+    }
+
+  g_clear_object (&data->_interface);
+  g_clear_object (&data->object);
+
+  if (authorized)
+    {
+      GDBusInterfaceMethodCallFunc func = data->method_call_func;
+
+      func (g_dbus_method_invocation_get_connection (invocation),
+            g_dbus_method_invocation_get_sender (invocation),
+            g_dbus_method_invocation_get_object_path (invocation),
+            g_dbus_method_invocation_get_interface_name (invocation),
+            g_dbus_method_invocation_get_method_name (invocation),
+            g_dbus_method_invocation_get_parameters (invocation),
+            invocation,
+            g_dbus_method_invocation_get_user_data (invocation));
+    }
+
+  return dex_future_new_true ();
+}
+
+static void
+dex_dbus_interface_skeleton_method_dispatch (GDBusInterfaceSkeleton       *_interface,
+                                             GDBusInterfaceMethodCallFunc  method_call_func,
+                                             GDBusMethodInvocation        *invocation,
+                                             GDBusInterfaceSkeletonFlags   flags,
+                                             GDBusObject                  *object)
+{
+  DexDBusInterfaceSkeleton *dex_interface_ = DEX_DBUS_INTERFACE_SKELETON (_interface);
+  DexDBusInterfaceSkeletonPrivate *priv =
+    dex_dbus_interface_skeleton_get_instance_private (dex_interface_);
+  DispatchInFiberData *data;
+  DexFuture *future;
+
+  if ((priv->flags & DEX_DBUS_INTERFACE_SKELETON_FLAGS_HANDLE_METHOD_INVOCATIONS_IN_FIBER) == 0)
+    {
+      GDBusInterfaceSkeletonClass *skeleton_class =
+        G_DBUS_INTERFACE_SKELETON_CLASS (dex_dbus_interface_skeleton_parent_class);
+
+      skeleton_class->method_dispatch (_interface, method_call_func, invocation, flags, object);
+      return;
+    }
+
+  g_return_if_fail ((flags & G_DBUS_INTERFACE_SKELETON_FLAGS_HANDLE_METHOD_INVOCATIONS_IN_THREAD) == 0);
+
+  data = g_new0 (DispatchInFiberData, 1);
+  data->method_call_func = method_call_func;
+  g_set_object (&data->invocation, invocation);
+  g_set_object (&data->object, object);
+  g_set_object (&data->_interface, _interface);
+
+  future = dex_scheduler_spawn (NULL, 0,
+                                dispatch_in_fiber,
+                                data,
+                                (GDestroyNotify) dispatch_in_fiber_data_free);
+
+  dex_future_disown (dex_future_first (future,
+                                       dex_cancellable_new_from_cancellable (priv->cancellable),
+                                       NULL));
+}
+
+static void
+dex_dbus_interface_skeleton_dispose (GObject *object)
+{
+  DexDBusInterfaceSkeleton *interface_ = DEX_DBUS_INTERFACE_SKELETON (object);
+  DexDBusInterfaceSkeletonPrivate *priv =
+    dex_dbus_interface_skeleton_get_instance_private (interface_);
+
+  g_cancellable_cancel (priv->cancellable);
+  g_clear_object (&priv->cancellable);
+
+  G_OBJECT_CLASS (dex_dbus_interface_skeleton_parent_class)->dispose (object);
+}
+
+static void
+dex_dbus_interface_skeleton_class_init (DexDBusInterfaceSkeletonClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+  GDBusInterfaceSkeletonClass *skeleton_class = G_DBUS_INTERFACE_SKELETON_CLASS (klass);
+
+  object_class->dispose = dex_dbus_interface_skeleton_dispose;
+
+  skeleton_class->method_dispatch = dex_dbus_interface_skeleton_method_dispatch;
+}
+
+static void
+dex_dbus_interface_skeleton_init (DexDBusInterfaceSkeleton *interface_)
+{
+  DexDBusInterfaceSkeletonPrivate *priv =
+    dex_dbus_interface_skeleton_get_instance_private (interface_);
+
+  priv->cancellable = g_cancellable_new ();
+}
+
+/**
+ * dex_dbus_interface_skeleton_cancel:
+ * @interface_: a #DexDBusInterfaceSkeleton
+ *
+ * Cancels all in-flight fibers.
+ *
+ * Since: 1.1
+ */
+void
+dex_dbus_interface_skeleton_cancel (DexDBusInterfaceSkeleton *interface_)
+{
+  DexDBusInterfaceSkeletonPrivate *priv;
+
+  g_return_if_fail (DEX_IS_DBUS_INTERFACE_SKELETON (interface_));
+
+  priv = dex_dbus_interface_skeleton_get_instance_private (interface_);
+
+  g_cancellable_cancel (priv->cancellable);
+  g_clear_object (&priv->cancellable);
+  priv->cancellable = g_cancellable_new ();
+}
+
+/**
+ * dex_dbus_interface_skeleton_get_flags:
+ * @interface_: a #DexDBusInterfaceSkeleton
+ *
+ * Gets the #DexDBusInterfaceSkeletonFlags that describes the behavior
+ * of @interface_
+ *
+ * Returns: One or more flags from the #DexDBusInterfaceSkeletonFlags enumeration.
+ *
+ * Since: 1.1
+ */
+DexDBusInterfaceSkeletonFlags
+dex_dbus_interface_skeleton_get_flags (DexDBusInterfaceSkeleton *interface_)
+{
+  DexDBusInterfaceSkeletonPrivate *priv;
+
+  g_return_val_if_fail (DEX_IS_DBUS_INTERFACE_SKELETON (interface_),
+                        DEX_DBUS_INTERFACE_SKELETON_FLAGS_NONE);
+
+  priv = dex_dbus_interface_skeleton_get_instance_private (interface_);
+  return priv->flags;
+}
+
+/**
+ * dex_dbus_interface_skeleton_set_flags:
+ * @interface_: a #DexDBusInterfaceSkeleton
+ * @flags: Flags from the #DexDBusInterfaceSkeletonFlags enumeration.
+ *
+ * Sets flags describing what the behavior of @interface_ should be.
+ *
+ * Since: 1.1
+ */
+void
+dex_dbus_interface_skeleton_set_flags (DexDBusInterfaceSkeleton      *interface_,
+                                       DexDBusInterfaceSkeletonFlags  flags)
+{
+  DexDBusInterfaceSkeletonPrivate *priv;
+
+  g_return_if_fail (DEX_IS_DBUS_INTERFACE_SKELETON (interface_));
+
+  priv = dex_dbus_interface_skeleton_get_instance_private (interface_);
+
+  priv->flags = flags;
+}
+#endif /* DEX_FEATURE_GDBUS_CODEGEN */
 
 static inline DexAsyncPair *
 create_async_pair (const char *name)

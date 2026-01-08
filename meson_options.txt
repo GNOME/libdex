@@ -31,3 +31,6 @@ option('pygobject',
 option('pygobject-override-dir',
        type: 'string', value: '',
        description: 'Path to pygobject overrides directory')
+option('gdbus',
+       type: 'feature', value: 'auto',
+       description: 'Integrate with gdbus')

@@ -58,6 +58,16 @@ if cc.has_header('ucontext.h')
   config_h.set('HAVE_UCONTEXT_H', 1)
 endif
 
+have_gdbus_codegen = get_option('gdbus').require(
+  cc.has_member(
+    'GDBusInterfaceSkeletonClass',
+    'method_dispatch',
+    prefix : '#include <gio/gio.h>',
+    dependencies: glib_dep,
+  ),
+  error_message: 'gio GDBusInterfaceSkeletonClass::method_dispatch vfunc is required for -Dgdbus=enabled',
+).allowed()
+
 if host_machine.system() == 'darwin'
   # known alignment for darwin where we're using helpers
   if host_machine.cpu_family() == 'aarch64'
