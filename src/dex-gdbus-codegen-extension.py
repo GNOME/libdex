@@ -283,6 +283,7 @@ class CodeGenerator:
             "    dex_promise_reject (promise, error);\n"
             "  else\n"
             "    dex_promise_resolve_object (promise, proxy);\n"
+            "  dex_unref (promise);\n"
             "}\n"
             "\n" % (i.name_lower, i.camel_name, i.name_lower)
         )
@@ -420,7 +421,11 @@ class CodeGenerator:
             "    &error);\n"
             "  G_GNUC_END_IGNORE_DEPRECATIONS\n"
             "  if (!success)\n"
-            "    return dex_promise_reject (promise, error);\n"
+            "    {\n"
+            "      dex_promise_reject (promise, error);\n"
+            "      dex_unref (promise);\n"
+            "      return;\n"
+            "    }\n"
         )
         if len(m.out_args) > 0:
             self.outfile.write("  r = g_new0 (%s, 1);\n" % result_type)
@@ -433,11 +438,14 @@ class CodeGenerator:
                 "    promise,\n"
                 "    %s,\n"
                 "    r);\n"
+                "  dex_unref (promise);\n"
                 "}\n\n" % result_type_name
             )
         else:
             self.outfile.write(
-                "  dex_promise_resolve_boolean (promise, TRUE);\n" "}\n\n"
+                "  dex_promise_resolve_boolean (promise, TRUE);\n"
+                "  dex_unref (promise);\n"
+                "}\n\n"
             )
 
         self.outfile.write(
