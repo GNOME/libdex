@@ -211,11 +211,13 @@ run_foo_service_in_thread (GTask        *task,
 {
   FooServiceData data;
   GMainLoop *main_loop;
+  GMainContext *main_context;
   GDBusConnection *connection;
   DexTestFoo *foo;
   GError *error = NULL;
 
-  main_loop = g_main_loop_new (g_main_context_new (), FALSE);
+  main_context = g_main_context_new ();
+  main_loop = g_main_loop_new (main_context, FALSE);
   g_assert_nonnull (main_loop);
 
   foo = g_object_new (DEX_TEST_TYPE_FOO, NULL);
@@ -251,6 +253,7 @@ run_foo_service_in_thread (GTask        *task,
   g_clear_handle_id (&data.timeout_id, g_source_remove);
 
   g_main_loop_unref (main_loop);
+  g_main_context_unref (main_context);
   g_clear_object (&foo);
   g_clear_object (&connection);
 
@@ -375,6 +378,7 @@ test_gdbus_method_call_result (void)
   DexTestDbusFoo *proxy;
   GTask *foo_service;
   GError *error = NULL;
+  char *name;
 
   foo_service = run_foo_service ();
 
@@ -390,8 +394,9 @@ test_gdbus_method_call_result (void)
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
-  while (g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy)) == NULL)
+  while (!(name = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy))))
     g_main_context_iteration (NULL, TRUE);
+  g_free (name);
 
   future = dex_test_dbus_foo_call_foo_future (proxy);
 
@@ -421,6 +426,7 @@ test_gdbus_method_call_cancel (void)
   DexTestDbusFoo *proxy;
   GTask *foo_service;
   GError *error = NULL;
+  char *name;
 
   foo_service = run_foo_service ();
 
@@ -436,8 +442,9 @@ test_gdbus_method_call_cancel (void)
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
-  while (g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy)) == NULL)
+  while (!(name = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy))))
     g_main_context_iteration (NULL, TRUE);
+  g_free (name);
 
   promise = dex_promise_new ();
   future = dex_future_first (DEX_FUTURE (promise),
@@ -470,6 +477,7 @@ test_gdbus_method_call_complex (void)
   const GValue *value;
   DexTestDbusFooBarResult *result;
   GError *error = NULL;
+  char *name;
 
   foo_service = run_foo_service ();
 
@@ -485,8 +493,9 @@ test_gdbus_method_call_complex (void)
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
-  while (g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy)) == NULL)
+  while (!(name = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy))))
     g_main_context_iteration (NULL, TRUE);
+  g_free (name);
 
   future = dex_test_dbus_foo_call_bar_future (proxy,
                                               (const gchar * []) {
@@ -536,6 +545,7 @@ test_gdbus_signal_wait_simple (void)
   const GValue *value;
   DexTestDbusFooBazSignal *result;
   GError *error = NULL;
+  char *name;
 
   foo_service = run_foo_service ();
 
@@ -551,8 +561,9 @@ test_gdbus_signal_wait_simple (void)
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
-  while (g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy)) == NULL)
+  while (!(name = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy))))
     g_main_context_iteration (NULL, TRUE);
+  g_free (name);
 
   future = dex_test_dbus_foo_wait_baz_future (proxy);
 
@@ -596,6 +607,7 @@ test_gdbus_signal_wait_cancel (void)
   DexFuture *future;
   const GValue *value;
   GError *error = NULL;
+  char *name;
 
   foo_service = run_foo_service ();
 
@@ -611,8 +623,9 @@ test_gdbus_signal_wait_cancel (void)
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
-  while (g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy)) == NULL)
+  while (!(name = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy))))
     g_main_context_iteration (NULL, TRUE);
+  g_free (name);
 
   promise = dex_promise_new ();
   future = dex_future_first (DEX_FUTURE (promise),
@@ -645,6 +658,7 @@ test_gdbus_signal_monitor_basic (void)
   const GValue *value;
   DexTestDbusFooSignalMonitor *signal_monitor;
   GError *error = NULL;
+  char *name;
 
   foo_service = run_foo_service ();
 
@@ -660,8 +674,9 @@ test_gdbus_signal_monitor_basic (void)
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
-  while (g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy)) == NULL)
+  while (!(name = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy))))
     g_main_context_iteration (NULL, TRUE);
+  g_free (name);
 
   signal_monitor = dex_test_dbus_foo_signal_monitor_new (proxy, DEX_TEST_DBUS_FOO_SIGNAL_FOO_BAR);
 
@@ -703,6 +718,7 @@ test_gdbus_signal_monitor_cancel (void)
   const GValue *value;
   DexTestDbusFooSignalMonitor *signal_monitor;
   GError *error = NULL;
+  char *name;
 
   foo_service = run_foo_service ();
 
@@ -718,8 +734,9 @@ test_gdbus_signal_monitor_cancel (void)
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
-  while (g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy)) == NULL)
+  while (!(name = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy))))
     g_main_context_iteration (NULL, TRUE);
+  g_free (name);
 
   signal_monitor = dex_test_dbus_foo_signal_monitor_new (proxy, DEX_TEST_DBUS_FOO_SIGNAL_FOO_BAR);
 
@@ -901,6 +918,7 @@ test_gdbus_fiber_service (void)
   DexFuture *future;
   const GValue *value;
   GError *error = NULL;
+  char *name;
 
   future = dex_scheduler_spawn (NULL, 0, fiber_service, NULL, NULL);
 
@@ -916,8 +934,9 @@ test_gdbus_fiber_service (void)
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
-  while (g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy)) == NULL)
+  while (!(name = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (proxy))))
     g_main_context_iteration (NULL, TRUE);
+  g_free (name);
 
   {
     gboolean done = FALSE;
