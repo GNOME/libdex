@@ -1,3 +1,25 @@
+libdex 1.1.alpha
+================
+
+This is an alpha release for the upcoming GNOME 50
+
+ * New D-Bus support with DexDBusInterfaceSkeleton for dispatching
+   method invocations in fibers, allowing async/await in D-Bus handlers
+ * New dex_bus_own_name_on_connection() for managing bus name ownership
+ * New DexFutureListModel for integrating futures with GListModel
+ * Python asyncio integration allowing Dex.Future to be used with
+   async/await in Python code
+ * New runtime version query API: dex_get_major_version(),
+   dex_get_minor_version(), and dex_get_micro_version()
+ * New GIO wrappers: dex_file_create(), dex_data_input_stream_read_line(),
+   dex_find_program_in_path(), dex_mkdir_with_parents(), and g_unlink()
+ * Improved Visual Studio and clang-cl build support with C11 atomic support
+ * Thread pool scheduler now falls back to POSIX backend for AIO when necessary
+ * io_uring context reuse improvements
+ * Extensive documentation improvements with gi-docgen annotations
+ * Various bug fixes and memory leak fixes
+
+
 libdex 1.0.0
 ============
 
