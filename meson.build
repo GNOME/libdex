@@ -23,7 +23,7 @@ typelibdir = join_paths(libdir, 'girepository-1.0')
 package_name = meson.project_name()
 package_string = '@0@-@1@'.format(package_name, api_version)
 
-glib_req_version = '2.68'
+glib_req_version = '2.87'
 glib_req = '>= @0@'.format(glib_req_version)
 
 if host_machine.system() == 'windows'
@@ -31,6 +31,8 @@ if host_machine.system() == 'windows'
 else
   glib_dep = dependency('gio-unix-2.0', version: glib_req)
 endif
+
+have_gdbus_codegen = get_option('gdbus').enabled()
 
 if host_machine.system() == 'linux' and not get_option('liburing').disabled()
   liburing_req_version = '0.7'
@@ -57,16 +59,6 @@ if cc.has_header('ucontext.h')
   endif
   config_h.set('HAVE_UCONTEXT_H', 1)
 endif
-
-have_gdbus_codegen = get_option('gdbus').require(
-  cc.has_member(
-    'GDBusInterfaceSkeletonClass',
-    'method_dispatch',
-    prefix : '#include <gio/gio.h>',
-    dependencies: glib_dep,
-  ),
-  error_message: 'gio GDBusInterfaceSkeletonClass::method_dispatch vfunc is required for -Dgdbus=enabled',
-).allowed()
 
 if host_machine.system() == 'darwin'
   # known alignment for darwin where we're using helpers
