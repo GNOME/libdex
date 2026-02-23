@@ -1,3 +1,10 @@
+libdex 1.1.rc
+=============
+
+This is a release candidate for 1.1
+
+ * Require GLib 2.87.0
+
 libdex 1.1.alpha
 ================
 
