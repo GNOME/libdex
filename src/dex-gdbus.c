@@ -51,30 +51,12 @@ G_DEFINE_ABSTRACT_TYPE_WITH_CODE (DexDBusInterfaceSkeleton,
                                   G_TYPE_DBUS_INTERFACE_SKELETON,
                                   G_ADD_PRIVATE (DexDBusInterfaceSkeleton))
 
-typedef struct _DispatchInFiberData
-{
-  GDBusInterfaceMethodCallFunc method_call_func;
-  GDBusMethodInvocation *invocation;
-  GDBusInterfaceSkeleton *_interface;
-  GDBusObject *object;
-} DispatchInFiberData;
-
-static void
-dispatch_in_fiber_data_free (DispatchInFiberData *data)
-{
-  g_clear_object (&data->invocation);
-  g_clear_object (&data->_interface);
-  g_clear_object (&data->object);
-  free (data);
-}
-
 static DexFuture *
-dispatch_in_fiber (gpointer user_data)
+dispatch_in_fiber (GDBusInterfaceSkeleton       *_interface,
+                   GDBusInterfaceMethodCallFunc  func,
+                   GDBusMethodInvocation        *invocation,
+                   GDBusObject                  *object)
 {
-  DispatchInFiberData *data = user_data;
-  GDBusMethodInvocation *invocation = data->invocation;
-  GDBusInterfaceSkeleton *_interface = data->_interface;
-  GDBusObject *object = data->object;
   gboolean authorized = TRUE;
 
   if (object != NULL)
@@ -93,13 +75,11 @@ dispatch_in_fiber (gpointer user_data)
                              &authorized);
     }
 
-  g_clear_object (&data->_interface);
-  g_clear_object (&data->object);
+  g_clear_object (&_interface);
+  g_clear_object (&object);
 
   if (authorized)
     {
-      GDBusInterfaceMethodCallFunc func = data->method_call_func;
-
       func (g_dbus_method_invocation_get_connection (invocation),
             g_dbus_method_invocation_get_sender (invocation),
             g_dbus_method_invocation_get_object_path (invocation),
@@ -109,6 +89,8 @@ dispatch_in_fiber (gpointer user_data)
             invocation,
             g_dbus_method_invocation_get_user_data (invocation));
     }
+
+  g_clear_object (&invocation);
 
   return dex_future_new_true ();
 }
@@ -123,7 +105,6 @@ dex_dbus_interface_skeleton_method_dispatch (GDBusInterfaceSkeleton       *_inte
   DexDBusInterfaceSkeleton *dex_interface_ = DEX_DBUS_INTERFACE_SKELETON (_interface);
   DexDBusInterfaceSkeletonPrivate *priv =
     dex_dbus_interface_skeleton_get_instance_private (dex_interface_);
-  DispatchInFiberData *data;
   DexFuture *future;
 
   if ((priv->flags & DEX_DBUS_INTERFACE_SKELETON_FLAGS_HANDLE_METHOD_INVOCATIONS_IN_FIBER) == 0)
@@ -137,16 +118,13 @@ dex_dbus_interface_skeleton_method_dispatch (GDBusInterfaceSkeleton       *_inte
 
   g_return_if_fail ((flags & G_DBUS_INTERFACE_SKELETON_FLAGS_HANDLE_METHOD_INVOCATIONS_IN_THREAD) == 0);
 
-  data = g_new0 (DispatchInFiberData, 1);
-  data->method_call_func = method_call_func;
-  g_set_object (&data->invocation, invocation);
-  g_set_object (&data->object, object);
-  g_set_object (&data->_interface, _interface);
-
-  future = dex_scheduler_spawn (NULL, 0,
-                                dispatch_in_fiber,
-                                data,
-                                (GDestroyNotify) dispatch_in_fiber_data_free);
+  future = dex_scheduler_spawnv (NULL, 0,
+                                 G_CALLBACK (dispatch_in_fiber),
+                                 4,
+                                 G_TYPE_DBUS_INTERFACE_SKELETON, g_object_ref (_interface),
+                                 G_TYPE_POINTER, method_call_func,
+                                 G_TYPE_DBUS_METHOD_INVOCATION, g_object_ref (invocation),
+                                 G_TYPE_DBUS_OBJECT, object ? g_object_ref (object) : NULL);
 
   dex_future_disown (dex_future_first (future,
                                        dex_cancellable_new_from_cancellable (priv->cancellable),
