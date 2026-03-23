@@ -198,6 +198,9 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
  * The fiber will have its own stack and cooperatively schedules among other
  * fibers sharing the scheduler.
  *
+ * This can be called from any thread. The resulting fiber runs on the thread
+ * associated with the @scheduler.
+ *
  * If @stack_size is 0, it will set to a sensible default. Otherwise, it is
  * rounded up to the nearest page size.
  *
