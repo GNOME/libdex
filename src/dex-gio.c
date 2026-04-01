@@ -472,7 +472,7 @@ dex_input_stream_read_cb (GObject      *object,
  * dex_input_stream_read:
  * @self: a [class@Gio.InputStream]
  * @buffer: (array length=count) (element-type guint8) (out caller-allocates)
- * @count: size in bytes to read from the stream into the @buffer
+ * @count: (in): size in bytes to read from the stream into the @buffer
  * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
  *   request
  *

@@ -43,7 +43,7 @@ dex_aio_context_current (void)
  * dex_aio_read:
  * @aio_context: (nullable):
  * @buffer: (array length=count) (element-type guint8) (out caller-allocates):
- * @count: the number of bytes to read
+ * @count: (in): the number of bytes to read
  * @offset: the positioned offset within @fd to read from
  *
  * An asynchronous `pread()` wrapper.
