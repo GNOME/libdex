@@ -136,8 +136,10 @@ if host_machine.system() != 'windows'
   # But otherwise linux can do it all without any custom
   # assembler. Failure to do this might result in CET being
   # disabled for the process by GCC.
-  if ((host_machine.system() != 'linux' or host_machine.cpu_family() == 'mips') and
-      host_machine.system() != 'darwin')
+  if host_machine.system() == 'linux' and host_machine.cpu_family() == 'x86_64'
+    libdex_sources += ['asm.S']
+  elif ((host_machine.system() != 'linux' or host_machine.cpu_family() == 'mips') and
+        host_machine.system() != 'darwin')
     libdex_sources += ['asm.S']
   endif
 

@@ -20,6 +20,12 @@
 # define GET getmcontext
 #endif
 
+#if defined(__linux__) && defined(__x86_64__)
+# define NEEDAMD64CONTEXT 1
+# define SET setmcontext
+# define GET getmcontext
+#endif
+
 #ifdef __APPLE__
 /* We no longer support asm.S task switching on macOS */
 # error "asm.S is not supported on Apple operating systems

@@ -20,12 +20,12 @@
 
 #pragma once
 
+#include "config.h"
+
 #include <signal.h>
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "config.h"
 
 /* The following code is from libtask by Russ Cox to emulate the
  * ucontext implementation in a fashion that doesn't necessarily
@@ -44,6 +44,11 @@
 #endif
 
 #define USE_UCONTEXT 1
+
+#if defined(__linux__) && defined(__x86_64__)
+# undef USE_UCONTEXT
+# define USE_UCONTEXT 0
+#endif
 
 #if defined(__OpenBSD__) || defined(__mips__)
 #include <stdint.h>
@@ -82,6 +87,14 @@ extern void  makecontext(ucontext_t*, void(*)(void), int, ...);
 # else
 #  include "power-ucontext.h"
 # endif
+#endif
+
+#if defined(__linux__) && defined(__x86_64__)
+# define mcontext libthread_mcontext
+# define mcontext_t libthread_mcontext_t
+# define ucontext libthread_ucontext
+# define ucontext_t libthread_ucontext_t
+# include "amd64-ucontext.h"
 #endif
 
 #if defined(__linux__) && defined(__mips__)

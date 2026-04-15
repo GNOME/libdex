@@ -5,6 +5,7 @@
 /* Copyright (c) 2005-2006 Russ Cox, MIT; see COPYRIGHT */
 
 #include "dex-ucontext-private.h"
+#include <stdint.h>
 
 #if defined(__FreeBSD__) && defined(__i386__) && __FreeBSD__ < 5
 # define NEEDX86MAKECONTEXT
@@ -12,6 +13,11 @@
 #endif
 
 #if defined(__OpenBSD__) && defined(__amd64__)
+# define NEEDAMD64MAKECONTEXT
+# define NEEDSWAPCONTEXT
+#endif
+
+#if defined(__linux__) && defined(__x86_64__)
 # define NEEDAMD64MAKECONTEXT
 # define NEEDSWAPCONTEXT
 #endif
@@ -87,4 +93,3 @@ swapcontext(ucontext_t *oucp, const ucontext_t *ucp)
 	return 0;
 }
 #endif
-
