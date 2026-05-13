@@ -76,6 +76,20 @@ test_object_new (void)
   return (TestObject *)g_type_create_instance (TEST_TYPE_OBJECT);
 }
 
+static guint
+test_object_count_weak_refs (TestObject *to)
+{
+  DexObject *object = DEX_OBJECT (to);
+  guint count = 0;
+
+  dex_object_lock (object);
+  for (DexWeakRef *wr = object->weak_refs; wr != NULL; wr = wr->next)
+    count++;
+  dex_object_unlock (object);
+
+  return count;
+}
+
 static void
 test_weak_ref_st (void)
 {
@@ -116,6 +130,46 @@ test_weak_ref_st (void)
   g_assert_null (dex_weak_ref_get (&wr));
 
   dex_weak_ref_clear (&wr);
+}
+
+static void
+test_weak_ref_retarget (void)
+{
+  TestObject *to1;
+  TestObject *to2;
+  TestObject *borrowed;
+  DexWeakRef wr;
+
+  finalize_count = 0;
+
+  to1 = test_object_new ();
+  to2 = test_object_new ();
+
+  dex_weak_ref_init (&wr, to1);
+
+  g_assert_cmpuint (test_object_count_weak_refs (to1), ==, 1);
+  g_assert_cmpuint (test_object_count_weak_refs (to2), ==, 0);
+
+  dex_weak_ref_set (&wr, to1);
+  g_assert_cmpuint (test_object_count_weak_refs (to1), ==, 1);
+  g_assert_cmpuint (test_object_count_weak_refs (to2), ==, 0);
+
+  dex_weak_ref_set (&wr, to2);
+  g_assert_cmpuint (test_object_count_weak_refs (to1), ==, 0);
+  g_assert_cmpuint (test_object_count_weak_refs (to2), ==, 1);
+
+  dex_unref (to1);
+  g_assert_cmpint (finalize_count, ==, 1);
+
+  borrowed = dex_weak_ref_get (&wr);
+  g_assert_true (borrowed == to2);
+  dex_unref (borrowed);
+
+  dex_weak_ref_clear (&wr);
+  g_assert_cmpuint (test_object_count_weak_refs (to2), ==, 0);
+
+  dex_unref (to2);
+  g_assert_cmpint (finalize_count, ==, 2);
 }
 
 typedef struct
@@ -297,6 +351,72 @@ test_weak_ref_extend_liveness (void)
 
 typedef struct
 {
+  DexWeakRef *wr;
+  TestObject *replacement;
+} TestDexWeakRefRetargetLockOrder;
+
+static gpointer
+test_weak_ref_retarget_lock_order_worker (gpointer data)
+{
+  TestDexWeakRefRetargetLockOrder *state = data;
+
+  dex_weak_ref_set (state->wr, state->replacement);
+
+  return NULL;
+}
+
+static void
+test_weak_ref_retarget_lock_order (void)
+{
+  TestDexWeakRefRetargetLockOrder state;
+  TestObject *old_object;
+  TestObject *new_object;
+  DexObject *old_dex_object;
+  DexWeakRef wr;
+  GThread *thread;
+  gint64 deadline;
+
+  finalize_count = 0;
+
+  old_object = test_object_new ();
+  new_object = test_object_new ();
+  old_dex_object = DEX_OBJECT (old_object);
+
+  dex_weak_ref_init (&wr, old_object);
+
+  state.wr = &wr;
+  state.replacement = new_object;
+
+  dex_object_lock (old_dex_object);
+  thread = g_thread_new ("test_weak_ref_retarget_lock_order",
+                         test_weak_ref_retarget_lock_order_worker,
+                         &state);
+
+  deadline = g_get_monotonic_time () + G_USEC_PER_SEC;
+  while (atomic_load_explicit (&old_dex_object->ref_count, memory_order_acquire) == 1)
+    {
+      g_assert_cmpint (g_get_monotonic_time (), <, deadline);
+      g_usleep (G_USEC_PER_SEC / 1000);
+    }
+
+  g_assert_true (g_mutex_trylock (&wr.mutex));
+  g_mutex_unlock (&wr.mutex);
+
+  dex_object_unlock (old_dex_object);
+  g_thread_join (thread);
+
+  g_assert_cmpuint (test_object_count_weak_refs (old_object), ==, 0);
+  g_assert_cmpuint (test_object_count_weak_refs (new_object), ==, 1);
+
+  dex_weak_ref_clear (&wr);
+  dex_unref (old_object);
+  dex_unref (new_object);
+
+  g_assert_cmpint (finalize_count, ==, 2);
+}
+
+typedef struct
+{
   TestObject *to;
   DexWeakRef wr;
   GMutex mutex;
@@ -474,8 +594,11 @@ main (int   argc,
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Object/basic", test_object_basic);
   g_test_add_func ("/Dex/TestSuite/WeakRef/single-threaded", test_weak_ref_st);
+  g_test_add_func ("/Dex/TestSuite/WeakRef/retarget", test_weak_ref_retarget);
   g_test_add_func ("/Dex/TestSuite/WeakRef/multi-threaded", test_weak_ref_mt);
   g_test_add_func ("/Dex/TestSuite/WeakRef/extend-liveness", test_weak_ref_extend_liveness);
+  g_test_add_func ("/Dex/TestSuite/WeakRef/retarget-lock-order",
+                   test_weak_ref_retarget_lock_order);
   g_test_add_func ("/Dex/TestSuite/WeakRef/immortal", test_weak_ref_immortal);
   g_test_add_func ("/Dex/TestSuite/WeakRef/thread-guantlet", test_weak_ref_thread_guantlet);
   return g_test_run ();

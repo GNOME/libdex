@@ -51,7 +51,7 @@ static void
 dex_object_finalize (DexObject *object)
 {
   g_assert (object != NULL);
-  g_assert (object->ref_count == 0);
+  g_assert (atomic_load_explicit (&object->ref_count, memory_order_relaxed) == 0);
 
 #ifdef HAVE_SYSPROF
   DEX_PROFILER_MARK (0, DEX_OBJECT_TYPE_NAME (object), "dex_object_finalize()");
@@ -101,7 +101,7 @@ dex_unref (gpointer object)
    * the life of the mem_block will be responsible to free
    * the object in the end.
    */
-  watermark = g_atomic_int_get (&obj->weak_refs_watermark);
+  watermark = atomic_load_explicit (&obj->weak_refs_watermark, memory_order_acquire);
 
   /* If we decrement and it's not zero, then there is nothing
    * for this thread to do. Fast path.
@@ -131,8 +131,8 @@ dex_unref (gpointer object)
    * to do anything here. Just bail and move along allowing a future unref to
    * finalize when it once again approaches zero.
    */
-  if (g_atomic_int_get (&obj->ref_count) > 0 ||
-      g_atomic_int_get (&obj->weak_refs_watermark) != watermark)
+  if (atomic_load_explicit (&obj->ref_count, memory_order_acquire) > 0 ||
+      atomic_load_explicit (&obj->weak_refs_watermark, memory_order_acquire) != watermark)
     {
       for (DexWeakRef *wr = obj->weak_refs; wr; wr = wr->next)
         g_mutex_unlock (&wr->mutex);
@@ -162,7 +162,7 @@ dex_unref (gpointer object)
   dex_object_unlock (object);
 
   /* If we did not create an immortal ref, then we are safe to finalize */
-  if (g_atomic_int_get (&obj->ref_count) == 0)
+  if (atomic_load_explicit (&obj->ref_count, memory_order_acquire) == 0)
     object_class->finalize (object);
 }
 
@@ -183,9 +183,9 @@ dex_object_init (DexObject      *self,
                      "dex_object_init()");
 #endif
 
-  self->ref_count = 1;
+  atomic_init (&self->ref_count, 1);
   g_mutex_init (&self->mutex);
-  self->weak_refs_watermark = 1;
+  atomic_init (&self->weak_refs_watermark, 1);
 }
 
 static void
@@ -201,7 +201,7 @@ dex_object_add_weak (gpointer    mem_block,
   g_assert (weak_ref->mem_block == mem_block);
 
   /* Must own a full ref to acquire a weak ref */
-  g_return_if_fail (object->ref_count > 0);
+  g_return_if_fail (atomic_load_explicit (&object->ref_count, memory_order_relaxed) > 0);
 
   dex_object_lock (object);
   weak_ref->prev = NULL;
@@ -213,8 +213,8 @@ dex_object_add_weak (gpointer    mem_block,
 }
 
 static void
-dex_object_remove_weak (gpointer    mem_block,
-                         DexWeakRef *weak_ref)
+dex_object_unlink_weak (gpointer    mem_block,
+                        DexWeakRef *weak_ref)
 {
   DexObject *object = mem_block;
 
@@ -222,7 +222,7 @@ dex_object_remove_weak (gpointer    mem_block,
   g_assert (weak_ref != NULL);
 
   /* Must own a full ref to release a weak ref */
-  g_return_if_fail (object->ref_count > 0);
+  g_return_if_fail (atomic_load_explicit (&object->ref_count, memory_order_relaxed) > 0);
 
   dex_object_lock (object);
 
@@ -240,9 +240,16 @@ dex_object_remove_weak (gpointer    mem_block,
 
   weak_ref->next = NULL;
   weak_ref->prev = NULL;
-  weak_ref->mem_block = NULL;
 
   dex_object_unlock (object);
+}
+
+static void
+dex_object_remove_weak (gpointer    mem_block,
+                        DexWeakRef *weak_ref)
+{
+  dex_object_unlink_weak (mem_block, weak_ref);
+  weak_ref->mem_block = NULL;
 }
 
 /**
@@ -265,7 +272,9 @@ dex_weak_ref_init (DexWeakRef *weak_ref,
 {
   g_return_if_fail (weak_ref != NULL);
   g_return_if_fail (!mem_block || DEX_IS_OBJECT (mem_block));
-  g_return_if_fail (!mem_block || DEX_OBJECT (mem_block)->ref_count > 0);
+  g_return_if_fail (!mem_block ||
+                    atomic_load_explicit (&DEX_OBJECT (mem_block)->ref_count,
+                                          memory_order_relaxed) > 0);
 
   memset (weak_ref, 0, sizeof *weak_ref);
   g_mutex_init (&weak_ref->mutex);
@@ -295,7 +304,9 @@ dex_weak_ref_get_locked (DexWeakRef *weak_ref)
        *
        * Otherwise, just add a single reference to own the object.
        */
-      watermark = g_atomic_int_add (&object->weak_refs_watermark, 1);
+      watermark = atomic_fetch_add_explicit (&object->weak_refs_watermark,
+                                             1,
+                                             memory_order_acq_rel);
       atomic_fetch_add_explicit (&object->ref_count,
                                  1 + (watermark == G_MAXUINT32),
                                  memory_order_relaxed);
@@ -412,22 +423,27 @@ dex_weak_ref_set (DexWeakRef *weak_ref,
 
   g_return_if_fail (weak_ref != NULL);
   g_return_if_fail (!mem_block || DEX_IS_OBJECT (mem_block));
-  g_return_if_fail (!mem_block || DEX_OBJECT (mem_block)->ref_count > 0);
+  g_return_if_fail (!mem_block ||
+                    atomic_load_explicit (&DEX_OBJECT (mem_block)->ref_count,
+                                          memory_order_relaxed) > 0);
 
   g_mutex_lock (&weak_ref->mutex);
 
   old_mem_block = dex_weak_ref_get_locked (weak_ref);
 
   if (old_mem_block != mem_block)
+    weak_ref->mem_block = mem_block;
+
+  g_mutex_unlock (&weak_ref->mutex);
+
+  if (old_mem_block != mem_block)
     {
       if (old_mem_block != NULL)
-        dex_object_remove_weak (old_mem_block, weak_ref);
-      weak_ref->mem_block = mem_block;
+        dex_object_unlink_weak (old_mem_block, weak_ref);
+
       if (mem_block != NULL)
         dex_object_add_weak (mem_block, weak_ref);
     }
-
-  g_mutex_unlock (&weak_ref->mutex);
 
   dex_clear (&old_mem_block);
 }

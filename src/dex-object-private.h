@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <stdatomic.h>
+
 #include "dex-compat-private.h"
 #include "dex-object.h"
 
@@ -94,7 +96,7 @@ typedef struct _DexObject
   GTypeInstance    parent_instance;
   GMutex           mutex;
   DexWeakRef      *weak_refs;
-  guint            weak_refs_watermark;
+  _Atomic guint    weak_refs_watermark;
   _Atomic int      ref_count;
 #ifdef HAVE_SYSPROF
   gint64           ctime;
