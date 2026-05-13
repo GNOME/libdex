@@ -887,6 +887,37 @@ test_delayed_simple (void)
 }
 
 static void
+test_delayed_release_before_completion (void)
+{
+  DexPromise *promise = dex_promise_new ();
+  DexFuture *delayed = dex_delayed_new (DEX_FUTURE (promise));
+  const GValue *value;
+  GError *error = NULL;
+
+  ASSERT_STATUS (DEX_FUTURE (promise), DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (delayed, DEX_FUTURE_STATUS_PENDING);
+
+  dex_delayed_release (DEX_DELAYED (delayed));
+
+  ASSERT_STATUS (DEX_FUTURE (promise), DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (delayed, DEX_FUTURE_STATUS_PENDING);
+
+  dex_promise_resolve_int (promise, 123);
+
+  ASSERT_STATUS (DEX_FUTURE (promise), DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (delayed, DEX_FUTURE_STATUS_RESOLVED);
+
+  value = dex_future_get_value (delayed, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS_INT (value));
+  g_assert_cmpint (g_value_get_int (value), ==, 123);
+
+  dex_clear (&delayed);
+  dex_clear (&promise);
+}
+
+static void
 test_future_name (void)
 {
   DexFuture *future = DEX_FUTURE (dex_promise_new ());
@@ -997,6 +1028,8 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Future/first", test_future_first);
   g_test_add_func ("/Dex/TestSuite/Future/discard", test_future_discard);
   g_test_add_func ("/Dex/TestSuite/Delayed/simple", test_delayed_simple);
+  g_test_add_func ("/Dex/TestSuite/Delayed/release_before_completion",
+                   test_delayed_release_before_completion);
   g_test_add_func ("/Dex/TestSuite/Infinite/simple", test_infinite_simple);
   g_test_add_func ("/Dex/TestSuite/Future/then_callback_returns_null", test_then_callback_returns_null);
 #ifdef G_OS_UNIX

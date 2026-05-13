@@ -133,7 +133,7 @@ dex_delayed_new (DexFuture *future)
   delayed->corked = TRUE;
   delayed->future = dex_ref (future);
 
-  dex_future_chain (DEX_FUTURE (delayed), future);
+  dex_future_chain (future, DEX_FUTURE (delayed));
 
   return DEX_FUTURE (delayed);
 }
@@ -156,7 +156,10 @@ dex_delayed_release (DexDelayed *delayed)
   if (delayed->corked)
     {
       delayed->corked = FALSE;
-      complete = g_steal_pointer (&delayed->future);
+
+      if (delayed->future != NULL &&
+          dex_future_get_status (delayed->future) != DEX_FUTURE_STATUS_PENDING)
+        complete = g_steal_pointer (&delayed->future);
     }
 
   dex_object_unlock (delayed);
