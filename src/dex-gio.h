@@ -34,6 +34,9 @@ DEX_AVAILABLE_IN_ALL
 GType      dex_file_info_list_get_type                 (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
 GType      dex_inet_address_list_get_type              (void) G_GNUC_CONST;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_new_tmp_dir                        (const char               *tmpl,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_make_directory                     (GFile                    *file,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
@@ -44,30 +47,73 @@ DexFuture *dex_file_copy                               (GFile                   
                                                         GFile                    *destination,
                                                         GFileCopyFlags            flags,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_copy_with_progress                 (GFile                    *source,
+                                                        GFile                    *destination,
+                                                        GFileCopyFlags            flags,
+                                                        int                       io_priority,
+                                                        GFileProgressCallback     progress_callback,
+                                                        gpointer                  progress_callback_data,
+                                                        GDestroyNotify            progress_callback_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_delete                             (GFile                    *file,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_trash                              (GFile                    *file,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_read                               (GFile                    *file,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_append_to                          (GFile                    *file,
+                                                        GFileCreateFlags          flags,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_load_contents_bytes                (GFile                    *file) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_load_partial_contents_bytes        (GFile                    *file,
+                                                        GFileReadMoreCallback     read_more_callback,
+                                                        gpointer                  read_more_callback_data,
+                                                        GDestroyNotify            read_more_callback_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_load_bytes                         (GFile                    *file) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_query_info                         (GFile                    *file,
                                                         const char               *attributes,
                                                         GFileQueryInfoFlags       flags,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_query_filesystem_info              (GFile                    *file,
+                                                        const char               *attributes,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_query_file_type                    (GFile                    *file,
                                                         GFileQueryInfoFlags       flags,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_query_default_handler              (GFile                    *file,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_find_enclosing_mount               (GFile                    *file,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_set_attributes                     (GFile                    *file,
                                                         GFileInfo                *file_info,
                                                         GFileQueryInfoFlags       flags,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_set_display_name                   (GFile                    *file,
+                                                        const char               *display_name,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_1
 DexFuture *dex_file_create                             (GFile                    *file,
+                                                        GFileCreateFlags          flags,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_open_readwrite                     (GFile                    *file,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_create_readwrite                   (GFile                    *file,
                                                         GFileCreateFlags          flags,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
@@ -76,12 +122,29 @@ DexFuture *dex_file_replace                            (GFile                   
                                                         gboolean                  make_backup,
                                                         GFileCreateFlags          flags,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_replace_readwrite                  (GFile                    *file,
+                                                        const char               *etag,
+                                                        gboolean                  make_backup,
+                                                        GFileCreateFlags          flags,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_replace_contents                   (GFile                    *file,
+                                                        const char               *contents,
+                                                        gsize                     length,
+                                                        const char               *etag,
+                                                        gboolean                  make_backup,
+                                                        GFileCreateFlags          flags) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_replace_contents_bytes             (GFile                    *file,
                                                         GBytes                   *contents,
                                                         const char               *etag,
                                                         gboolean                  make_backup,
                                                         GFileCreateFlags          flags) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_file_make_symbolic_link                 (GFile                    *file,
+                                                        const char               *symlink_value,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_enumerate_children                 (GFile                    *file,
                                                         const char               *attributes,

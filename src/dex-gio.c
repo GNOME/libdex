@@ -78,6 +78,56 @@ create_async_pair (const char *name)
 }
 
 static void
+dex_file_new_tmp_dir_cb (GObject      *object,
+                         GAsyncResult *result,
+                         gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GFile *file;
+
+  g_assert (object == NULL);
+  g_assert (G_IS_ASYNC_RESULT (result));
+  g_assert (DEX_IS_PROMISE (promise));
+
+  if (!(file = g_file_new_tmp_dir_finish (result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&file));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_new_tmp_dir:
+ * @tmpl: (nullable): template for the directory name, or %NULL
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [func@Gio.File.new_tmp_dir_async] as a [class@Dex.Future].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [iface@Gio.File] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_new_tmp_dir (const char *tmpl,
+                      int         io_priority)
+{
+  DexPromise *promise;
+
+  promise = dex_promise_new_cancellable ();
+
+  g_file_new_tmp_dir_async (tmpl,
+                            io_priority,
+                            dex_promise_get_cancellable (promise),
+                            dex_file_new_tmp_dir_cb,
+                            dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_input_stream_read_bytes_cb (GObject      *object,
                                 GAsyncResult *result,
                                 gpointer      user_data)
@@ -288,6 +338,55 @@ dex_file_create (GFile            *file,
 }
 
 static void
+dex_file_append_to_cb (GObject      *object,
+                       GAsyncResult *result,
+                       gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GFileOutputStream *stream;
+  GError *error = NULL;
+
+  if (!(stream = g_file_append_to_finish (G_FILE (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&stream));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_append_to:
+ * @file: a [iface@Gio.File]
+ * @flags: flags for appending to the file
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.File.append_to_async] as a [class@Dex.Future].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.FileOutputStream] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_append_to (GFile            *file,
+                    GFileCreateFlags  flags,
+                    int               io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_append_to_async (file,
+                          flags,
+                          io_priority,
+                          dex_promise_get_cancellable (promise),
+                          dex_file_append_to_cb,
+                          dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_file_read_cb (GObject      *object,
                   GAsyncResult *result,
                   gpointer      user_data)
@@ -389,6 +488,156 @@ dex_file_replace (GFile            *file,
 }
 
 static void
+dex_file_open_readwrite_cb (GObject      *object,
+                            GAsyncResult *result,
+                            gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GFileIOStream *stream;
+  GError *error = NULL;
+
+  if (!(stream = g_file_open_readwrite_finish (G_FILE (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&stream));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_open_readwrite:
+ * @file: a [iface@Gio.File]
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.File.open_readwrite_async] as a [class@Dex.Future].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.FileIOStream] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_open_readwrite (GFile *file,
+                         int    io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_open_readwrite_async (file,
+                               io_priority,
+                               dex_promise_get_cancellable (promise),
+                               dex_file_open_readwrite_cb,
+                               dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_file_create_readwrite_cb (GObject      *object,
+                              GAsyncResult *result,
+                              gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GFileIOStream *stream;
+  GError *error = NULL;
+
+  if (!(stream = g_file_create_readwrite_finish (G_FILE (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&stream));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_create_readwrite:
+ * @file: a [iface@Gio.File]
+ * @flags: flags for creating the file
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.File.create_readwrite_async] as a [class@Dex.Future].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.FileIOStream] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_create_readwrite (GFile            *file,
+                           GFileCreateFlags  flags,
+                           int               io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_create_readwrite_async (file,
+                                 flags,
+                                 io_priority,
+                                 dex_promise_get_cancellable (promise),
+                                 dex_file_create_readwrite_cb,
+                                 dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_file_replace_readwrite_cb (GObject      *object,
+                               GAsyncResult *result,
+                               gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GFileIOStream *stream;
+  GError *error = NULL;
+
+  if (!(stream = g_file_replace_readwrite_finish (G_FILE (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&stream));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_replace_readwrite:
+ * @file: a [iface@Gio.File]
+ * @etag: (nullable): the etag or %NULL
+ * @make_backup: if a backup file should be created
+ * @flags: flags for replacing the file
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.File.replace_readwrite_async] as a [class@Dex.Future].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.FileIOStream] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_replace_readwrite (GFile            *file,
+                            const char       *etag,
+                            gboolean          make_backup,
+                            GFileCreateFlags  flags,
+                            int               io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_replace_readwrite_async (file,
+                                  etag,
+                                  make_backup,
+                                  flags,
+                                  io_priority,
+                                  dex_promise_get_cancellable (promise),
+                                  dex_file_replace_readwrite_cb,
+                                  dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_file_replace_contents_bytes_cb (GObject      *object,
                                     GAsyncResult *result,
                                     gpointer      user_data)
@@ -407,6 +656,91 @@ dex_file_replace_contents_bytes_cb (GObject      *object,
     dex_promise_resolve_string (promise, g_steal_pointer (&new_etag));
 
   dex_unref (promise);
+}
+
+typedef struct
+{
+  DexPromise *promise;
+  GBytes *bytes;
+} FileReplaceContents;
+
+static void
+dex_file_replace_contents_cb (GObject      *object,
+                              GAsyncResult *result,
+                              gpointer      user_data)
+{
+  FileReplaceContents *state = user_data;
+  GError *error = NULL;
+  char *new_etag = NULL;
+
+  g_assert (G_IS_FILE (object));
+  g_assert (G_IS_ASYNC_RESULT (result));
+  g_assert (DEX_IS_PROMISE (state->promise));
+
+  if (!g_file_replace_contents_finish (G_FILE (object), result, &new_etag, &error))
+    dex_promise_reject (state->promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_string (state->promise, g_steal_pointer (&new_etag));
+
+  dex_clear (&state->promise);
+  g_clear_pointer (&state->bytes, g_bytes_unref);
+  g_free (state);
+}
+
+/**
+ * dex_file_replace_contents:
+ * @file: a [iface@Gio.File]
+ * @contents: (array length=length) (element-type guint8): the contents to write
+ * @length: the length of @contents
+ * @etag: (nullable): the etag or %NULL
+ * @make_backup: if a backup file should be created
+ * @flags: a set of [flags@Gio.FileCreateFlags]
+ *
+ * Wraps [method@Gio.File.replace_contents_async].
+ *
+ * This function copies @contents into a [struct@GLib.Bytes] so the caller does
+ * not need to keep the buffer alive for the duration of the operation.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] which resolves to the new
+ *   etag, or %NULL if no etag is available.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_replace_contents (GFile            *file,
+                           const char       *contents,
+                           gsize             length,
+                           const char       *etag,
+                           gboolean          make_backup,
+                           GFileCreateFlags  flags)
+{
+  FileReplaceContents *state;
+  DexPromise *promise;
+  gconstpointer data;
+  gsize size;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+  dex_return_error_if_fail (contents != NULL || length == 0);
+
+  promise = dex_promise_new_cancellable ();
+
+  state = g_new0 (FileReplaceContents, 1);
+  state->promise = dex_ref (promise);
+  state->bytes = g_bytes_new (contents, length);
+
+  data = g_bytes_get_data (state->bytes, &size);
+
+  g_file_replace_contents_async (file,
+                                 data,
+                                 size,
+                                 etag,
+                                 make_backup,
+                                 flags,
+                                 dex_promise_get_cancellable (promise),
+                                 dex_file_replace_contents_cb,
+                                 state);
+
+  return DEX_FUTURE (promise);
 }
 
 /**
@@ -808,6 +1142,55 @@ dex_file_query_info (GFile               *file,
 }
 
 static void
+dex_file_query_filesystem_info_cb (GObject      *object,
+                                   GAsyncResult *result,
+                                   gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GFileInfo *info;
+  GError *error = NULL;
+
+  if (!(info = g_file_query_filesystem_info_finish (G_FILE (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&info));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_query_filesystem_info:
+ * @file: a [iface@Gio.File]
+ * @attributes: an attribute query string
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.File.query_filesystem_info_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.FileInfo] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_query_filesystem_info (GFile      *file,
+                                const char *attributes,
+                                int         io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_query_filesystem_info_async (file,
+                                      attributes,
+                                      io_priority,
+                                      dex_promise_get_cancellable (promise),
+                                      dex_file_query_filesystem_info_cb,
+                                      dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_file_query_file_type_cb (GObject      *object,
                              GAsyncResult *result,
                              gpointer      user_data)
@@ -864,6 +1247,98 @@ dex_file_query_file_type (GFile               *file,
 }
 
 static void
+dex_file_query_default_handler_cb (GObject      *object,
+                                   GAsyncResult *result,
+                                   gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GAppInfo *app_info;
+  GError *error = NULL;
+
+  if (!(app_info = g_file_query_default_handler_finish (G_FILE (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&app_info));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_query_default_handler:
+ * @file: a [iface@Gio.File]
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [func@Gio.File.query_default_handler_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [iface@Gio.AppInfo] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_query_default_handler (GFile *file,
+                                int    io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_query_default_handler_async (file,
+                                      io_priority,
+                                      dex_promise_get_cancellable (promise),
+                                      dex_file_query_default_handler_cb,
+                                      dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_file_find_enclosing_mount_cb (GObject      *object,
+                                  GAsyncResult *result,
+                                  gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GMount *mount;
+  GError *error = NULL;
+
+  if (!(mount = g_file_find_enclosing_mount_finish (G_FILE (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&mount));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_find_enclosing_mount:
+ * @file: a [iface@Gio.File]
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.File.find_enclosing_mount_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [iface@Gio.Mount] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_find_enclosing_mount (GFile *file,
+                               int    io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_find_enclosing_mount_async (file,
+                                     io_priority,
+                                     dex_promise_get_cancellable (promise),
+                                     dex_file_find_enclosing_mount_cb,
+                                     dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_file_make_directory_cb (GObject      *object,
                             GAsyncResult *result,
                             gpointer      user_data)
@@ -909,6 +1384,55 @@ dex_file_make_directory (GFile *file,
                                dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_file_make_symbolic_link_cb (GObject      *object,
+                                GAsyncResult *result,
+                                gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_file_make_symbolic_link_finish (G_FILE (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_make_symbolic_link:
+ * @file: a [iface@Gio.File]
+ * @symlink_value: the path for the target of the symbolic link
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.File.make_symbolic_link_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_make_symbolic_link (GFile      *file,
+                             const char *symlink_value,
+                             int         io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+  dex_return_error_if_fail (symlink_value != NULL);
+
+  promise = dex_promise_new_cancellable ();
+  g_file_make_symbolic_link_async (file,
+                                   symlink_value,
+                                   io_priority,
+                                   dex_promise_get_cancellable (promise),
+                                   dex_file_make_symbolic_link_cb,
+                                   dex_ref (promise));
+  return DEX_FUTURE (promise);
 }
 
 typedef struct
@@ -1152,6 +1676,87 @@ dex_file_copy (GFile          *source,
   return DEX_FUTURE (async_pair);
 }
 
+typedef struct
+{
+  GDestroyNotify notify;
+  gpointer data;
+  DexPromise *promise;
+} FileCopy;
+
+static void
+dex_file_copy_with_progress_cb (GObject      *object,
+                                GAsyncResult *result,
+                                gpointer      user_data)
+{
+  FileCopy *state = user_data;
+  GError *error = NULL;
+
+  if (!g_file_copy_finish (G_FILE (object), result, &error))
+    dex_promise_reject (state->promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (state->promise, TRUE);
+
+  if (state->notify != NULL)
+    state->notify (state->data);
+  dex_clear (&state->promise);
+  g_free (state);
+}
+
+/**
+ * dex_file_copy_with_progress:
+ * @source: source [iface@Gio.File]
+ * @destination: destination [iface@Gio.File]
+ * @flags: a set of [flags@Gio.FileCopyFlags]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
+ * @progress_callback: (nullable) (scope notified) (closure progress_callback_data):
+ *   [callback@Gio.FileProgressCallback] function for updates
+ * @progress_callback_data: `gpointer` to user data for the callback function
+ * @progress_callback_data_destroy: (nullable): a function to destroy the
+ *   @progress_callback_data, or %NULL
+ *
+ * Wraps [method@Gio.File.copy_async] with progress callback support.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_copy_with_progress (GFile                 *source,
+                             GFile                 *destination,
+                             GFileCopyFlags         flags,
+                             int                    io_priority,
+                             GFileProgressCallback  progress_callback,
+                             gpointer               progress_callback_data,
+                             GDestroyNotify         progress_callback_data_destroy)
+{
+  FileCopy *state;
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (source));
+  dex_return_error_if_fail (G_IS_FILE (destination));
+
+  promise = dex_promise_new_cancellable ();
+
+  state = g_new0 (FileCopy, 1);
+  state->data = progress_callback_data;
+  state->notify = progress_callback_data_destroy;
+  state->promise = dex_ref (promise);
+
+  g_file_copy_async (source,
+                     destination,
+                     flags,
+                     io_priority,
+                     dex_promise_get_cancellable (promise),
+                     progress_callback,
+                     progress_callback_data,
+                     dex_file_copy_with_progress_cb,
+                     state);
+
+  return DEX_FUTURE (promise);
+}
+
 static void
 dex_file_delete_cb (GObject      *object,
                     GAsyncResult *result,
@@ -1198,6 +1803,51 @@ dex_file_delete (GFile *file,
                        dex_file_delete_cb,
                        dex_ref (promise));
 
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_file_trash_cb (GObject      *object,
+                   GAsyncResult *result,
+                   gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_file_trash_finish (G_FILE (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_trash:
+ * @file: a [iface@Gio.File]
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.File.trash_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_trash (GFile *file,
+                int    io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_trash_async (file,
+                      io_priority,
+                      dex_promise_get_cancellable (promise),
+                      dex_file_trash_cb,
+                      dex_ref (promise));
   return DEX_FUTURE (promise);
 }
 
@@ -1428,6 +2078,143 @@ dex_file_load_contents_bytes (GFile *file)
   return DEX_FUTURE (async_pair);
 }
 
+typedef struct
+{
+  GFileReadMoreCallback callback;
+  GDestroyNotify notify;
+  gpointer data;
+  DexPromise *promise;
+} FileLoadPartialContents;
+
+static gboolean
+dex_file_load_partial_contents_read_more_cb (const char *file_contents,
+                                             goffset     file_size,
+                                             gpointer    callback_data)
+{
+  FileLoadPartialContents *state = callback_data;
+
+  g_assert (state != NULL);
+
+  if (state->callback == NULL)
+    return FALSE;
+
+  return state->callback (file_contents, file_size, state->data);
+}
+
+static void
+dex_file_load_partial_contents_free (FileLoadPartialContents *state)
+{
+  if (state->notify != NULL)
+    state->notify (state->data);
+
+  dex_clear (&state->promise);
+  g_free (state);
+}
+
+static void
+dex_file_load_partial_contents_bytes_cb (GObject      *object,
+                                         GAsyncResult *result,
+                                         gpointer      user_data)
+{
+  FileLoadPartialContents *state = user_data;
+  GError *error = NULL;
+  char *contents = NULL;
+  gsize len = 0;
+
+  if (!g_file_load_partial_contents_finish (G_FILE (object), result, &contents, &len, NULL, &error))
+    dex_promise_reject (state->promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boxed (state->promise, G_TYPE_BYTES, g_bytes_new_take (contents, len));
+
+  dex_file_load_partial_contents_free (state);
+}
+
+/**
+ * dex_file_load_partial_contents_bytes:
+ * @file: a [iface@Gio.File]
+ * @read_more_callback: (nullable) (scope notified) (closure read_more_callback_data):
+ *   callback to determine if more bytes should be loaded
+ * @read_more_callback_data: user data for @read_more_callback
+ * @read_more_callback_data_destroy: (nullable): destroys @read_more_callback_data
+ *
+ * Wraps [method@Gio.File.load_partial_contents_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [struct@GLib.Bytes] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_load_partial_contents_bytes (GFile                 *file,
+                                      GFileReadMoreCallback  read_more_callback,
+                                      gpointer               read_more_callback_data,
+                                      GDestroyNotify         read_more_callback_data_destroy)
+{
+  FileLoadPartialContents *state;
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+
+  state = g_new0 (FileLoadPartialContents, 1);
+  state->callback = read_more_callback;
+  state->notify = read_more_callback_data_destroy;
+  state->data = read_more_callback_data;
+  state->promise = dex_ref (promise);
+
+  g_file_load_partial_contents_async (file,
+                                      dex_promise_get_cancellable (promise),
+                                      dex_file_load_partial_contents_read_more_cb,
+                                      dex_file_load_partial_contents_bytes_cb,
+                                      state);
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_file_load_bytes_cb (GObject      *object,
+                        GAsyncResult *result,
+                        gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GBytes *bytes;
+
+  if (!(bytes = g_file_load_bytes_finish (G_FILE (object), result, NULL, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boxed (promise, G_TYPE_BYTES, g_steal_pointer (&bytes));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_load_bytes:
+ * @file: a [iface@Gio.File]
+ *
+ * Wraps [method@Gio.File.load_bytes_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [struct@GLib.Bytes] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_load_bytes (GFile *file)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+
+  promise = dex_promise_new_cancellable ();
+  g_file_load_bytes_async (file,
+                           dex_promise_get_cancellable (promise),
+                           dex_file_load_bytes_cb,
+                           dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
+
 static void
 dex_subprocess_wait_check_cb (GObject      *object,
                               GAsyncResult *result,
@@ -1570,6 +2357,56 @@ dex_async_initable_init (GAsyncInitable *initable,
 }
 
 static void
+dex_file_set_display_name_cb (GObject      *object,
+                              GAsyncResult *result,
+                              gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GFile *file;
+
+  if (!(file = g_file_set_display_name_finish (G_FILE (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&file));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_file_set_display_name:
+ * @file: a [iface@Gio.File]
+ * @display_name: a new display name
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.File.set_display_name_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to the renamed
+ *   [iface@Gio.File] or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_file_set_display_name (GFile      *file,
+                           const char *display_name,
+                           int         io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE (file));
+  dex_return_error_if_fail (display_name != NULL);
+
+  promise = dex_promise_new_cancellable ();
+  g_file_set_display_name_async (file,
+                                 display_name,
+                                 io_priority,
+                                 dex_promise_get_cancellable (promise),
+                                 dex_file_set_display_name_cb,
+                                 dex_ref (promise));
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_file_set_attributes_cb (GObject      *object,
                             GAsyncResult *result,
                             gpointer      user_data)
@@ -1690,8 +2527,8 @@ dex_file_move (GFile                 *source,
                      flags,
                      io_priority,
                      dex_promise_get_cancellable (promise),
+                     progress_callback,
                      progress_callback_data,
-                     progress_callback_data_destroy,
                      dex_file_move_cb,
                      state);
 
