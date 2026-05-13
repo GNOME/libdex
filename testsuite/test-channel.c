@@ -148,6 +148,51 @@ test_channel_recv_first (void)
   dex_clear (&send1);
 }
 
+static void
+test_channel_receive_all_with_blocked_sender (void)
+{
+  DexChannel *channel = dex_channel_new (2);
+  DexFuture *value1 = dex_future_new_for_int (1);
+  DexFuture *value2 = dex_future_new_for_int (2);
+  DexFuture *value3 = dex_future_new_for_int (3);
+  DexFuture *send1;
+  DexFuture *send2;
+  DexFuture *send3;
+  DexFuture *all;
+  DexFuture *recv;
+
+  send1 = dex_channel_send (channel, dex_ref (value1));
+  send2 = dex_channel_send (channel, dex_ref (value2));
+  send3 = dex_channel_send (channel, dex_ref (value3));
+
+  ASSERT_STATUS (send1, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (send2, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (send3, DEX_FUTURE_STATUS_PENDING);
+
+  all = dex_channel_receive_all (channel);
+
+  ASSERT_STATUS (all, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (send3, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_CMPUINT (send3, ==, 1);
+  g_assert_cmpuint (dex_future_set_get_size (DEX_FUTURE_SET (all)), ==, 2);
+  ASSERT_CMPINT (dex_future_set_get_future_at (DEX_FUTURE_SET (all), 0), ==, 1);
+  ASSERT_CMPINT (dex_future_set_get_future_at (DEX_FUTURE_SET (all), 1), ==, 2);
+
+  recv = dex_channel_receive (channel);
+  ASSERT_STATUS (recv, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_CMPINT (recv, ==, 3);
+
+  dex_clear (&channel);
+  dex_clear (&value1);
+  dex_clear (&value2);
+  dex_clear (&value3);
+  dex_clear (&send1);
+  dex_clear (&send2);
+  dex_clear (&send3);
+  dex_clear (&all);
+  dex_clear (&recv);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -156,5 +201,7 @@ main (int argc,
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Channel/basic", test_channel_basic);
   g_test_add_func ("/Dex/TestSuite/Channel/recv_first", test_channel_recv_first);
+  g_test_add_func ("/Dex/TestSuite/Channel/receive_all_with_blocked_sender",
+                   test_channel_receive_all_with_blocked_sender);
   return g_test_run ();
 }

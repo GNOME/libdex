@@ -145,6 +145,12 @@ typedef struct _DexChannelItem
   DexFuture *future;
 } DexChannelItem;
 
+typedef struct _DexChannelSendResolve
+{
+  DexPromise *promise;
+  guint qlen;
+} DexChannelSendResolve;
+
 DEX_DEFINE_FINAL_TYPE (DexChannel, dex_channel, DEX_TYPE_OBJECT)
 
 #undef DEX_TYPE_CHANNEL
@@ -443,6 +449,7 @@ DexFuture *
 dex_channel_receive_all (DexChannel *channel)
 {
   GPtrArray *ret = NULL;
+  GArray *send_resolves = NULL;
   GQueue stolen = G_QUEUE_INIT;
   DexFuture *future = NULL;
 
@@ -455,7 +462,7 @@ dex_channel_receive_all (DexChannel *channel)
   if ((channel->flags & DEX_CHANNEL_STATE_CAN_RECEIVE) == 0)
     goto reject_receive;
 
-  if(channel->queue.length == 0)
+  if (channel->queue.length == 0)
     goto wait_for_result;
 
   stolen = steal_queue (&channel->queue);
@@ -466,10 +473,40 @@ dex_channel_receive_all (DexChannel *channel)
       g_ptr_array_add (ret, g_steal_pointer (&item->future));
     }
 
+  while (channel->sendq.length > 0 && channel->queue.length < channel->capacity)
+    {
+      DexChannelItem *sendq_item = g_queue_peek_head (&channel->sendq);
+
+      g_queue_unlink (&channel->sendq, &sendq_item->link);
+      g_queue_push_tail_link (&channel->queue, &sendq_item->link);
+
+      if (send_resolves == NULL)
+        send_resolves = g_array_new (FALSE, FALSE, sizeof (DexChannelSendResolve));
+
+      g_array_append_val (send_resolves,
+                          ((DexChannelSendResolve) {
+                            dex_ref (sendq_item->send),
+                            channel->queue.length,
+                          }));
+    }
+
   dex_object_unlock (channel);
 
   while (stolen.length > 0)
     dex_channel_item_free (g_queue_pop_head_link (&stolen)->data);
+
+  if (send_resolves != NULL)
+    {
+      for (guint i = 0; i < send_resolves->len; i++)
+        {
+          DexChannelSendResolve *resolve = &g_array_index (send_resolves,
+                                                           DexChannelSendResolve,
+                                                           i);
+
+          dex_promise_resolve_uint (resolve->promise, resolve->qlen);
+          dex_unref (resolve->promise);
+        }
+    }
 
   future = dex_future_allv ((DexFuture **)ret->pdata, ret->len);
   goto cleanup;
@@ -485,6 +522,7 @@ wait_for_result:
   goto cleanup;
 
 cleanup:
+  g_clear_pointer (&send_resolves, g_array_unref);
   g_clear_pointer (&ret, g_ptr_array_unref);
   return future;
 }
