@@ -302,7 +302,9 @@ test_weak_ref_extend_liveness_worker (gpointer data)
   /* We still have state->wr.mutex, so pretend we've extended
    * liveness while it's attempting to finalize.
    */
-  g_atomic_int_inc (&DEX_OBJECT (state->to)->weak_refs_watermark);
+  atomic_fetch_add_explicit (&DEX_OBJECT (state->to)->weak_refs_watermark,
+                             1,
+                             memory_order_acq_rel);
   atomic_fetch_add_explicit (&DEX_OBJECT (state->to)->ref_count, 1, memory_order_relaxed);
 
   /* Now release our mutex so we can race against the
