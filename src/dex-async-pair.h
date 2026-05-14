@@ -1,7 +1,7 @@
 /*
  * dex-async-pair.h
  *
- * Copyright 2022-2023 Christian Hergert <chergert@redhat.com>
+ * Copyright 2022-2023 Christian Hergert <christian@sourceandstack.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

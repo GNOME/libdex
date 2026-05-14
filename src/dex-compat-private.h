@@ -1,6 +1,6 @@
 /* dex-compat-private.h
  *
- * Copyright 2022 Christian Hergert <christian@hergert.me>
+ * Copyright 2022 Christian Hergert <christian@sourceandstack.com>
  *
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
