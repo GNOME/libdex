@@ -94,6 +94,18 @@ taking further action. Use [ctor@Dex.Future.all], [ctor@Dex.Future.all_race],
 [ctor@Dex.Future.any], and [ctor@Dex.Future.first] to await multiple futures
 with different semantics about when the new future will complete.
 
+## Limiters
+
+Use [class@Dex.Limiter] when a workload should run with bounded concurrency.
+[method@Dex.Limiter.run] is the preferred API for spawning fiber work because
+it acquires a permit before starting and releases it when the fiber completes.
+
+For custom scopes, use [method@Dex.Limiter.acquire] and
+[method@Dex.Limiter.release], releasing exactly once for every successful
+acquisition.
+
+See [Limiters](limiters.html) for guidance on choosing limits and shutdown.
+
 ## Deadlines and Timeouts
 
 Use [ctor@Dex.Future.with_timeout], [ctor@Dex.Future.with_timeout_msec],
@@ -110,8 +122,6 @@ continue after the timeout.
 ```c
 DexFuture *future = dex_future_with_timeout_seconds (load_project (), 10);
 ```
-
-Since: 1.2
 
 ## Work Queues
 

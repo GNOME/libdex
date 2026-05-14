@@ -36,6 +36,7 @@ testsuite = {
   'test-fiber': {},
   'test-future': {},
   'test-future-list-model': {},
+  'test-limiter': {},
   'test-scheduler': {},
   'test-semaphore': {},
   'test-stream': {},

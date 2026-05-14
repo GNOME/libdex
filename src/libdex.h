@@ -41,6 +41,7 @@
 # include "dex-gdbus.h"
 # include "dex-gio.h"
 # include "dex-init.h"
+# include "dex-limiter.h"
 # include "dex-main-scheduler.h"
 # include "dex-object.h"
 # include "dex-platform.h"
