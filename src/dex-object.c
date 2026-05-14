@@ -43,9 +43,12 @@
  */
 
 static GType dex_object_type = G_TYPE_INVALID;
+static GType dex_param_spec_object_type = G_TYPE_INVALID;
 
 #undef DEX_TYPE_OBJECT
 #define DEX_TYPE_OBJECT dex_object_type
+
+#define DEX_TYPE_PARAM_OBJECT (dex_param_spec_object_type)
 
 static void
 dex_object_finalize (DexObject *object)
@@ -525,6 +528,80 @@ value_lcopy_value (const GValue *value,
   return NULL;
 }
 
+static void
+dex_param_object_set_default (GParamSpec *pspec,
+                              GValue     *value)
+{
+  value->data[0].v_pointer = NULL;
+}
+
+static gboolean
+dex_param_object_is_valid (GParamSpec   *pspec,
+                           const GValue *value)
+{
+  DexObject *object = value->data[0].v_pointer;
+
+  return object != NULL &&
+         g_value_type_compatible (DEX_OBJECT_TYPE (object), G_PARAM_SPEC_VALUE_TYPE (pspec));
+}
+
+static gboolean
+dex_param_object_validate (GParamSpec *pspec,
+                           GValue     *value)
+{
+  DexObject *object = value->data[0].v_pointer;
+
+  if (object != NULL &&
+      !g_value_type_compatible (DEX_OBJECT_TYPE (object), G_PARAM_SPEC_VALUE_TYPE (pspec)))
+    {
+      dex_unref (object);
+      value->data[0].v_pointer = NULL;
+
+      return TRUE;
+    }
+
+  return FALSE;
+}
+
+static int
+dex_param_object_values_cmp (GParamSpec   *pspec,
+                             const GValue *value1,
+                             const GValue *value2)
+{
+  const guint8 *p1 = value1->data[0].v_pointer;
+  const guint8 *p2 = value2->data[0].v_pointer;
+
+  return p1 < p2 ? -1 : p1 > p2;
+}
+
+static GType
+dex_param_spec_object_get_type (void)
+{
+  if (g_once_init_enter (&dex_param_spec_object_type))
+    {
+      GType gtype =
+        g_param_type_register_static (g_intern_static_string ("DexParamObject"),
+                                      &(const GParamSpecTypeInfo) {
+                                        sizeof (GParamSpec),
+                                        16,
+                                        NULL,
+                                        DEX_TYPE_OBJECT,
+                                        NULL,
+                                        dex_param_object_set_default,
+                                        dex_param_object_validate,
+                                        dex_param_object_values_cmp,
+                                      });
+      GParamSpecClass *klass = g_type_class_get (gtype);
+
+      klass->value_is_valid = dex_param_object_is_valid;
+
+      g_assert (gtype != G_TYPE_INVALID);
+      g_once_init_leave (&dex_param_spec_object_type, gtype);
+    }
+
+  return dex_param_spec_object_type;
+}
+
 GType
 dex_object_get_type (void)
 {
@@ -575,6 +652,45 @@ DexObject *
 dex_object_create_instance (GType instance_type)
 {
   return (DexObject *)(gpointer)g_type_create_instance (instance_type);
+}
+
+/**
+ * dex_param_spec_object:
+ * @name: canonical name of the property specified
+ * @nick: (nullable): nick name for the property specified
+ * @blurb: (nullable): description of the property specified
+ * @object_type: a `DEX_TYPE_OBJECT` derived type for this property
+ * @flags: flags for the property specified
+ *
+ * Creates a new [struct@GObject.ParamSpec] instance specifying a
+ * `DEX_TYPE_OBJECT` derived property.
+ *
+ * This is similar to [func@GObject.param_spec_object], but for `DexObject`
+ * instances such as [class@Dex.Future].
+ *
+ * Returns: (transfer full): a newly created parameter specification
+ *
+ * Since: 1.2
+ */
+GParamSpec *
+dex_param_spec_object (const char  *name,
+                       const char  *nick,
+                       const char  *blurb,
+                       GType        object_type,
+                       GParamFlags  flags)
+{
+  GParamSpec *pspec;
+
+  g_return_val_if_fail (g_type_is_a (object_type, DEX_TYPE_OBJECT), NULL);
+
+  pspec = g_param_spec_internal (dex_param_spec_object_get_type (),
+                                 name,
+                                 nick,
+                                 blurb,
+                                 flags);
+  pspec->value_type = object_type;
+
+  return pspec;
 }
 
 /**
@@ -661,6 +777,7 @@ dex_value_take_object (GValue    *value,
   if (object != NULL)
     {
       g_return_if_fail (DEX_IS_OBJECT (object));
+      g_return_if_fail (g_value_type_compatible (DEX_OBJECT_TYPE (object), G_VALUE_TYPE (value)));
 
       value->data[0].v_pointer = object;
     }

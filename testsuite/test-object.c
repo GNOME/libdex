@@ -76,6 +76,105 @@ test_object_new (void)
   return (TestObject *)g_type_create_instance (TEST_TYPE_OBJECT);
 }
 
+#define TEST_TYPE_PROPERTY_OBJECT (test_property_object_get_type())
+#define TEST_PROPERTY_OBJECT(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, TEST_TYPE_PROPERTY_OBJECT, TestPropertyObject))
+
+GType test_property_object_get_type (void) G_GNUC_CONST;
+
+typedef struct _TestPropertyObject
+{
+  GObject parent_instance;
+  DexFuture *future;
+} TestPropertyObject;
+
+typedef struct _TestPropertyObjectClass
+{
+  GObjectClass parent_class;
+} TestPropertyObjectClass;
+
+enum {
+  PROP_0,
+  PROP_FUTURE,
+  N_PROPS
+};
+
+G_DEFINE_TYPE (TestPropertyObject, test_property_object, G_TYPE_OBJECT)
+
+static GParamSpec *test_property_object_props[N_PROPS];
+
+static void
+test_property_object_finalize (GObject *object)
+{
+  TestPropertyObject *self = TEST_PROPERTY_OBJECT (object);
+
+  dex_clear (&self->future);
+
+  G_OBJECT_CLASS (test_property_object_parent_class)->finalize (object);
+}
+
+static void
+test_property_object_get_property (GObject    *object,
+                                   guint       prop_id,
+                                   GValue     *value,
+                                   GParamSpec *pspec)
+{
+  TestPropertyObject *self = TEST_PROPERTY_OBJECT (object);
+
+  switch (prop_id)
+    {
+    case PROP_FUTURE:
+      dex_value_set_object (value, DEX_OBJECT (self->future));
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
+}
+
+static void
+test_property_object_set_property (GObject      *object,
+                                   guint         prop_id,
+                                   const GValue *value,
+                                   GParamSpec   *pspec)
+{
+  TestPropertyObject *self = TEST_PROPERTY_OBJECT (object);
+
+  switch (prop_id)
+    {
+    case PROP_FUTURE:
+      dex_clear (&self->future);
+      self->future = DEX_FUTURE (dex_value_dup_object (value));
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
+}
+
+static void
+test_property_object_class_init (TestPropertyObjectClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->finalize = test_property_object_finalize;
+  object_class->get_property = test_property_object_get_property;
+  object_class->set_property = test_property_object_set_property;
+
+  test_property_object_props[PROP_FUTURE] =
+    dex_param_spec_object ("future", NULL, NULL,
+                           DEX_TYPE_FUTURE,
+                           (G_PARAM_READWRITE |
+                            G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_properties (object_class, N_PROPS, test_property_object_props);
+}
+
+static void
+test_property_object_init (TestPropertyObject *self)
+{
+}
+
 static guint
 test_object_count_weak_refs (TestObject *to)
 {
@@ -588,6 +687,38 @@ test_object_basic (void)
   g_assert_true (G_TYPE_IS_ABSTRACT (dex_object_get_type()));
 }
 
+static void
+test_object_property (void)
+{
+  g_autoptr(GObject) object = NULL;
+  g_autoptr(DexPromise) promise = NULL;
+  g_autoptr(DexFuture) borrowed = NULL;
+  GParamSpec *pspec;
+  GValue value = G_VALUE_INIT;
+
+  object = g_object_new (TEST_TYPE_PROPERTY_OBJECT, NULL);
+  promise = dex_promise_new ();
+  pspec = test_property_object_props[PROP_FUTURE];
+
+  g_assert_cmpuint (G_PARAM_SPEC_VALUE_TYPE (pspec), ==, DEX_TYPE_FUTURE);
+
+  g_value_init (&value, DEX_TYPE_FUTURE);
+  dex_value_set_object (&value, DEX_OBJECT (promise));
+
+  g_assert_true (g_param_value_is_valid (pspec, &value));
+
+  g_object_set_property (object, "future", &value);
+  g_value_unset (&value);
+
+  g_value_init (&value, DEX_TYPE_FUTURE);
+  g_object_get_property (object, "future", &value);
+
+  borrowed = DEX_FUTURE (dex_value_dup_object (&value));
+  g_assert_true (borrowed == DEX_FUTURE (promise));
+
+  g_value_unset (&value);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -595,6 +726,7 @@ main (int   argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Object/basic", test_object_basic);
+  g_test_add_func ("/Dex/TestSuite/Object/property", test_object_property);
   g_test_add_func ("/Dex/TestSuite/WeakRef/single-threaded", test_weak_ref_st);
   g_test_add_func ("/Dex/TestSuite/WeakRef/retarget", test_weak_ref_retarget);
   g_test_add_func ("/Dex/TestSuite/WeakRef/multi-threaded", test_weak_ref_mt);

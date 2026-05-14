@@ -39,6 +39,13 @@ DEX_AVAILABLE_IN_ALL
 GType    dex_object_get_type (void) G_GNUC_CONST;
 
 DEX_AVAILABLE_IN_ALL
+GParamSpec *dex_param_spec_object (const char  *name,
+                                   const char  *nick,
+                                   const char  *blurb,
+                                   GType        object_type,
+                                   GParamFlags  flags);
+
+DEX_AVAILABLE_IN_ALL
 gpointer dex_ref             (gpointer  object);
 DEX_AVAILABLE_IN_ALL
 void     dex_unref           (gpointer  object);
