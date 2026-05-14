@@ -1,3 +1,31 @@
+libdex 1.2.alpha
+================
+
+This is an alpha release for the upcoming GNOME 51.
+
+ * New DexLimiter API for bounded concurrency with explicit
+   acquire/release, automatic permit management while running fibers, and
+   close/reject behavior for queued work
+ * New timeout wrappers for futures: dex_future_with_timeout(),
+   dex_future_with_timeout_msec(), dex_future_with_timeout_seconds(), and
+   dex_future_with_deadline()
+ * Additional GFile async wrappers for temporary directories, copy with
+   progress, trash, append, partial content loading, byte loading,
+   filesystem info queries, default handler lookup, enclosing mount lookup,
+   display-name changes, read/write open/create/replace variants, string
+   content replacement, and symbolic link creation
+ * Fix DexObject weak-reference retargeting to avoid a possible lock
+   inversion during finalization
+ * Fix DexChannel receive_all() to unblock queued senders after draining
+   bounded channel capacity
+ * Fix DexDelayed chaining so release waits for the wrapped future in the
+   correct direction
+ * Fix clang testsuite compatibility around atomic addition
+ * Documentation additions for limiters and timeout-gated futures
+ * Testsuite additions for limiters, timeout passthrough behavior, delayed
+   futures, channel receive_all(), and weak-reference retargeting
+
+
 libdex 1.1.0
 ============
 
