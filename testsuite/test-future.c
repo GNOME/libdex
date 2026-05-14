@@ -178,6 +178,67 @@ test_timeout (void)
 }
 
 static void
+test_future_with_timeout_resolves (void)
+{
+  g_autoptr(GError) error = NULL;
+  DexFuture *future;
+  const GValue *value;
+
+  future = dex_future_with_timeout (dex_future_new_for_int (123), G_USEC_PER_SEC);
+
+  g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_RESOLVED);
+
+  value = dex_future_get_value (future, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS_INT (value));
+  g_assert_cmpint (g_value_get_int (value), ==, 123);
+
+  dex_clear (&future);
+}
+
+static void
+test_future_with_timeout_rejects (void)
+{
+  g_autoptr(GError) error = NULL;
+  DexFuture *future;
+
+  future = dex_future_with_timeout (dex_future_new_reject (DEX_ERROR,
+                                                           DEX_ERROR_DEPENDENCY_FAILED,
+                                                           "Failed"),
+                                    G_USEC_PER_SEC);
+
+  g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_REJECTED);
+  g_assert_null (dex_future_get_value (future, &error));
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_DEPENDENCY_FAILED);
+
+  dex_clear (&future);
+}
+
+static void
+test_future_with_timeout_times_out (void)
+{
+  GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
+  g_autoptr(GError) error = NULL;
+  DexFuture *future;
+
+  future = dex_future_with_deadline (dex_future_new_infinite (), g_get_monotonic_time ());
+  future = dex_future_catch (future, on_timed_out, main_loop, NULL);
+
+  g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_PENDING);
+
+  g_main_loop_run (main_loop);
+
+  g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_REJECTED);
+  g_assert_null (dex_future_get_value (future, &error));
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_TIMED_OUT);
+
+  dex_clear (&future);
+
+  g_main_loop_unref (main_loop);
+}
+
+static void
 test_promise_type (void)
 {
   g_assert_true (dex_promise_get_type() != G_TYPE_INVALID);
@@ -806,6 +867,38 @@ test_future_discard_cancelled (GCancellable *cancellable,
   *was_cancelled = TRUE;
 }
 
+static GTask *disown_discard_task;
+
+static void
+disown_discard_async (GMenu               *menu,
+                      GCancellable        *cancellable,
+                      GAsyncReadyCallback  callback,
+                      gpointer             user_data)
+{
+  ASSERT_INSTANCE_TYPE (menu, G_TYPE_MENU);
+  ASSERT_INSTANCE_TYPE (cancellable, G_TYPE_CANCELLABLE);
+  g_assert_null (disown_discard_task);
+
+  disown_discard_task = g_task_new (menu, cancellable, callback, user_data);
+  g_task_set_check_cancellable (disown_discard_task, TRUE);
+  g_task_set_return_on_cancel (disown_discard_task, TRUE);
+}
+
+static gboolean
+disown_discard_finish (GMenu         *menu,
+                       GAsyncResult  *result,
+                       GError       **error)
+{
+  GTask *task = G_TASK (result);
+  gboolean ret;
+
+  ASSERT_INSTANCE_TYPE (menu, G_TYPE_MENU);
+
+  ret = g_task_propagate_boolean (task, error);
+
+  return ret;
+}
+
 static void
 test_future_discard (void)
 {
@@ -844,6 +937,55 @@ test_future_discard (void)
 
   g_clear_object (&menu);
   dex_clear (&any);
+}
+
+static void
+test_future_with_timeout_disowned (void)
+{
+  GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
+  g_autoptr(GError) error = NULL;
+  GMenu *menu = g_menu_new ();
+  DexFuture *call;
+  DexFuture *future;
+  GTask *task;
+  gboolean was_cancelled = FALSE;
+
+  call = dex_async_pair_new (menu,
+                             &DEX_ASYNC_PAIR_INFO (disown_discard_async,
+                                                   disown_discard_finish,
+                                                   G_TYPE_BOOLEAN));
+
+  ASSERT_INSTANCE_TYPE (call, DEX_TYPE_ASYNC_PAIR);
+  ASSERT_INSTANCE_TYPE (DEX_ASYNC_PAIR (call)->cancellable, G_TYPE_CANCELLABLE);
+
+  g_signal_connect (DEX_ASYNC_PAIR (call)->cancellable,
+                    "cancelled",
+                    G_CALLBACK (test_future_discard_cancelled),
+                    &was_cancelled);
+
+  dex_future_disown (dex_ref (call));
+
+  future = dex_future_with_deadline (call, g_get_monotonic_time ());
+  future = dex_future_catch (future, on_timed_out, main_loop, NULL);
+
+  g_main_loop_run (main_loop);
+
+  g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_REJECTED);
+  g_assert_null (dex_future_get_value (future, &error));
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_TIMED_OUT);
+  g_assert_false (was_cancelled);
+  g_assert_nonnull (disown_discard_task);
+
+  task = g_steal_pointer (&disown_discard_task);
+  g_task_return_boolean (task, TRUE);
+  g_object_unref (task);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  dex_clear (&future);
+  g_clear_object (&menu);
+  g_main_loop_unref (main_loop);
 }
 
 #ifdef G_OS_UNIX
@@ -1003,6 +1145,13 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Promise/new", test_promise_new);
   g_test_add_func ("/Dex/TestSuite/Promise/resolve", test_promise_resolve);
   g_test_add_func ("/Dex/TestSuite/Timeout/timed-out", test_timeout);
+  g_test_add_func ("/Dex/TestSuite/Future/with-timeout/resolves",
+                   test_future_with_timeout_resolves);
+  g_test_add_func ("/Dex/TestSuite/Future/with-timeout/rejects", test_future_with_timeout_rejects);
+  g_test_add_func ("/Dex/TestSuite/Future/with-timeout/times-out",
+                   test_future_with_timeout_times_out);
+  g_test_add_func ("/Dex/TestSuite/Future/with-timeout/disowned",
+                   test_future_with_timeout_disowned);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/boolean", test_async_pair_gboolean);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/int", test_async_pair_int);
   g_test_add_func ("/Dex/TestSuite/AsyncPair/uint", test_async_pair_guint);

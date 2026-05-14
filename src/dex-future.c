@@ -32,6 +32,7 @@
 #include "dex-promise.h"
 #include "dex-scheduler.h"
 #include "dex-static-future-private.h"
+#include "dex-timeout-private.h"
 
 /**
  * DexFuture:
@@ -778,6 +779,98 @@ DexFuture *
                                          (DEX_FUTURE_SET_FLAGS_PROPAGATE_FIRST |
                                           DEX_FUTURE_SET_FLAGS_PROPAGATE_RESOLVE |
                                           DEX_FUTURE_SET_FLAGS_PROPAGATE_REJECT)));
+}
+
+/**
+ * dex_future_with_timeout_seconds: (constructor)
+ * @future: (transfer full): a [class@Dex.Future]
+ * @seconds: number of seconds
+ *
+ * Creates a new [class@Dex.Future] that resolves or rejects with the same
+ * result as @future, unless @seconds elapses first. If the timeout elapses
+ * first, the returned future rejects with %DEX_ERROR_TIMED_OUT and discards
+ * @future.
+ *
+ * Returns: (transfer full): a [class@Dex.Future]
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_future_with_timeout_seconds (DexFuture *future,
+                                 int        seconds)
+{
+  dex_return_error_if_fail (DEX_IS_FUTURE (future));
+
+  return _dex_timeout_new_for_future_seconds (future, seconds);
+}
+
+/**
+ * dex_future_with_timeout_msec: (constructor)
+ * @future: (transfer full): a [class@Dex.Future]
+ * @msec: number of milliseconds
+ *
+ * Creates a new [class@Dex.Future] that resolves or rejects with the same
+ * result as @future, unless @msec milliseconds elapses first. If the timeout
+ * elapses first, the returned future rejects with %DEX_ERROR_TIMED_OUT and
+ * discards @future.
+ *
+ * Returns: (transfer full): a [class@Dex.Future]
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_future_with_timeout_msec (DexFuture *future,
+                              int        msec)
+{
+  dex_return_error_if_fail (DEX_IS_FUTURE (future));
+
+  return _dex_timeout_new_for_future_msec (future, msec);
+}
+
+/**
+ * dex_future_with_timeout: (constructor)
+ * @future: (transfer full): a [class@Dex.Future]
+ * @usec: number of microseconds
+ *
+ * Creates a new [class@Dex.Future] that resolves or rejects with the same
+ * result as @future, unless @usec microseconds elapses first. If the timeout
+ * elapses first, the returned future rejects with %DEX_ERROR_TIMED_OUT and
+ * discards @future.
+ *
+ * Returns: (transfer full): a [class@Dex.Future]
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_future_with_timeout (DexFuture *future,
+                         gint64     usec)
+{
+  dex_return_error_if_fail (DEX_IS_FUTURE (future));
+
+  return _dex_timeout_new_for_future (future, usec);
+}
+
+/**
+ * dex_future_with_deadline: (constructor)
+ * @future: (transfer full): a [class@Dex.Future]
+ * @deadline: a deadline in usec in the monotonic clock
+ *
+ * Creates a new [class@Dex.Future] that resolves or rejects with the same
+ * result as @future, unless @deadline is reached first. If the deadline is
+ * reached first, the returned future rejects with %DEX_ERROR_TIMED_OUT and
+ * discards @future.
+ *
+ * Returns: (transfer full): a [class@Dex.Future]
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_future_with_deadline (DexFuture *future,
+                          gint64     deadline)
+{
+  dex_return_error_if_fail (DEX_IS_FUTURE (future));
+
+  return _dex_timeout_new_for_future_deadline (future, deadline);
 }
 
 /**

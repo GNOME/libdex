@@ -203,6 +203,24 @@ DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_firstv          (DexFuture  * const *futures,
                                              guint               n_futures)
   G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture       *dex_future_with_timeout_seconds
+                                            (DexFuture          *future,
+                                             int                 seconds)
+  G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture       *dex_future_with_timeout_msec
+                                            (DexFuture          *future,
+                                             int                 msec)
+  G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture       *dex_future_with_timeout    (DexFuture          *future,
+                                             gint64              usec)
+  G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture       *dex_future_with_deadline   (DexFuture          *future,
+                                             gint64              deadline)
+  G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 const char      *dex_future_get_name        (DexFuture          *future);
 DEX_AVAILABLE_IN_ALL
@@ -283,6 +301,10 @@ gpointer         dex_await_object           (DexFuture          *future,
 # define dex_future_anyv(...) _DEX_FUTURE_NEW(anyv, __VA_ARGS__)
 # define dex_future_first(...) _DEX_FUTURE_NEW(first, __VA_ARGS__)
 # define dex_future_firstv(...) _DEX_FUTURE_NEW(firstv, __VA_ARGS__)
+# define dex_future_with_timeout_seconds(...) _DEX_FUTURE_NEW(with_timeout_seconds, __VA_ARGS__)
+# define dex_future_with_timeout_msec(...) _DEX_FUTURE_NEW(with_timeout_msec, __VA_ARGS__)
+# define dex_future_with_timeout(...) _DEX_FUTURE_NEW(with_timeout, __VA_ARGS__)
+# define dex_future_with_deadline(...) _DEX_FUTURE_NEW(with_deadline, __VA_ARGS__)
 # define dex_future_new_for_value(...) _DEX_FUTURE_NEW(new_for_value, __VA_ARGS__)
 # define dex_future_new_for_error(...) _DEX_FUTURE_NEW(new_for_error, __VA_ARGS__)
 # define dex_future_new_for_errno(...) _DEX_FUTURE_NEW(new_for_errno, __VA_ARGS__)

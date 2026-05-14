@@ -161,6 +161,21 @@ This future is implemented on top of [struct@GLib.MainContext] via API like `g_t
 DexFuture *future = dex_timeout_new_seconds (60);
 ```
 
+If you want to bound another future with a timeout, prefer the timeout wrapper
+constructors. They pass through the wrapped future's resolved value or
+rejection when it completes first, and reject with
+[error@Dex.Error.TIMED_OUT] when the timeout wins.
+
+```c
+DexFuture *future = dex_future_with_timeout_seconds (query_db_server (), 60);
+```
+
+The wrapped future is discarded when the timeout wins. If the underlying work
+must continue independently, keep and disown a separate reference before
+wrapping or keep that work separate from the timeout-bound result.
+
+Since: 1.2
+
 ## Unix Signals
 
 Libdex can represent unix signals as a future.

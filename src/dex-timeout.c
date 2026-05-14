@@ -28,6 +28,7 @@
 #include "dex-future-private.h"
 #include "dex-scheduler.h"
 #include "dex-timeout.h"
+#include "dex-timeout-private.h"
 
 /**
  * DexTimeout:
@@ -40,6 +41,7 @@ typedef struct _DexTimeout
 {
   DexFuture parent_instance;
   GSource *source;
+  DexFuture *future;
 } DexTimeout;
 
 typedef struct _DexTimeoutClass
@@ -50,12 +52,53 @@ typedef struct _DexTimeoutClass
 DEX_DEFINE_FINAL_TYPE (DexTimeout, dex_timeout, DEX_TYPE_FUTURE)
 
 static void
+dex_timeout_clear_source (DexTimeout *timeout)
+{
+  GSource *source = NULL;
+
+  g_assert (DEX_IS_TIMEOUT (timeout));
+
+  dex_object_lock (timeout);
+  source = g_steal_pointer (&timeout->source);
+  dex_object_unlock (timeout);
+
+  if (source != NULL)
+    {
+      if (!g_source_is_destroyed (source))
+        g_source_destroy (source);
+
+      g_source_unref (source);
+    }
+}
+
+static void
 dex_timeout_discard (DexFuture *future)
 {
   DexTimeout *timeout = DEX_TIMEOUT (future);
 
-  if (timeout->source != NULL)
-    g_source_destroy (timeout->source);
+  dex_timeout_clear_source (timeout);
+
+  if (timeout->future != NULL)
+    dex_future_discard (timeout->future, future);
+}
+
+static gboolean
+dex_timeout_propagate (DexFuture *future,
+                       DexFuture *completed)
+{
+  DexTimeout *timeout = DEX_TIMEOUT (future);
+
+  g_assert (DEX_IS_TIMEOUT (timeout));
+  g_assert (DEX_IS_FUTURE (completed));
+
+  if (completed == timeout->future)
+    {
+      dex_timeout_clear_source (timeout);
+      dex_future_complete_from (future, completed);
+      return TRUE;
+    }
+
+  return FALSE;
 }
 
 static void
@@ -76,6 +119,8 @@ dex_timeout_finalize (DexObject *object)
       g_clear_pointer (&timeout->source, g_source_unref);
     }
 
+  dex_clear (&timeout->future);
+
   DEX_OBJECT_CLASS (dex_timeout_parent_class)->finalize (object);
 }
 
@@ -87,6 +132,7 @@ dex_timeout_class_init (DexTimeoutClass *timeout_class)
 
   object_class->finalize = dex_timeout_finalize;
 
+  future_class->propagate = dex_timeout_propagate;
   future_class->discard = dex_timeout_discard;
 }
 
@@ -117,6 +163,9 @@ dex_timeout_source_func (gpointer data)
                            g_error_new_literal (DEX_ERROR,
                                                 DEX_ERROR_TIMED_OUT,
                                                 "Operation timed out"));
+
+      if (timeout->future != NULL)
+        dex_future_discard (timeout->future, DEX_FUTURE (timeout));
 
       dex_object_lock (timeout);
       g_clear_pointer (&timeout->source, g_source_unref);
@@ -181,6 +230,21 @@ dex_timeout_new_deadline (gint64 deadline)
   return DEX_FUTURE (timeout);
 }
 
+DexFuture *
+_dex_timeout_new_for_future_deadline (DexFuture *future,
+                                      gint64     deadline)
+{
+  DexTimeout *timeout;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  timeout = DEX_TIMEOUT (dex_timeout_new_deadline (deadline));
+  timeout->future = g_steal_pointer (&future);
+  dex_future_chain (timeout->future, DEX_FUTURE (timeout));
+
+  return DEX_FUTURE (timeout);
+}
+
 /**
  * dex_timeout_new_seconds:
  * @seconds: number of seconds
@@ -194,6 +258,17 @@ dex_timeout_new_seconds (int seconds)
 {
   gint64 usec = (gint64) G_USEC_PER_SEC * seconds;
   return dex_timeout_new_deadline (g_get_monotonic_time () + usec);
+}
+
+DexFuture *
+_dex_timeout_new_for_future_seconds (DexFuture *future,
+                                     int        seconds)
+{
+  gint64 usec = (gint64) G_USEC_PER_SEC * seconds;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  return _dex_timeout_new_for_future_deadline (future, g_get_monotonic_time () + usec);
 }
 
 /**
@@ -211,6 +286,17 @@ dex_timeout_new_msec (int msec)
   return dex_timeout_new_deadline (g_get_monotonic_time () + usec);
 }
 
+DexFuture *
+_dex_timeout_new_for_future_msec (DexFuture *future,
+                                  int        msec)
+{
+  gint64 usec = (G_USEC_PER_SEC/1000L) * msec;
+
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  return _dex_timeout_new_for_future_deadline (future, g_get_monotonic_time () + usec);
+}
+
 /**
  * dex_timeout_new_usec:
  * @usec: number of microseconds
@@ -223,6 +309,15 @@ DexFuture *
 dex_timeout_new_usec (gint64 usec)
 {
   return dex_timeout_new_deadline (g_get_monotonic_time () + usec);
+}
+
+DexFuture *
+_dex_timeout_new_for_future (DexFuture *future,
+                             gint64     usec)
+{
+  g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  return _dex_timeout_new_for_future_deadline (future, g_get_monotonic_time () + usec);
 }
 
 /**

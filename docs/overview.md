@@ -94,6 +94,25 @@ taking further action. Use [ctor@Dex.Future.all], [ctor@Dex.Future.all_race],
 [ctor@Dex.Future.any], and [ctor@Dex.Future.first] to await multiple futures
 with different semantics about when the new future will complete.
 
+## Deadlines and Timeouts
+
+Use [ctor@Dex.Future.with_timeout], [ctor@Dex.Future.with_timeout_msec],
+[ctor@Dex.Future.with_timeout_seconds], or [ctor@Dex.Future.with_deadline]
+when an operation should either produce its normal result or reject after a
+time limit.
+
+The returned future resolves or rejects with the wrapped future's result when
+the wrapped future completes first. If the timeout wins, the returned future
+rejects with [error@Dex.Error.TIMED_OUT] and the wrapped future is discarded.
+Keep and [method@Dex.Future.disown] a separate reference to work that must
+continue after the timeout.
+
+```c
+DexFuture *future = dex_future_with_timeout_seconds (load_project (), 10);
+```
+
+Since: 1.2
+
 ## Work Queues
 
 In addition to fibers, [class@Dex.Scheduler] can also schedule general work
