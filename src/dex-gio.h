@@ -198,6 +198,9 @@ DexFuture *dex_socket_client_connect                   (GSocketClient           
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_io_stream_close                         (GIOStream                *io_stream,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_tls_connection_handshake                (GTlsConnection           *tls_connection,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_resolver_lookup_by_name                 (GResolver                *resolver,
                                                         const char               *address) G_GNUC_WARN_UNUSED_RESULT;

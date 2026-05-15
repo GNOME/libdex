@@ -1988,6 +1988,56 @@ dex_io_stream_close (GIOStream *io_stream,
 }
 
 static void
+dex_tls_connection_handshake_cb (GObject      *object,
+                                 GAsyncResult *result,
+                                 gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  g_assert (G_IS_TLS_CONNECTION (object));
+  g_assert (G_IS_ASYNC_RESULT (result));
+  g_assert (DEX_IS_PROMISE (promise));
+
+  if (g_tls_connection_handshake_finish (G_TLS_CONNECTION (object), result, &error))
+    dex_promise_resolve_boolean (promise, TRUE);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+/**
+ * dex_tls_connection_handshake:
+ * @tls_connection: a [class@Gio.TlsConnection]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to
+ *   true or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_tls_connection_handshake (GTlsConnection *tls_connection,
+                              int             io_priority)
+{
+  DexPromise *promise;
+
+  g_return_val_if_fail (G_IS_TLS_CONNECTION (tls_connection), NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_tls_connection_handshake_async (tls_connection,
+                                    io_priority,
+                                    dex_promise_get_cancellable (promise),
+                                    dex_tls_connection_handshake_cb,
+                                    dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_resolver_lookup_by_name_cb (GObject      *object,
                                 GAsyncResult *result,
                                 gpointer      user_data)
