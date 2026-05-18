@@ -173,6 +173,14 @@ DexFuture *dex_input_stream_read_bytes                 (GInputStream            
 DEX_AVAILABLE_IN_1_1
 DexFuture *dex_data_input_stream_read_line             (GDataInputStream         *stream,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_data_input_stream_read_line_utf8        (GDataInputStream         *stream,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_data_input_stream_read_upto             (GDataInputStream         *stream,
+                                                        const char               *stop_chars,
+                                                        gssize                    stop_chars_len,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_close                     (GOutputStream            *self,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;

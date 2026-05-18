@@ -198,6 +198,50 @@ dex_data_input_stream_read_line_cb (GObject      *object,
   dex_unref (promise);
 }
 
+static void
+dex_data_input_stream_read_line_utf8_cb (GObject      *object,
+                                         GAsyncResult *result,
+                                         gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  char *line = NULL;
+
+  line = g_data_input_stream_read_line_finish_utf8 (G_DATA_INPUT_STREAM (object),
+                                                    result,
+                                                    NULL,
+                                                    &error);
+
+  if (error == NULL)
+    dex_promise_resolve_string (promise, g_steal_pointer (&line));
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+static void
+dex_data_input_stream_read_upto_cb (GObject      *object,
+                                    GAsyncResult *result,
+                                    gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  char *data = NULL;
+
+  data = g_data_input_stream_read_upto_finish (G_DATA_INPUT_STREAM (object),
+                                               result,
+                                               NULL,
+                                               &error);
+
+  if (error == NULL)
+    dex_promise_resolve_string (promise, g_steal_pointer (&data));
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
 /**
  * dex_data_input_stream_read_line:
  * @stream: a [class@Gio.DataInputStream]
@@ -228,6 +272,84 @@ dex_data_input_stream_read_line (GDataInputStream *stream,
                                        io_priority,
                                        dex_promise_get_cancellable (promise),
                                        dex_data_input_stream_read_line_cb,
+                                       dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+/**
+ * dex_data_input_stream_read_line_utf8:
+ * @stream: a [class@Gio.DataInputStream]
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
+ *
+ * Reads a UTF-8 line from the data input stream.
+ *
+ * Wraps [method@Gio.DataInputStream.read_line_async] with
+ * [method@Gio.DataInputStream.read_line_finish_utf8].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to a string containing the line (without the line terminator), or %NULL
+ *   if the end of the stream is reached.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_data_input_stream_read_line_utf8 (GDataInputStream *stream,
+                                      int               io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_DATA_INPUT_STREAM (stream));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_data_input_stream_read_line_async (stream,
+                                       io_priority,
+                                       dex_promise_get_cancellable (promise),
+                                       dex_data_input_stream_read_line_utf8_cb,
+                                       dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+/**
+ * dex_data_input_stream_read_upto:
+ * @stream: a [class@Gio.DataInputStream]
+ * @stop_chars: characters to terminate the read
+ * @stop_chars_len: length of @stop_chars, or -1 if @stop_chars is nul-terminated
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
+ *
+ * Reads data from the stream until one of @stop_chars is found.
+ *
+ * Wraps [method@Gio.DataInputStream.read_upto_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves
+ *   to a string containing the read data, not including the stop character, or
+ *   %NULL if the end of the stream is reached.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_data_input_stream_read_upto (GDataInputStream *stream,
+                                 const char       *stop_chars,
+                                 gssize            stop_chars_len,
+                                 int               io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_DATA_INPUT_STREAM (stream));
+  dex_return_error_if_fail (stop_chars != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_data_input_stream_read_upto_async (stream,
+                                       stop_chars,
+                                       stop_chars_len,
+                                       io_priority,
+                                       dex_promise_get_cancellable (promise),
+                                       dex_data_input_stream_read_upto_cb,
                                        dex_ref (promise));
 
   return DEX_FUTURE (promise);

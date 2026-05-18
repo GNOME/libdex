@@ -36,6 +36,19 @@ quit_cb (DexFuture *future,
   return NULL;
 }
 
+static DexFuture *
+await_future (DexFuture *future)
+{
+  GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
+
+  future = dex_future_then (future, quit_cb, main_loop, NULL);
+  g_main_loop_run (main_loop);
+
+  g_main_loop_unref (main_loop);
+
+  return future;
+}
+
 static void
 test_read_bytes (void)
 {
@@ -75,6 +88,54 @@ test_read_bytes (void)
   dex_unref (future);
 }
 
+static void
+test_data_input_stream_read_line_utf8 (void)
+{
+  static const char data[] = "alpha\nbeta\n";
+  g_autoptr(GInputStream) base = NULL;
+  g_autoptr(GDataInputStream) stream = NULL;
+  g_autoptr(GError) error = NULL;
+  DexFuture *future;
+  const GValue *value;
+
+  base = g_memory_input_stream_new_from_data (data, strlen (data), NULL);
+  stream = g_data_input_stream_new (base);
+
+  future = await_future (dex_data_input_stream_read_line_utf8 (stream, 0));
+  value = dex_future_get_value (future, &error);
+
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS (value, G_TYPE_STRING));
+  g_assert_cmpstr (g_value_get_string (value), ==, "alpha");
+
+  dex_unref (future);
+}
+
+static void
+test_data_input_stream_read_upto (void)
+{
+  static const char data[] = "alpha,beta";
+  g_autoptr(GInputStream) base = NULL;
+  g_autoptr(GDataInputStream) stream = NULL;
+  g_autoptr(GError) error = NULL;
+  DexFuture *future;
+  const GValue *value;
+
+  base = g_memory_input_stream_new_from_data (data, strlen (data), NULL);
+  stream = g_data_input_stream_new (base);
+
+  future = await_future (dex_data_input_stream_read_upto (stream, ",", -1, 0));
+  value = dex_future_get_value (future, &error);
+
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS (value, G_TYPE_STRING));
+  g_assert_cmpstr (g_value_get_string (value), ==, "alpha");
+
+  dex_unref (future);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -82,5 +143,9 @@ main (int   argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/InputStream/read_bytes", test_read_bytes);
+  g_test_add_func ("/Dex/TestSuite/DataInputStream/read_line_utf8",
+                   test_data_input_stream_read_line_utf8);
+  g_test_add_func ("/Dex/TestSuite/DataInputStream/read_upto",
+                   test_data_input_stream_read_upto);
   return g_test_run ();
 }
