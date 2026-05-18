@@ -67,6 +67,11 @@ struct _DexFiber
   /* The requested stack size */
   gsize stack_size;
 
+#ifdef HAVE_SYSPROF
+  /* Entry time used to emit a duration mark when the fiber exits. */
+  gint64 begin_time;
+#endif
+
   /* The assigned stack */
   DexStack *stack;
 

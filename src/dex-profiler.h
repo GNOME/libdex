@@ -50,6 +50,10 @@ G_BEGIN_DECLS
     sysprof_collector_mark (SYSPROF_CAPTURE_CURRENT_TIME - (duration), \
                             (duration), "libdex", name, message); \
   } G_STMT_END
+# define DEX_PROFILER_MARK_AT_TIME(begin_time, duration, name, message) \
+  G_STMT_START { \
+    sysprof_collector_mark ((begin_time), (duration), "libdex", name, message); \
+  } G_STMT_END
 # define DEX_PROFILER_LOG(format, ...) \
   G_STMT_START { \
     if (DEX_PROFILER_ACTIVE) \
@@ -60,6 +64,8 @@ G_BEGIN_DECLS
 # define DEX_PROFILER_ACTIVE (0)
 # define DEX_PROFILER_CURRENT_TIME 0
 # define DEX_PROFILER_MARK(duration, name, message) \
+  G_STMT_START { } G_STMT_END
+# define DEX_PROFILER_MARK_AT_TIME(begin_time, duration, name, message) \
   G_STMT_START { } G_STMT_END
 # define DEX_PROFILER_BEGIN_MARK G_STMT_START {
 # define DEX_PROFILER_END_MARK(name, message) (void)0; } G_STMT_END

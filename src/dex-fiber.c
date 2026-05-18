@@ -27,6 +27,7 @@
 #include "dex-fiber-private.h"
 #include "dex-object-private.h"
 #include "dex-platform.h"
+#include "dex-profiler.h"
 #include "dex-thread-storage-private.h"
 
 /**
@@ -217,6 +218,10 @@ dex_fiber_start (DexFiber *fiber)
 {
   DexFuture *future;
 
+#ifdef HAVE_SYSPROF
+  fiber->begin_time = DEX_PROFILER_CURRENT_TIME;
+#endif
+
   future = fiber->func (fiber->func_data);
 
   g_assert (future != (DexFuture *)fiber);
@@ -249,6 +254,20 @@ dex_fiber_start (DexFiber *fiber)
 
   /* Mark the fiber as exited */
   fiber->exited = TRUE;
+
+#ifdef HAVE_SYSPROF
+  {
+    g_autofree char *formatted_name = NULL;
+    const char *name = dex_future_get_name (DEX_FUTURE (fiber));
+    const char *mark_name = "fiber";
+    gint64 duration = DEX_PROFILER_CURRENT_TIME - fiber->begin_time;
+
+    if (name != NULL && name[0] != 0)
+      mark_name = formatted_name = g_strconcat ("fiber.", name, NULL);
+
+    DEX_PROFILER_MARK_AT_TIME (fiber->begin_time, duration, mark_name, "lifetime");
+  }
+#endif
 
   /* Free func data if necessary
    *
