@@ -136,6 +136,37 @@ test_data_input_stream_read_upto (void)
   dex_unref (future);
 }
 
+static void
+test_output_stream_writev_all (void)
+{
+  static const char one[] = "alpha";
+  static const char two[] = "beta";
+  GOutputVector vectors[] = {
+    { one, strlen (one) },
+    { two, strlen (two) },
+  };
+  g_autoptr(GOutputStream) stream = NULL;
+  g_autoptr(GError) error = NULL;
+  DexFuture *future;
+  const GValue *value;
+
+  stream = g_memory_output_stream_new_resizable ();
+
+  future = await_future (dex_output_stream_writev_all (stream, vectors, G_N_ELEMENTS (vectors), 0));
+  value = dex_future_get_value (future, &error);
+
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS (value, G_TYPE_UINT64));
+  g_assert_cmpuint (g_value_get_uint64 (value), ==, strlen (one) + strlen (two));
+  g_assert_cmpmem (g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (stream)),
+                   g_memory_output_stream_get_data_size (G_MEMORY_OUTPUT_STREAM (stream)),
+                   "alphabeta",
+                   strlen ("alphabeta"));
+
+  dex_unref (future);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -147,5 +178,7 @@ main (int   argc,
                    test_data_input_stream_read_line_utf8);
   g_test_add_func ("/Dex/TestSuite/DataInputStream/read_upto",
                    test_data_input_stream_read_upto);
+  g_test_add_func ("/Dex/TestSuite/OutputStream/writev_all",
+                   test_output_stream_writev_all);
   return g_test_run ();
 }

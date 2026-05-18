@@ -194,6 +194,11 @@ DexFuture *dex_output_stream_write                     (GOutputStream           
                                                         gconstpointer             buffer,
                                                         gsize                     count,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_output_stream_writev_all                (GOutputStream            *stream,
+                                                        const GOutputVector      *vectors,
+                                                        gsize                     n_vectors,
+                                                        int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_write_bytes               (GOutputStream            *stream,
                                                         GBytes                   *bytes,

@@ -410,6 +410,90 @@ dex_output_stream_write_bytes (GOutputStream *stream,
   return DEX_FUTURE (async_pair);
 }
 
+typedef struct
+{
+  DexPromise *promise;
+  GOutputVector *vectors;
+} OutputStreamWritevAll;
+
+static void
+output_stream_writev_all_free (OutputStreamWritevAll *state)
+{
+  dex_clear (&state->promise);
+  g_free (state->vectors);
+  g_free (state);
+}
+
+static void
+dex_output_stream_writev_all_cb (GObject      *object,
+                                 GAsyncResult *result,
+                                 gpointer      user_data)
+{
+  OutputStreamWritevAll *state = user_data;
+  GError *error = NULL;
+  gsize bytes_written = 0;
+
+  if (!g_output_stream_writev_all_finish (G_OUTPUT_STREAM (object),
+                                          result,
+                                          &bytes_written,
+                                          &error))
+    dex_promise_reject (state->promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_uint64 (state->promise, bytes_written);
+
+  output_stream_writev_all_free (state);
+}
+
+/**
+ * dex_output_stream_writev_all:
+ * @stream: a [class@Gio.OutputStream]
+ * @vectors: (array length=n_vectors): vectors to write to @stream
+ * @n_vectors: the number of vectors to write
+ * @io_priority: the [IO priority][iface@Gio.AsyncResult#io-priority] of the
+ *   request
+ *
+ * Writes all bytes in @vectors to @stream.
+ *
+ * This function copies the @vectors array before starting the operation, but
+ * the buffers referenced by the vectors must remain valid until the returned
+ * future completes.
+ *
+ * Wraps [method@Gio.OutputStream.writev_all_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a `guint64`
+ *   containing the number of bytes written, or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_output_stream_writev_all (GOutputStream       *stream,
+                              const GOutputVector *vectors,
+                              gsize                n_vectors,
+                              int                  io_priority)
+{
+  OutputStreamWritevAll *state;
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_OUTPUT_STREAM (stream));
+  dex_return_error_if_fail (vectors != NULL || n_vectors == 0);
+
+  promise = dex_promise_new_cancellable ();
+
+  state = g_new0 (OutputStreamWritevAll, 1);
+  state->promise = dex_ref (promise);
+  state->vectors = g_memdup2 (vectors, sizeof *vectors * n_vectors);
+
+  g_output_stream_writev_all_async (stream,
+                                    state->vectors,
+                                    n_vectors,
+                                    io_priority,
+                                    dex_promise_get_cancellable (promise),
+                                    dex_output_stream_writev_all_cb,
+                                    state);
+
+  return DEX_FUTURE (promise);
+}
+
 static void
 dex_file_create_cb (GObject      *object,
                     GAsyncResult *result,
