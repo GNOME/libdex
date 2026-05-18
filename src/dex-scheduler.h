@@ -80,9 +80,13 @@ DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
   G_GNUC_WARN_UNUSED_RESULT;
 
 #if G_GNUC_CHECK_VERSION(3,0) && defined(DEX_ENABLE_DEBUG)
-# define _DEX_FIBER_NEW_(counter, ...) \
-  ({ DexFuture *G_PASTE(__f, counter) = dex_scheduler_spawn (__VA_ARGS__); \
-     dex_future_set_static_name (DEX_FUTURE (G_PASTE (__f, counter)), G_STRLOC); \
+# define _DEX_FIBER_NEW_(counter, scheduler, stack_size, func, func_data, func_data_destroy) \
+  ({ DexFuture *G_PASTE(__f, counter) = dex_scheduler_spawn ((scheduler), \
+                                                             (stack_size), \
+                                                             (func), \
+                                                             (func_data), \
+                                                             (func_data_destroy)); \
+     dex_future_set_static_name (DEX_FUTURE (G_PASTE (__f, counter)), G_STRINGIFY (func)); \
      G_PASTE (__f, counter); })
 # define _DEX_FIBER_NEW(...) _DEX_FIBER_NEW_(__COUNTER__, __VA_ARGS__)
 # define dex_scheduler_spawn(...) _DEX_FIBER_NEW(__VA_ARGS__)

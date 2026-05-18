@@ -93,6 +93,25 @@ spawner (gpointer user_data)
 }
 
 static DexFuture *
+named_fiber_func (gpointer user_data)
+{
+  return dex_future_new_for_boolean (TRUE);
+}
+
+static void
+test_scheduler_spawn_static_name (void)
+{
+  g_autoptr(DexFuture) future = NULL;
+
+  future = dex_scheduler_spawn (NULL, 0, named_fiber_func, NULL, NULL);
+
+  g_assert_cmpstr (dex_future_get_name (future), ==, "named_fiber_func");
+
+  while (dex_future_get_status (future) == DEX_FUTURE_STATUS_PENDING)
+    g_main_context_iteration (NULL, TRUE);
+}
+
+static DexFuture *
 quit_cb (DexFuture *completed,
          gpointer   user_data)
 {
@@ -167,6 +186,7 @@ main (int   argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/MainScheduler/simple", test_main_scheduler_simple);
+  g_test_add_func ("/Dex/TestSuite/Scheduler/spawn_static_name", test_scheduler_spawn_static_name);
   g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/10_000_fibers", test_thread_pool_scheduler_spawn);
   g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/push", test_thread_pool_scheduler_push);
   return g_test_run ();
