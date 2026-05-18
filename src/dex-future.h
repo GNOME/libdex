@@ -281,7 +281,7 @@ gpointer         dex_await_object           (DexFuture          *future,
                                              GError            **error)
   G_GNUC_WARN_UNUSED_RESULT;
 
-#if G_GNUC_CHECK_VERSION(3,0) && defined(DEX_ENABLE_DEBUG)
+#if G_GNUC_CHECK_VERSION(3,0) && !defined(DEX_DISABLE_STATIC_NAME_MACROS)
 # define _DEX_FUTURE_NEW_(func, counter, ...) \
   ({ DexFuture *G_PASTE(__f, counter) = G_PASTE (dex_future_, func) (__VA_ARGS__); \
      dex_future_set_static_name (DEX_FUTURE (G_PASTE (__f, counter)), G_STRLOC); \

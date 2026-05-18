@@ -79,7 +79,7 @@ DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
                                                 GDestroyNotify    func_data_destroy)
   G_GNUC_WARN_UNUSED_RESULT;
 
-#if G_GNUC_CHECK_VERSION(3,0) && defined(DEX_ENABLE_DEBUG)
+#if G_GNUC_CHECK_VERSION(3,0) && !defined(DEX_DISABLE_STATIC_NAME_MACROS)
 # define _DEX_FIBER_NEW_(counter, scheduler, stack_size, func, func_data, func_data_destroy) \
   ({ DexFuture *G_PASTE(__f, counter) = dex_scheduler_spawn ((scheduler), \
                                                              (stack_size), \

@@ -796,8 +796,8 @@ DexFuture *
  * Since: 1.2
  */
 DexFuture *
-dex_future_with_timeout_seconds (DexFuture *future,
-                                 int        seconds)
+(dex_future_with_timeout_seconds) (DexFuture *future,
+                                   int        seconds)
 {
   dex_return_error_if_fail (DEX_IS_FUTURE (future));
 
@@ -819,8 +819,8 @@ dex_future_with_timeout_seconds (DexFuture *future,
  * Since: 1.2
  */
 DexFuture *
-dex_future_with_timeout_msec (DexFuture *future,
-                              int        msec)
+(dex_future_with_timeout_msec) (DexFuture *future,
+                                int        msec)
 {
   dex_return_error_if_fail (DEX_IS_FUTURE (future));
 
@@ -842,8 +842,8 @@ dex_future_with_timeout_msec (DexFuture *future,
  * Since: 1.2
  */
 DexFuture *
-dex_future_with_timeout (DexFuture *future,
-                         gint64     usec)
+(dex_future_with_timeout) (DexFuture *future,
+                           gint64     usec)
 {
   dex_return_error_if_fail (DEX_IS_FUTURE (future));
 
@@ -865,8 +865,8 @@ dex_future_with_timeout (DexFuture *future,
  * Since: 1.2
  */
 DexFuture *
-dex_future_with_deadline (DexFuture *future,
-                          gint64     deadline)
+(dex_future_with_deadline) (DexFuture *future,
+                            gint64     deadline)
 {
   dex_return_error_if_fail (DEX_IS_FUTURE (future));
 

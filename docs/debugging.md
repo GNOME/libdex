@@ -19,6 +19,18 @@ If libdex was built with `-Dsysprof=true` then Libdex may emit marks representin
 You can run `sysprof-cli capture.syscap -- ./program` to record your application.
 Open the capture with the Sysprof application to view future lifetimes in the Marks section.
 
+# Future Names
+
+When compiling with GCC, Libdex headers automatically wrap common future,
+promise, and fiber constructors to set static debug names such as source
+locations or fiber function names.
+These names are useful while debugging and when viewing Sysprof marks, but the
+associated strings will be included in the consuming program.
+
+Applications that do not want those strings included in their binary can define
+`DEX_DISABLE_STATIC_NAME_MACROS` before including Libdex headers, or pass
+`-DDEX_DISABLE_STATIC_NAME_MACROS` in their compiler flags.
+
 # Stack Overflow on Fibers
 
 The default fiber size is rather small since we are trying to make it convenient for applications to use a large number of fibers.

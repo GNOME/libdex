@@ -225,11 +225,11 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
  *   @func completes (or its resulting `DexFuture` completes).
  */
 DexFuture *
-dex_scheduler_spawn (DexScheduler   *scheduler,
-                     gsize           stack_size,
-                     DexFiberFunc    func,
-                     gpointer        func_data,
-                     GDestroyNotify  func_data_destroy)
+(dex_scheduler_spawn) (DexScheduler   *scheduler,
+                       gsize           stack_size,
+                       DexFiberFunc    func,
+                       gpointer        func_data,
+                       GDestroyNotify  func_data_destroy)
 {
   DexFiber *fiber;
 
