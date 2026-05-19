@@ -152,6 +152,19 @@ dex_app_info_launch_uris_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_app_info_launch_uris:
+ * @appinfo: a [iface@Gio.AppInfo]
+ * @uris: (element-type utf8): URIs to launch
+ * @context: (nullable): a [class@Gio.AppLaunchContext], or %NULL
+ *
+ * Wraps [method@Gio.AppInfo.launch_uris_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_app_info_launch_uris (GAppInfo          *appinfo,
                           GList             *uris,
@@ -194,6 +207,18 @@ dex_app_info_get_default_for_type_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_app_info_get_default_for_type:
+ * @content_type: a content type
+ * @must_support_uris: whether the app must support URIs
+ *
+ * Wraps [func@Gio.AppInfo.get_default_for_type_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [iface@Gio.AppInfo] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_app_info_get_default_for_type (const char *content_type,
                                    gboolean    must_support_uris)
@@ -234,6 +259,17 @@ dex_app_info_get_default_for_uri_scheme_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_app_info_get_default_for_uri_scheme:
+ * @uri_scheme: a URI scheme
+ *
+ * Wraps [func@Gio.AppInfo.get_default_for_uri_scheme_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [iface@Gio.AppInfo] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_app_info_get_default_for_uri_scheme (const char *uri_scheme)
 {
@@ -269,6 +305,18 @@ dex_app_info_launch_default_for_uri_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_app_info_launch_default_for_uri:
+ * @uri: a URI to launch
+ * @context: (nullable): a [class@Gio.AppLaunchContext], or %NULL
+ *
+ * Wraps [func@Gio.AppInfo.launch_default_for_uri_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_app_info_launch_default_for_uri (const char        *uri,
                                      GAppLaunchContext *context)
@@ -304,6 +352,20 @@ dex_async_initable_new_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_async_initable_new:
+ * @object_type: a type implementing [iface@Gio.AsyncInitable]
+ * @io_priority: priority for the IO operation
+ * @first_property_name: (nullable): first property name, or %NULL
+ * @...: property name and value pairs
+ *
+ * Creates and asynchronously initializes a new object.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to the
+ *   newly initialized [class@GObject.Object] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_async_initable_new (GType       object_type,
                         int         io_priority,
@@ -402,6 +464,19 @@ dex_buffered_input_stream_fill_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_buffered_input_stream_fill:
+ * @stream: a [class@Gio.BufferedInputStream]
+ * @count: the number of bytes to fill, or -1
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.BufferedInputStream.fill_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to the number
+ *   of bytes read as a `gint64`, or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_buffered_input_stream_fill (GBufferedInputStream *stream,
                                 gssize                count,
@@ -1506,6 +1581,18 @@ dex_output_stream_flush_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_output_stream_flush:
+ * @self: a [class@Gio.OutputStream]
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.OutputStream.flush_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_output_stream_flush (GOutputStream *self,
                          int            io_priority)
@@ -2172,6 +2259,18 @@ dex_file_enumerator_close_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_file_enumerator_close:
+ * @file_enumerator: a [class@Gio.FileEnumerator]
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.FileEnumerator.close_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_file_enumerator_close (GFileEnumerator *file_enumerator,
                            int              io_priority)
@@ -2208,6 +2307,19 @@ dex_file_input_stream_query_info_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_file_input_stream_query_info:
+ * @stream: a [class@Gio.FileInputStream]
+ * @attributes: file attributes to query
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.FileInputStream.query_info_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.FileInfo] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_file_input_stream_query_info (GFileInputStream *stream,
                                   const char       *attributes,
@@ -2247,6 +2359,19 @@ dex_file_io_stream_query_info_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_file_io_stream_query_info:
+ * @stream: a [class@Gio.FileIOStream]
+ * @attributes: file attributes to query
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.FileIOStream.query_info_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.FileInfo] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_file_io_stream_query_info (GFileIOStream *stream,
                                const char   *attributes,
@@ -2286,6 +2411,19 @@ dex_file_output_stream_query_info_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_file_output_stream_query_info:
+ * @stream: a [class@Gio.FileOutputStream]
+ * @attributes: file attributes to query
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.FileOutputStream.query_info_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.FileInfo] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_file_output_stream_query_info (GFileOutputStream *stream,
                                    const char        *attributes,
@@ -2674,6 +2812,19 @@ dex_socket_client_connect_to_host_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_socket_client_connect_to_host:
+ * @socket_client: a [class@Gio.SocketClient]
+ * @host_and_port: host and optional port to connect to
+ * @default_port: default port to use
+ *
+ * Wraps [method@Gio.SocketClient.connect_to_host_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.SocketConnection] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_socket_client_connect_to_host (GSocketClient *socket_client,
                                    const char    *host_and_port,
@@ -2713,6 +2864,19 @@ dex_socket_client_connect_to_service_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_socket_client_connect_to_service:
+ * @socket_client: a [class@Gio.SocketClient]
+ * @domain: domain to connect to
+ * @service: service to connect to
+ *
+ * Wraps [method@Gio.SocketClient.connect_to_service_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.SocketConnection] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_socket_client_connect_to_service (GSocketClient *socket_client,
                                       const char    *domain,
@@ -2753,6 +2917,19 @@ dex_socket_client_connect_to_uri_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_socket_client_connect_to_uri:
+ * @socket_client: a [class@Gio.SocketClient]
+ * @uri: URI to connect to
+ * @default_port: default port to use
+ *
+ * Wraps [method@Gio.SocketClient.connect_to_uri_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.SocketConnection] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_socket_client_connect_to_uri (GSocketClient *socket_client,
                                   const char    *uri,
@@ -2791,6 +2968,18 @@ dex_socket_connection_connect_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_socket_connection_connect:
+ * @connection: a [class@Gio.SocketConnection]
+ * @address: a [class@Gio.SocketAddress]
+ *
+ * Wraps [method@Gio.SocketConnection.connect_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_socket_connection_connect (GSocketConnection *connection,
                                GSocketAddress    *address)
@@ -2835,6 +3024,18 @@ dex_socket_address_enumerator_next_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_socket_address_enumerator_next:
+ * @enumerator: a [class@Gio.SocketAddressEnumerator]
+ *
+ * Wraps [method@Gio.SocketAddressEnumerator.next_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.SocketAddress], %NULL at the end of the enumeration, or
+ *   rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_socket_address_enumerator_next (GSocketAddressEnumerator *enumerator)
 {
@@ -2916,6 +3117,20 @@ dex_io_stream_splice_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_io_stream_splice:
+ * @stream1: a [class@Gio.IOStream]
+ * @stream2: a [class@Gio.IOStream]
+ * @flags: splice flags
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [func@Gio.IOStream.splice_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_io_stream_splice (GIOStream           *stream1,
                       GIOStream           *stream2,
@@ -3006,6 +3221,18 @@ dex_dtls_connection_handshake_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_dtls_connection_handshake:
+ * @dtls_connection: a [iface@Gio.DtlsConnection]
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.DtlsConnection.handshake_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_dtls_connection_handshake (GDtlsConnection *dtls_connection,
                                int              io_priority)
@@ -3041,6 +3268,20 @@ dex_dtls_connection_shutdown_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_dtls_connection_shutdown:
+ * @dtls_connection: a [iface@Gio.DtlsConnection]
+ * @shutdown_read: whether to shut down the read side
+ * @shutdown_write: whether to shut down the write side
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.DtlsConnection.shutdown_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_dtls_connection_shutdown (GDtlsConnection *dtls_connection,
                               gboolean         shutdown_read,
@@ -3080,6 +3321,18 @@ dex_dtls_connection_close_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_dtls_connection_close:
+ * @dtls_connection: a [iface@Gio.DtlsConnection]
+ * @io_priority: priority for the IO operation
+ *
+ * Wraps [method@Gio.DtlsConnection.close_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_dtls_connection_close (GDtlsConnection *dtls_connection,
                            int              io_priority)
@@ -3165,6 +3418,19 @@ dex_resolver_lookup_by_name_with_flags_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_resolver_lookup_by_name_with_flags:
+ * @resolver: a [class@Gio.Resolver]
+ * @address: hostname to look up
+ * @flags: lookup flags
+ *
+ * Wraps [method@Gio.Resolver.lookup_by_name_with_flags_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [struct@GLib.List] of [class@Gio.InetAddress] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_resolver_lookup_by_name_with_flags (GResolver                *resolver,
                                         const char               *address,
@@ -3204,6 +3470,18 @@ dex_resolver_lookup_by_address_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_resolver_lookup_by_address:
+ * @resolver: a [class@Gio.Resolver]
+ * @address: a [class@Gio.InetAddress]
+ *
+ * Wraps [method@Gio.Resolver.lookup_by_address_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a hostname
+ *   string or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_resolver_lookup_by_address (GResolver    *resolver,
                                 GInetAddress *address)
@@ -3243,6 +3521,20 @@ dex_resolver_lookup_service_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_resolver_lookup_service:
+ * @resolver: a [class@Gio.Resolver]
+ * @service: service name
+ * @protocol: protocol name
+ * @domain: domain name
+ *
+ * Wraps [method@Gio.Resolver.lookup_service_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [struct@GLib.List] of [class@Gio.SrvTarget] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_resolver_lookup_service (GResolver  *resolver,
                              const char *service,
@@ -3288,6 +3580,19 @@ dex_resolver_lookup_records_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_resolver_lookup_records:
+ * @resolver: a [class@Gio.Resolver]
+ * @rrname: DNS record name
+ * @record_type: DNS record type
+ *
+ * Wraps [method@Gio.Resolver.lookup_records_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [struct@GLib.List] of [struct@GLib.Variant] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_resolver_lookup_records (GResolver           *resolver,
                              const char          *rrname,
@@ -3326,6 +3631,18 @@ dex_network_monitor_can_reach_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_network_monitor_can_reach:
+ * @monitor: a [iface@Gio.NetworkMonitor]
+ * @connectable: a [iface@Gio.SocketConnectable]
+ *
+ * Wraps [method@Gio.NetworkMonitor.can_reach_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_network_monitor_can_reach (GNetworkMonitor    *monitor,
                                GSocketConnectable *connectable)
@@ -3363,6 +3680,19 @@ dex_proxy_connect_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_proxy_connect:
+ * @proxy: a [iface@Gio.Proxy]
+ * @connection: a [class@Gio.IOStream]
+ * @proxy_address: a [class@Gio.ProxyAddress]
+ *
+ * Wraps [method@Gio.Proxy.connect_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.IOStream] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_proxy_connect (GProxy        *proxy,
                    GIOStream     *connection,
@@ -3403,6 +3733,18 @@ dex_proxy_resolver_lookup_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_proxy_resolver_lookup:
+ * @resolver: a [iface@Gio.ProxyResolver]
+ * @uri: a URI
+ *
+ * Wraps [method@Gio.ProxyResolver.lookup_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   string vector of proxy URIs or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_proxy_resolver_lookup (GProxyResolver *resolver,
                            const char     *uri)
@@ -3620,6 +3962,17 @@ dex_subprocess_wait_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_subprocess_wait:
+ * @subprocess: a [class@Gio.Subprocess]
+ *
+ * Wraps [method@Gio.Subprocess.wait_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_subprocess_wait (GSubprocess *subprocess)
 {
@@ -3701,6 +4054,22 @@ dex_tls_database_verify_chain_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_tls_database_verify_chain:
+ * @database: a [class@Gio.TlsDatabase]
+ * @chain: a [class@Gio.TlsCertificate]
+ * @purpose: certificate purpose
+ * @identity: (nullable): expected peer identity, or %NULL
+ * @interaction: (nullable): a [class@Gio.TlsInteraction], or %NULL
+ * @flags: verification flags
+ *
+ * Wraps [method@Gio.TlsDatabase.verify_chain_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to
+ *   [flags@Gio.TlsCertificateFlags] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_tls_database_verify_chain (GTlsDatabase            *database,
                                GTlsCertificate         *chain,
@@ -3751,6 +4120,20 @@ dex_tls_database_lookup_certificate_for_handle_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_tls_database_lookup_certificate_for_handle:
+ * @database: a [class@Gio.TlsDatabase]
+ * @handle: certificate handle
+ * @interaction: (nullable): a [class@Gio.TlsInteraction], or %NULL
+ * @flags: lookup flags
+ *
+ * Wraps [method@Gio.TlsDatabase.lookup_certificate_for_handle_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.TlsCertificate] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_tls_database_lookup_certificate_for_handle (GTlsDatabase           *database,
                                                 const char             *handle,
@@ -3795,6 +4178,20 @@ dex_tls_database_lookup_certificate_issuer_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_tls_database_lookup_certificate_issuer:
+ * @database: a [class@Gio.TlsDatabase]
+ * @certificate: a [class@Gio.TlsCertificate]
+ * @interaction: (nullable): a [class@Gio.TlsInteraction], or %NULL
+ * @flags: lookup flags
+ *
+ * Wraps [method@Gio.TlsDatabase.lookup_certificate_issuer_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.TlsCertificate] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_tls_database_lookup_certificate_issuer (GTlsDatabase           *database,
                                             GTlsCertificate        *certificate,
@@ -3839,6 +4236,20 @@ dex_tls_database_lookup_certificates_issued_by_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_tls_database_lookup_certificates_issued_by:
+ * @database: a [class@Gio.TlsDatabase]
+ * @issuer_raw_dn: issuer distinguished name bytes
+ * @interaction: (nullable): a [class@Gio.TlsInteraction], or %NULL
+ * @flags: lookup flags
+ *
+ * Wraps [method@Gio.TlsDatabase.lookup_certificates_issued_by_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [struct@GLib.List] of [class@Gio.TlsCertificate] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_tls_database_lookup_certificates_issued_by (GTlsDatabase           *database,
                                                 GByteArray             *issuer_raw_dn,
@@ -3883,6 +4294,18 @@ dex_tls_interaction_ask_password_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_tls_interaction_ask_password:
+ * @interaction: a [class@Gio.TlsInteraction]
+ * @password: a [class@Gio.TlsPassword]
+ *
+ * Wraps [method@Gio.TlsInteraction.ask_password_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [enum@Gio.TlsInteractionResult] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_tls_interaction_ask_password (GTlsInteraction *interaction,
                                   GTlsPassword    *password)
@@ -3922,6 +4345,19 @@ dex_tls_interaction_request_certificate_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_tls_interaction_request_certificate:
+ * @interaction: a [class@Gio.TlsInteraction]
+ * @connection: a [class@Gio.TlsConnection]
+ * @flags: certificate request flags
+ *
+ * Wraps [method@Gio.TlsInteraction.request_certificate_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [enum@Gio.TlsInteractionResult] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_tls_interaction_request_certificate (GTlsInteraction             *interaction,
                                          GTlsConnection              *connection,
@@ -3960,6 +4396,17 @@ dex_permission_acquire_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_permission_acquire:
+ * @permission: a [class@Gio.Permission]
+ *
+ * Wraps [method@Gio.Permission.acquire_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_permission_acquire (GPermission *permission)
 {
@@ -3993,6 +4440,17 @@ dex_permission_release_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_permission_release:
+ * @permission: a [class@Gio.Permission]
+ *
+ * Wraps [method@Gio.Permission.release_async].
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_permission_release (GPermission *permission)
 {
@@ -4027,6 +4485,17 @@ dex_unix_connection_send_credentials_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_unix_connection_send_credentials:
+ * @connection: a `GUnixConnection`
+ *
+ * Wraps `g_unix_connection_send_credentials_async()`.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
+ *   or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_unix_connection_send_credentials (GUnixConnection *connection)
 {
@@ -4061,6 +4530,17 @@ dex_unix_connection_receive_credentials_cb (GObject      *object,
   dex_unref (promise);
 }
 
+/**
+ * dex_unix_connection_receive_credentials:
+ * @connection: a `GUnixConnection`
+ *
+ * Wraps `g_unix_connection_receive_credentials_async()`.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [class@Gio.Credentials] or rejects with error.
+ *
+ * Since: 1.2
+ */
 DexFuture *
 dex_unix_connection_receive_credentials (GUnixConnection *connection)
 {
