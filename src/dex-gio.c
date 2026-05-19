@@ -4487,7 +4487,7 @@ dex_unix_connection_send_credentials_cb (GObject      *object,
 
 /**
  * dex_unix_connection_send_credentials:
- * @connection: a `GUnixConnection`
+ * @connection: a [class@Gio.UnixConnection]
  *
  * Wraps `g_unix_connection_send_credentials_async()`.
  *
@@ -4532,7 +4532,7 @@ dex_unix_connection_receive_credentials_cb (GObject      *object,
 
 /**
  * dex_unix_connection_receive_credentials:
- * @connection: a `GUnixConnection`
+ * @connection: a [class@Gio.UnixConnection]
  *
  * Wraps `g_unix_connection_receive_credentials_async()`.
  *

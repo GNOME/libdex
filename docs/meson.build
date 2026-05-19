@@ -5,6 +5,14 @@ endif
 toml_conf = configuration_data()
 toml_conf.set('version', meson.project_version())
 
+doc_dependencies = ['"Gio-2.0"']
+
+if host_machine.system() != 'windows'
+  doc_dependencies += ['"GioUnix-2.0"']
+endif
+
+toml_conf.set('dependencies', ', '.join(doc_dependencies))
+
 gidocgen = find_program('gi-docgen')
 
 gidocgen_common_args = [

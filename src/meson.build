@@ -242,6 +242,12 @@ pkg.generate(
 )
 
 if get_option('introspection').enabled()
+  libdex_gir_includes = ['Gio-2.0']
+
+  if host_machine.system() != 'windows'
+    libdex_gir_includes += ['GioUnix-2.0']
+  endif
+
   libdex_gir = gnome.generate_gir(libdex,
                 sources: [libdex_sources, libdex_headers],
               nsversion: api_version,
@@ -251,7 +257,7 @@ if get_option('introspection').enabled()
       identifier_prefix: 'Dex',
         install_dir_gir: girdir,
     install_dir_typelib: typelibdir,
-               includes: ['Gio-2.0'],
+               includes: libdex_gir_includes,
                 install: true,
                  header: 'libdex.h',
              extra_args: ['-DDEX_COMPILATION'],

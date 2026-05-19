@@ -7,7 +7,7 @@ docs_url = "https://gnome.pages.gitlab.gnome.org/libdex/libdex-1"
 authors = "Christian Hergert"
 license = "LGPL-2.1-or-later"
 description = "A GNOME library for deferred execution"
-dependencies = ["Gio-2.0"]
+dependencies = [@dependencies@]
 devhelp = true
 search_index = true
 
@@ -30,6 +30,11 @@ search_index = true
   name = "GIO"
   description = "GObject Interfaces and Objects, Networking, IPC, and I/O"
   docs_url = "https://docs.gtk.org/gio/"
+
+  [dependencies."GioUnix-2.0"]
+  name = "GioUnix"
+  description = "GIO UNIX-specific APIs"
+  docs_url = "https://docs.gtk.org/gio-unix/"
 
 [theme]
 name = "basic"
