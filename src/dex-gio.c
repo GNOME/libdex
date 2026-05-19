@@ -21,6 +21,8 @@
 
 #include "config.h"
 
+#include <stdarg.h>
+
 #include <glib/gstdio.h>
 
 #include "dex-async-pair-private.h"
@@ -33,6 +35,17 @@
 #include "dex-watch-private.h"
 
 typedef struct _DexFileInfoList DexFileInfoList;
+typedef struct _DexSrvTargetList DexSrvTargetList;
+typedef struct _DexTlsCertificateList DexTlsCertificateList;
+typedef struct _DexVariantList DexVariantList;
+
+#define DEX_TYPE_SRV_TARGET_LIST (dex_srv_target_list_get_type())
+#define DEX_TYPE_TLS_CERTIFICATE_LIST (dex_tls_certificate_list_get_type())
+#define DEX_TYPE_VARIANT_LIST (dex_variant_list_get_type())
+
+GType dex_srv_target_list_get_type (void) G_GNUC_CONST;
+GType dex_tls_certificate_list_get_type (void) G_GNUC_CONST;
+GType dex_variant_list_get_type (void) G_GNUC_CONST;
 
 static DexFileInfoList *
 dex_file_info_list_copy (DexFileInfoList *list)
@@ -66,6 +79,51 @@ dex_inet_address_list_free (DexInetAddressList *list)
 
 G_DEFINE_BOXED_TYPE (DexInetAddressList, dex_inet_address_list, dex_inet_address_list_copy, dex_inet_address_list_free)
 
+static DexSrvTargetList *
+dex_srv_target_list_copy (DexSrvTargetList *list)
+{
+  return (DexSrvTargetList *)g_list_copy_deep ((GList *)list, (GCopyFunc)g_srv_target_copy, NULL);
+}
+
+static void
+dex_srv_target_list_free (DexSrvTargetList *list)
+{
+  GList *real_list = (GList *)list;
+  g_resolver_free_targets (real_list);
+}
+
+G_DEFINE_BOXED_TYPE (DexSrvTargetList, dex_srv_target_list, dex_srv_target_list_copy, dex_srv_target_list_free)
+
+static DexTlsCertificateList *
+dex_tls_certificate_list_copy (DexTlsCertificateList *list)
+{
+  return (DexTlsCertificateList *)g_list_copy_deep ((GList *)list, (GCopyFunc)g_object_ref, NULL);
+}
+
+static void
+dex_tls_certificate_list_free (DexTlsCertificateList *list)
+{
+  GList *real_list = (GList *)list;
+  g_list_free_full (real_list, g_object_unref);
+}
+
+G_DEFINE_BOXED_TYPE (DexTlsCertificateList, dex_tls_certificate_list, dex_tls_certificate_list_copy, dex_tls_certificate_list_free)
+
+static DexVariantList *
+dex_variant_list_copy (DexVariantList *list)
+{
+  return (DexVariantList *)g_list_copy_deep ((GList *)list, (GCopyFunc)g_variant_ref, NULL);
+}
+
+static void
+dex_variant_list_free (DexVariantList *list)
+{
+  GList *real_list = (GList *)list;
+  g_list_free_full (real_list, (GDestroyNotify)g_variant_unref);
+}
+
+G_DEFINE_BOXED_TYPE (DexVariantList, dex_variant_list, dex_variant_list_copy, dex_variant_list_free)
+
 static inline DexAsyncPair *
 create_async_pair (const char *name)
 {
@@ -75,6 +133,203 @@ create_async_pair (const char *name)
   dex_future_set_static_name (DEX_FUTURE (async_pair), name);
 
   return async_pair;
+}
+
+static void
+dex_app_info_launch_uris_cb (GObject      *object,
+                             GAsyncResult *result,
+                             gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_app_info_launch_uris_finish (G_APP_INFO (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_app_info_launch_uris (GAppInfo          *appinfo,
+                          GList             *uris,
+                          GAppLaunchContext *context)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_APP_INFO (appinfo));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_app_info_launch_uris_async (appinfo,
+                                uris,
+                                context,
+                                dex_promise_get_cancellable (promise),
+                                dex_app_info_launch_uris_cb,
+                                dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_app_info_get_default_for_type_cb (GObject      *object,
+                                      GAsyncResult *result,
+                                      gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GAppInfo *app_info;
+
+  g_assert (object == NULL);
+
+  app_info = g_app_info_get_default_for_type_finish (result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_object (promise, g_steal_pointer (&app_info));
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_app_info_get_default_for_type (const char *content_type,
+                                   gboolean    must_support_uris)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (content_type != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_app_info_get_default_for_type_async (content_type,
+                                         must_support_uris,
+                                         dex_promise_get_cancellable (promise),
+                                         dex_app_info_get_default_for_type_cb,
+                                         dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_app_info_get_default_for_uri_scheme_cb (GObject      *object,
+                                            GAsyncResult *result,
+                                            gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GAppInfo *app_info;
+
+  g_assert (object == NULL);
+
+  app_info = g_app_info_get_default_for_uri_scheme_finish (result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_object (promise, g_steal_pointer (&app_info));
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_app_info_get_default_for_uri_scheme (const char *uri_scheme)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (uri_scheme != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_app_info_get_default_for_uri_scheme_async (uri_scheme,
+                                               dex_promise_get_cancellable (promise),
+                                               dex_app_info_get_default_for_uri_scheme_cb,
+                                               dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_app_info_launch_default_for_uri_cb (GObject      *object,
+                                        GAsyncResult *result,
+                                        gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  g_assert (object == NULL);
+
+  if (!g_app_info_launch_default_for_uri_finish (result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_app_info_launch_default_for_uri (const char        *uri,
+                                     GAppLaunchContext *context)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (uri != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_app_info_launch_default_for_uri_async (uri,
+                                           context,
+                                           dex_promise_get_cancellable (promise),
+                                           dex_app_info_launch_default_for_uri_cb,
+                                           dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_async_initable_new_cb (GObject      *object,
+                           GAsyncResult *result,
+                           gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_async_initable_init_finish (G_ASYNC_INITABLE (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_object_ref (object));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_async_initable_new (GType       object_type,
+                        int         io_priority,
+                        const char *first_property_name,
+                        ...)
+{
+  DexPromise *promise;
+  GObject *object;
+  va_list args;
+
+  dex_return_error_if_fail (g_type_is_a (object_type, G_TYPE_ASYNC_INITABLE));
+
+  va_start (args, first_property_name);
+  object = g_object_new_valist (object_type, first_property_name, args);
+  va_end (args);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_async_initable_init_async (G_ASYNC_INITABLE (object),
+                               io_priority,
+                               dex_promise_get_cancellable (promise),
+                               dex_async_initable_new_cb,
+                               dex_ref (promise));
+
+  g_object_unref (object);
+
+  return DEX_FUTURE (promise);
 }
 
 static void
@@ -123,6 +378,46 @@ dex_file_new_tmp_dir (const char *tmpl,
                             dex_promise_get_cancellable (promise),
                             dex_file_new_tmp_dir_cb,
                             dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_buffered_input_stream_fill_cb (GObject      *object,
+                                   GAsyncResult *result,
+                                   gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  gssize len;
+
+  len = g_buffered_input_stream_fill_finish (G_BUFFERED_INPUT_STREAM (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_int64 (promise, len);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_buffered_input_stream_fill (GBufferedInputStream *stream,
+                                gssize                count,
+                                int                   io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_BUFFERED_INPUT_STREAM (stream));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_buffered_input_stream_fill_async (stream,
+                                      count,
+                                      io_priority,
+                                      dex_promise_get_cancellable (promise),
+                                      dex_buffered_input_stream_fill_cb,
+                                      dex_ref (promise));
 
   return DEX_FUTURE (promise);
 }
@@ -1195,6 +1490,41 @@ dex_output_stream_close (GOutputStream *self,
 }
 
 static void
+dex_output_stream_flush_cb (GObject      *object,
+                            GAsyncResult *result,
+                            gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_output_stream_flush_finish (G_OUTPUT_STREAM (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_output_stream_flush (GOutputStream *self,
+                         int            io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_OUTPUT_STREAM (self));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_output_stream_flush_async (self,
+                               io_priority,
+                               dex_promise_get_cancellable (promise),
+                               dex_output_stream_flush_cb,
+                               dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_input_stream_close_cb (GObject      *object,
                            GAsyncResult *result,
                            gpointer      user_data)
@@ -1826,6 +2156,158 @@ dex_file_enumerator_next_files (GFileEnumerator *file_enumerator,
 }
 
 static void
+dex_file_enumerator_close_cb (GObject      *object,
+                              GAsyncResult *result,
+                              gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_file_enumerator_close_finish (G_FILE_ENUMERATOR (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_file_enumerator_close (GFileEnumerator *file_enumerator,
+                           int              io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE_ENUMERATOR (file_enumerator));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_file_enumerator_close_async (file_enumerator,
+                                 io_priority,
+                                 dex_promise_get_cancellable (promise),
+                                 dex_file_enumerator_close_cb,
+                                 dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_file_input_stream_query_info_cb (GObject      *object,
+                                     GAsyncResult *result,
+                                     gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GFileInfo *info;
+
+  if (!(info = g_file_input_stream_query_info_finish (G_FILE_INPUT_STREAM (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&info));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_file_input_stream_query_info (GFileInputStream *stream,
+                                  const char       *attributes,
+                                  int               io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE_INPUT_STREAM (stream));
+  dex_return_error_if_fail (attributes != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_file_input_stream_query_info_async (stream,
+                                        attributes,
+                                        io_priority,
+                                        dex_promise_get_cancellable (promise),
+                                        dex_file_input_stream_query_info_cb,
+                                        dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_file_io_stream_query_info_cb (GObject      *object,
+                                  GAsyncResult *result,
+                                  gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GFileInfo *info;
+
+  if (!(info = g_file_io_stream_query_info_finish (G_FILE_IO_STREAM (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&info));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_file_io_stream_query_info (GFileIOStream *stream,
+                               const char   *attributes,
+                               int           io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE_IO_STREAM (stream));
+  dex_return_error_if_fail (attributes != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_file_io_stream_query_info_async (stream,
+                                     attributes,
+                                     io_priority,
+                                     dex_promise_get_cancellable (promise),
+                                     dex_file_io_stream_query_info_cb,
+                                     dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_file_output_stream_query_info_cb (GObject      *object,
+                                      GAsyncResult *result,
+                                      gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GFileInfo *info;
+
+  if (!(info = g_file_output_stream_query_info_finish (G_FILE_OUTPUT_STREAM (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&info));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_file_output_stream_query_info (GFileOutputStream *stream,
+                                   const char        *attributes,
+                                   int                io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_FILE_OUTPUT_STREAM (stream));
+  dex_return_error_if_fail (attributes != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_file_output_stream_query_info_async (stream,
+                                         attributes,
+                                         io_priority,
+                                         dex_promise_get_cancellable (promise),
+                                         dex_file_output_stream_query_info_cb,
+                                         dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_file_copy_cb (GObject      *object,
                   GAsyncResult *result,
                   gpointer      user_data)
@@ -2148,6 +2630,201 @@ dex_socket_client_connect (GSocketClient      *socket_client,
 }
 
 static void
+dex_socket_client_connect_to_host_cb (GObject      *object,
+                                      GAsyncResult *result,
+                                      gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GSocketConnection *conn;
+
+  if (!(conn = g_socket_client_connect_to_host_finish (G_SOCKET_CLIENT (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&conn));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_socket_client_connect_to_host (GSocketClient *socket_client,
+                                   const char    *host_and_port,
+                                   guint16        default_port)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_SOCKET_CLIENT (socket_client));
+  dex_return_error_if_fail (host_and_port != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_socket_client_connect_to_host_async (socket_client,
+                                         host_and_port,
+                                         default_port,
+                                         dex_promise_get_cancellable (promise),
+                                         dex_socket_client_connect_to_host_cb,
+                                         dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_socket_client_connect_to_service_cb (GObject      *object,
+                                         GAsyncResult *result,
+                                         gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GSocketConnection *conn;
+
+  if (!(conn = g_socket_client_connect_to_service_finish (G_SOCKET_CLIENT (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&conn));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_socket_client_connect_to_service (GSocketClient *socket_client,
+                                      const char    *domain,
+                                      const char    *service)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_SOCKET_CLIENT (socket_client));
+  dex_return_error_if_fail (domain != NULL);
+  dex_return_error_if_fail (service != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_socket_client_connect_to_service_async (socket_client,
+                                            domain,
+                                            service,
+                                            dex_promise_get_cancellable (promise),
+                                            dex_socket_client_connect_to_service_cb,
+                                            dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_socket_client_connect_to_uri_cb (GObject      *object,
+                                     GAsyncResult *result,
+                                     gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GSocketConnection *conn;
+
+  if (!(conn = g_socket_client_connect_to_uri_finish (G_SOCKET_CLIENT (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&conn));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_socket_client_connect_to_uri (GSocketClient *socket_client,
+                                  const char    *uri,
+                                  guint16        default_port)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_SOCKET_CLIENT (socket_client));
+  dex_return_error_if_fail (uri != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_socket_client_connect_to_uri_async (socket_client,
+                                        uri,
+                                        default_port,
+                                        dex_promise_get_cancellable (promise),
+                                        dex_socket_client_connect_to_uri_cb,
+                                        dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_socket_connection_connect_cb (GObject      *object,
+                                  GAsyncResult *result,
+                                  gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_socket_connection_connect_finish (G_SOCKET_CONNECTION (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_socket_connection_connect (GSocketConnection *connection,
+                               GSocketAddress    *address)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_SOCKET_CONNECTION (connection));
+  dex_return_error_if_fail (G_IS_SOCKET_ADDRESS (address));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_socket_connection_connect_async (connection,
+                                     address,
+                                     dex_promise_get_cancellable (promise),
+                                     dex_socket_connection_connect_cb,
+                                     dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_socket_address_enumerator_next_cb (GObject      *object,
+                                       GAsyncResult *result,
+                                       gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GSocketAddress *address;
+
+  if (!(address = g_socket_address_enumerator_next_finish (G_SOCKET_ADDRESS_ENUMERATOR (object), result, &error)))
+    {
+      if (error != NULL)
+        dex_promise_reject (promise, g_steal_pointer (&error));
+      else
+        dex_promise_resolve_object (promise, NULL);
+    }
+  else
+    {
+      dex_promise_resolve_object (promise, g_steal_pointer (&address));
+    }
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_socket_address_enumerator_next (GSocketAddressEnumerator *enumerator)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_SOCKET_ADDRESS_ENUMERATOR (enumerator));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_socket_address_enumerator_next_async (enumerator,
+                                          dex_promise_get_cancellable (promise),
+                                          dex_socket_address_enumerator_next_cb,
+                                          dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_io_stream_close_cb (GObject      *object,
                         GAsyncResult *result,
                         gpointer      user_data)
@@ -2191,6 +2868,48 @@ dex_io_stream_close (GIOStream *io_stream,
                            dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_io_stream_splice_cb (GObject      *object,
+                         GAsyncResult *result,
+                         gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  g_assert (object == NULL);
+
+  if (!g_io_stream_splice_finish (result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_io_stream_splice (GIOStream           *stream1,
+                      GIOStream           *stream2,
+                      GIOStreamSpliceFlags flags,
+                      int                  io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_IO_STREAM (stream1));
+  dex_return_error_if_fail (G_IS_IO_STREAM (stream2));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_io_stream_splice_async (stream1,
+                            stream2,
+                            flags,
+                            io_priority,
+                            dex_promise_get_cancellable (promise),
+                            dex_io_stream_splice_cb,
+                            dex_ref (promise));
+
+  return DEX_FUTURE (promise);
 }
 
 static void
@@ -2244,6 +2963,115 @@ dex_tls_connection_handshake (GTlsConnection *tls_connection,
 }
 
 static void
+dex_dtls_connection_handshake_cb (GObject      *object,
+                                  GAsyncResult *result,
+                                  gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_dtls_connection_handshake_finish (G_DTLS_CONNECTION (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_dtls_connection_handshake (GDtlsConnection *dtls_connection,
+                               int              io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_DTLS_CONNECTION (dtls_connection));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_dtls_connection_handshake_async (dtls_connection,
+                                     io_priority,
+                                     dex_promise_get_cancellable (promise),
+                                     dex_dtls_connection_handshake_cb,
+                                     dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_dtls_connection_shutdown_cb (GObject      *object,
+                                 GAsyncResult *result,
+                                 gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_dtls_connection_shutdown_finish (G_DTLS_CONNECTION (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_dtls_connection_shutdown (GDtlsConnection *dtls_connection,
+                              gboolean         shutdown_read,
+                              gboolean         shutdown_write,
+                              int              io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_DTLS_CONNECTION (dtls_connection));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_dtls_connection_shutdown_async (dtls_connection,
+                                    shutdown_read,
+                                    shutdown_write,
+                                    io_priority,
+                                    dex_promise_get_cancellable (promise),
+                                    dex_dtls_connection_shutdown_cb,
+                                    dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_dtls_connection_close_cb (GObject      *object,
+                              GAsyncResult *result,
+                              gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_dtls_connection_close_finish (G_DTLS_CONNECTION (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_dtls_connection_close (GDtlsConnection *dtls_connection,
+                           int              io_priority)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_DTLS_CONNECTION (dtls_connection));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_dtls_connection_close_async (dtls_connection,
+                                 io_priority,
+                                 dex_promise_get_cancellable (promise),
+                                 dex_dtls_connection_close_cb,
+                                 dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_resolver_lookup_by_name_cb (GObject      *object,
                                 GAsyncResult *result,
                                 gpointer      user_data)
@@ -2288,6 +3116,283 @@ dex_resolver_lookup_by_name (GResolver  *resolver,
                                    dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
+}
+
+static void
+dex_resolver_lookup_by_name_with_flags_cb (GObject      *object,
+                                           GAsyncResult *result,
+                                           gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GList *list;
+
+  list = g_resolver_lookup_by_name_with_flags_finish (G_RESOLVER (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_boxed (promise, DEX_TYPE_INET_ADDRESS_LIST, list);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_resolver_lookup_by_name_with_flags (GResolver                *resolver,
+                                        const char               *address,
+                                        GResolverNameLookupFlags  flags)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_RESOLVER (resolver));
+  dex_return_error_if_fail (address != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_resolver_lookup_by_name_with_flags_async (resolver,
+                                              address,
+                                              flags,
+                                              dex_promise_get_cancellable (promise),
+                                              dex_resolver_lookup_by_name_with_flags_cb,
+                                              dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_resolver_lookup_by_address_cb (GObject      *object,
+                                   GAsyncResult *result,
+                                   gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  char *name;
+
+  if (!(name = g_resolver_lookup_by_address_finish (G_RESOLVER (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_string (promise, g_steal_pointer (&name));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_resolver_lookup_by_address (GResolver    *resolver,
+                                GInetAddress *address)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_RESOLVER (resolver));
+  dex_return_error_if_fail (G_IS_INET_ADDRESS (address));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_resolver_lookup_by_address_async (resolver,
+                                      address,
+                                      dex_promise_get_cancellable (promise),
+                                      dex_resolver_lookup_by_address_cb,
+                                      dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_resolver_lookup_service_cb (GObject      *object,
+                                GAsyncResult *result,
+                                gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GList *list;
+
+  list = g_resolver_lookup_service_finish (G_RESOLVER (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_boxed (promise, DEX_TYPE_SRV_TARGET_LIST, list);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_resolver_lookup_service (GResolver  *resolver,
+                             const char *service,
+                             const char *protocol,
+                             const char *domain)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_RESOLVER (resolver));
+  dex_return_error_if_fail (service != NULL);
+  dex_return_error_if_fail (protocol != NULL);
+  dex_return_error_if_fail (domain != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_resolver_lookup_service_async (resolver,
+                                   service,
+                                   protocol,
+                                   domain,
+                                   dex_promise_get_cancellable (promise),
+                                   dex_resolver_lookup_service_cb,
+                                   dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_resolver_lookup_records_cb (GObject      *object,
+                                GAsyncResult *result,
+                                gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GList *list;
+
+  list = g_resolver_lookup_records_finish (G_RESOLVER (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_boxed (promise, DEX_TYPE_VARIANT_LIST, list);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_resolver_lookup_records (GResolver           *resolver,
+                             const char          *rrname,
+                             GResolverRecordType  record_type)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_RESOLVER (resolver));
+  dex_return_error_if_fail (rrname != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_resolver_lookup_records_async (resolver,
+                                   rrname,
+                                   record_type,
+                                   dex_promise_get_cancellable (promise),
+                                   dex_resolver_lookup_records_cb,
+                                   dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_network_monitor_can_reach_cb (GObject      *object,
+                                  GAsyncResult *result,
+                                  gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_network_monitor_can_reach_finish (G_NETWORK_MONITOR (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_network_monitor_can_reach (GNetworkMonitor    *monitor,
+                               GSocketConnectable *connectable)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_NETWORK_MONITOR (monitor));
+  dex_return_error_if_fail (G_IS_SOCKET_CONNECTABLE (connectable));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_network_monitor_can_reach_async (monitor,
+                                     connectable,
+                                     dex_promise_get_cancellable (promise),
+                                     dex_network_monitor_can_reach_cb,
+                                     dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_proxy_connect_cb (GObject      *object,
+                      GAsyncResult *result,
+                      gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GIOStream *stream;
+
+  if (!(stream = g_proxy_connect_finish (G_PROXY (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&stream));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_proxy_connect (GProxy        *proxy,
+                   GIOStream     *connection,
+                   GProxyAddress *proxy_address)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_PROXY (proxy));
+  dex_return_error_if_fail (G_IS_IO_STREAM (connection));
+  dex_return_error_if_fail (G_IS_PROXY_ADDRESS (proxy_address));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_proxy_connect_async (proxy,
+                         connection,
+                         proxy_address,
+                         dex_promise_get_cancellable (promise),
+                         dex_proxy_connect_cb,
+                         dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_proxy_resolver_lookup_cb (GObject      *object,
+                              GAsyncResult *result,
+                              gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  char **proxies;
+
+  if (!(proxies = g_proxy_resolver_lookup_finish (G_PROXY_RESOLVER (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boxed (promise, G_TYPE_STRV, g_steal_pointer (&proxies));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_proxy_resolver_lookup (GProxyResolver *resolver,
+                           const char     *uri)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_PROXY_RESOLVER (resolver));
+  dex_return_error_if_fail (uri != NULL);
+
+  promise = dex_promise_new_cancellable ();
+
+  g_proxy_resolver_lookup_async (resolver,
+                                 uri,
+                                 dex_promise_get_cancellable (promise),
+                                 dex_proxy_resolver_lookup_cb,
+                                 dex_ref (promise));
+
+  return DEX_FUTURE (promise);
 }
 
 static void
@@ -2472,6 +3577,39 @@ dex_file_load_bytes (GFile *file)
 }
 
 static void
+dex_subprocess_wait_cb (GObject      *object,
+                        GAsyncResult *result,
+                        gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_subprocess_wait_finish (G_SUBPROCESS (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_subprocess_wait (GSubprocess *subprocess)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_SUBPROCESS (subprocess));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_subprocess_wait_async (subprocess,
+                           dex_promise_get_cancellable (promise),
+                           dex_subprocess_wait_cb,
+                           dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
 dex_subprocess_wait_check_cb (GObject      *object,
                               GAsyncResult *result,
                               gpointer      user_data)
@@ -2515,6 +3653,403 @@ dex_subprocess_wait_check (GSubprocess *subprocess)
 
   return DEX_FUTURE (async_pair);
 }
+
+static void
+dex_tls_database_verify_chain_cb (GObject      *object,
+                                  GAsyncResult *result,
+                                  gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GTlsCertificateFlags flags;
+
+  flags = g_tls_database_verify_chain_finish (G_TLS_DATABASE (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_uint (promise, flags);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_tls_database_verify_chain (GTlsDatabase            *database,
+                               GTlsCertificate         *chain,
+                               const char              *purpose,
+                               GSocketConnectable      *identity,
+                               GTlsInteraction         *interaction,
+                               GTlsDatabaseVerifyFlags  flags)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_TLS_DATABASE (database));
+  dex_return_error_if_fail (G_IS_TLS_CERTIFICATE (chain));
+  dex_return_error_if_fail (purpose != NULL);
+  dex_return_error_if_fail (identity == NULL || G_IS_SOCKET_CONNECTABLE (identity));
+  dex_return_error_if_fail (interaction == NULL || G_IS_TLS_INTERACTION (interaction));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_tls_database_verify_chain_async (database,
+                                     chain,
+                                     purpose,
+                                     identity,
+                                     interaction,
+                                     flags,
+                                     dex_promise_get_cancellable (promise),
+                                     dex_tls_database_verify_chain_cb,
+                                     dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_tls_database_lookup_certificate_for_handle_cb (GObject      *object,
+                                                  GAsyncResult *result,
+                                                  gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GTlsCertificate *certificate;
+
+  certificate = g_tls_database_lookup_certificate_for_handle_finish (G_TLS_DATABASE (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_object (promise, g_steal_pointer (&certificate));
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_tls_database_lookup_certificate_for_handle (GTlsDatabase           *database,
+                                                const char             *handle,
+                                                GTlsInteraction        *interaction,
+                                                GTlsDatabaseLookupFlags flags)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_TLS_DATABASE (database));
+  dex_return_error_if_fail (handle != NULL);
+  dex_return_error_if_fail (interaction == NULL || G_IS_TLS_INTERACTION (interaction));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_tls_database_lookup_certificate_for_handle_async (database,
+                                                      handle,
+                                                      interaction,
+                                                      flags,
+                                                      dex_promise_get_cancellable (promise),
+                                                      dex_tls_database_lookup_certificate_for_handle_cb,
+                                                      dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_tls_database_lookup_certificate_issuer_cb (GObject      *object,
+                                               GAsyncResult *result,
+                                               gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GTlsCertificate *certificate;
+
+  certificate = g_tls_database_lookup_certificate_issuer_finish (G_TLS_DATABASE (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_object (promise, g_steal_pointer (&certificate));
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_tls_database_lookup_certificate_issuer (GTlsDatabase           *database,
+                                            GTlsCertificate        *certificate,
+                                            GTlsInteraction        *interaction,
+                                            GTlsDatabaseLookupFlags flags)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_TLS_DATABASE (database));
+  dex_return_error_if_fail (G_IS_TLS_CERTIFICATE (certificate));
+  dex_return_error_if_fail (interaction == NULL || G_IS_TLS_INTERACTION (interaction));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_tls_database_lookup_certificate_issuer_async (database,
+                                                  certificate,
+                                                  interaction,
+                                                  flags,
+                                                  dex_promise_get_cancellable (promise),
+                                                  dex_tls_database_lookup_certificate_issuer_cb,
+                                                  dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_tls_database_lookup_certificates_issued_by_cb (GObject      *object,
+                                                   GAsyncResult *result,
+                                                   gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GList *certificates;
+
+  certificates = g_tls_database_lookup_certificates_issued_by_finish (G_TLS_DATABASE (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_boxed (promise, DEX_TYPE_TLS_CERTIFICATE_LIST, certificates);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_tls_database_lookup_certificates_issued_by (GTlsDatabase           *database,
+                                                GByteArray             *issuer_raw_dn,
+                                                GTlsInteraction        *interaction,
+                                                GTlsDatabaseLookupFlags flags)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_TLS_DATABASE (database));
+  dex_return_error_if_fail (issuer_raw_dn != NULL);
+  dex_return_error_if_fail (interaction == NULL || G_IS_TLS_INTERACTION (interaction));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_tls_database_lookup_certificates_issued_by_async (database,
+                                                      issuer_raw_dn,
+                                                      interaction,
+                                                      flags,
+                                                      dex_promise_get_cancellable (promise),
+                                                      dex_tls_database_lookup_certificates_issued_by_cb,
+                                                      dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_tls_interaction_ask_password_cb (GObject      *object,
+                                     GAsyncResult *result,
+                                     gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GTlsInteractionResult interaction_result;
+
+  interaction_result = g_tls_interaction_ask_password_finish (G_TLS_INTERACTION (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_enum (promise, G_TYPE_TLS_INTERACTION_RESULT, interaction_result);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_tls_interaction_ask_password (GTlsInteraction *interaction,
+                                  GTlsPassword    *password)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_TLS_INTERACTION (interaction));
+  dex_return_error_if_fail (G_IS_TLS_PASSWORD (password));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_tls_interaction_ask_password_async (interaction,
+                                        password,
+                                        dex_promise_get_cancellable (promise),
+                                        dex_tls_interaction_ask_password_cb,
+                                        dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_tls_interaction_request_certificate_cb (GObject      *object,
+                                            GAsyncResult *result,
+                                            gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GTlsInteractionResult interaction_result;
+
+  interaction_result = g_tls_interaction_request_certificate_finish (G_TLS_INTERACTION (object), result, &error);
+
+  if (error == NULL)
+    dex_promise_resolve_enum (promise, G_TYPE_TLS_INTERACTION_RESULT, interaction_result);
+  else
+    dex_promise_reject (promise, g_steal_pointer (&error));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_tls_interaction_request_certificate (GTlsInteraction             *interaction,
+                                         GTlsConnection              *connection,
+                                         GTlsCertificateRequestFlags  flags)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_TLS_INTERACTION (interaction));
+  dex_return_error_if_fail (G_IS_TLS_CONNECTION (connection));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_tls_interaction_request_certificate_async (interaction,
+                                               connection,
+                                               flags,
+                                               dex_promise_get_cancellable (promise),
+                                               dex_tls_interaction_request_certificate_cb,
+                                               dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_permission_acquire_cb (GObject      *object,
+                           GAsyncResult *result,
+                           gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_permission_acquire_finish (G_PERMISSION (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_permission_acquire (GPermission *permission)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_PERMISSION (permission));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_permission_acquire_async (permission,
+                              dex_promise_get_cancellable (promise),
+                              dex_permission_acquire_cb,
+                              dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_permission_release_cb (GObject      *object,
+                           GAsyncResult *result,
+                           gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_permission_release_finish (G_PERMISSION (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_permission_release (GPermission *permission)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_PERMISSION (permission));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_permission_release_async (permission,
+                              dex_promise_get_cancellable (promise),
+                              dex_permission_release_cb,
+                              dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+#ifdef G_OS_UNIX
+static void
+dex_unix_connection_send_credentials_cb (GObject      *object,
+                                         GAsyncResult *result,
+                                         gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+
+  if (!g_unix_connection_send_credentials_finish (G_UNIX_CONNECTION (object), result, &error))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_boolean (promise, TRUE);
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_unix_connection_send_credentials (GUnixConnection *connection)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_UNIX_CONNECTION (connection));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_unix_connection_send_credentials_async (connection,
+                                            dex_promise_get_cancellable (promise),
+                                            dex_unix_connection_send_credentials_cb,
+                                            dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+
+static void
+dex_unix_connection_receive_credentials_cb (GObject      *object,
+                                            GAsyncResult *result,
+                                            gpointer      user_data)
+{
+  DexPromise *promise = user_data;
+  GError *error = NULL;
+  GCredentials *credentials;
+
+  if (!(credentials = g_unix_connection_receive_credentials_finish (G_UNIX_CONNECTION (object), result, &error)))
+    dex_promise_reject (promise, g_steal_pointer (&error));
+  else
+    dex_promise_resolve_object (promise, g_steal_pointer (&credentials));
+
+  dex_unref (promise);
+}
+
+DexFuture *
+dex_unix_connection_receive_credentials (GUnixConnection *connection)
+{
+  DexPromise *promise;
+
+  dex_return_error_if_fail (G_IS_UNIX_CONNECTION (connection));
+
+  promise = dex_promise_new_cancellable ();
+
+  g_unix_connection_receive_credentials_async (connection,
+                                               dex_promise_get_cancellable (promise),
+                                               dex_unix_connection_receive_credentials_cb,
+                                               dex_ref (promise));
+
+  return DEX_FUTURE (promise);
+}
+#endif
 
 static void
 dex_file_query_exists_cb (GObject      *object,
