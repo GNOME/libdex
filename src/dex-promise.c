@@ -233,6 +233,32 @@ dex_promise_resolve_uint (DexPromise *promise,
 }
 
 /**
+ * dex_promise_resolve_enum:
+ * @promise: a [class@Dex.Promise]
+ * @enum_type: a `GType` of %G_TYPE_ENUM
+ * @value: the enum value
+ *
+ * Resolve @promise to @value.
+ *
+ * Since: 1.2
+ */
+void
+dex_promise_resolve_enum (DexPromise *promise,
+                          GType       enum_type,
+                          guint       value)
+{
+  GValue gvalue = G_VALUE_INIT;
+
+  g_return_if_fail (DEX_IS_PROMISE (promise));
+  g_return_if_fail (G_TYPE_IS_ENUM (enum_type));
+
+  g_value_init (&gvalue, enum_type);
+  g_value_set_enum (&gvalue, value);
+  dex_promise_resolve (promise, &gvalue);
+  g_value_unset (&gvalue);
+}
+
+/**
  * dex_promise_resolve_int64:
  * @promise: a [class@Dex.Promise]
  *

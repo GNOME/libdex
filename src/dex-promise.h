@@ -59,6 +59,10 @@ void          dex_promise_resolve_int     (DexPromise   *promise,
 DEX_AVAILABLE_IN_ALL
 void          dex_promise_resolve_uint    (DexPromise   *promise,
                                            guint         value);
+DEX_AVAILABLE_IN_1_2
+void          dex_promise_resolve_enum    (DexPromise   *promise,
+                                           GType         enum_type,
+                                           guint         value);
 DEX_AVAILABLE_IN_ALL
 void          dex_promise_resolve_int64   (DexPromise   *promise,
                                            gint64        value);
