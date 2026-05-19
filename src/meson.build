@@ -27,6 +27,7 @@ libdex_sources = [
   'dex-promise.c',
   'dex-scheduler.c',
   'dex-semaphore.c',
+  'dex-socket-wait.c',
   'dex-stack.c',
   'dex-static-future.c',
   'dex-thread.c',

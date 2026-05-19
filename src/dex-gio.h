@@ -246,6 +246,9 @@ DEX_AVAILABLE_IN_ALL
 DexFuture *dex_output_stream_write_bytes               (GOutputStream            *stream,
                                                         GBytes                   *bytes,
                                                         int                       io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture *dex_socket_wait                             (GSocket                  *socket,
+                                                        GIOCondition              condition) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_socket_listener_accept                  (GSocketListener          *listener) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL

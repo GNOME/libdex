@@ -30,6 +30,7 @@
 #include "dex-future-set.h"
 #include "dex-gio.h"
 #include "dex-promise.h"
+#include "dex-socket-wait-private.h"
 #include "dex-thread-pool-scheduler.h"
 #include "dex-thread.h"
 #include "dex-watch-private.h"
@@ -2537,6 +2538,33 @@ dex_file_trash (GFile *file,
                       dex_file_trash_cb,
                       dex_ref (promise));
   return DEX_FUTURE (promise);
+}
+
+/**
+ * dex_socket_wait:
+ * @socket: a [class@Gio.Socket]
+ * @condition: a [flags@GLib.IOCondition] to wait for
+ *
+ * Creates a [class@Dex.Future] that resolves when @socket satisfies
+ * @condition.
+ *
+ * The future resolves to the [flags@GLib.IOCondition] reported by the socket
+ * source. This may include additional conditions such as %G_IO_HUP or
+ * %G_IO_ERR.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a
+ *   [flags@GLib.IOCondition].
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_socket_wait (GSocket      *socket,
+                 GIOCondition  condition)
+{
+  dex_return_error_if_fail (G_IS_SOCKET (socket));
+  dex_return_error_if_fail (condition != 0);
+
+  return dex_socket_wait_new (socket, condition);
 }
 
 static void

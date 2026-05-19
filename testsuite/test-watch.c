@@ -22,6 +22,7 @@
 
 #include <libdex.h>
 #include <gio/gio.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include "dex-watch-private.h"
@@ -259,6 +260,55 @@ test_watch_multiple_events (void)
   dex_unref (watch);
 }
 
+static void
+test_socket_wait_read_ready (void)
+{
+  g_autoptr(GError) error = NULL;
+  g_autoptr(GSocket) read_socket = NULL;
+  g_autoptr(GSocket) write_socket = NULL;
+  int socket_fds[2];
+  DexFuture *wait;
+  GMainLoop *main_loop;
+  const GValue *value;
+  GIOCondition condition;
+
+  g_assert_cmpint (socketpair (AF_UNIX,
+                               SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC,
+                               0,
+                               socket_fds), ==, 0);
+
+  read_socket = g_socket_new_from_fd (socket_fds[0], &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (read_socket);
+
+  write_socket = g_socket_new_from_fd (socket_fds[1], &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (write_socket);
+
+  wait = dex_socket_wait (read_socket, G_IO_IN);
+  ASSERT_STATUS (wait, DEX_FUTURE_STATUS_PENDING);
+
+  main_loop = g_main_loop_new (NULL, FALSE);
+  wait = dex_future_then (wait, quit_cb, main_loop, NULL);
+
+  g_assert_cmpint (g_socket_send (write_socket, "x", 1, NULL, &error), ==, 1);
+  g_assert_no_error (error);
+
+  g_main_loop_run (main_loop);
+
+  ASSERT_STATUS (wait, DEX_FUTURE_STATUS_RESOLVED);
+  value = dex_future_get_value (wait, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_true (G_VALUE_HOLDS (value, G_TYPE_IO_CONDITION));
+
+  condition = g_value_get_flags (value);
+  g_assert_cmpint (condition & G_IO_IN, !=, 0);
+
+  g_main_loop_unref (main_loop);
+  dex_unref (wait);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -271,5 +321,6 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Watch/read_waiting_write_closed", test_watch_read_waiting_write_closed);
   g_test_add_func ("/Dex/TestSuite/Watch/read_side_closed", test_watch_read_side_closed);
   g_test_add_func ("/Dex/TestSuite/Watch/multiple_events", test_watch_multiple_events);
+  g_test_add_func ("/Dex/TestSuite/Socket/wait_read_ready", test_socket_wait_read_ready);
   return g_test_run ();
 }
