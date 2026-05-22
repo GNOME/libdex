@@ -231,13 +231,18 @@ libdex_dep_sources = []
 
 install_headers(libdex_headers, subdir: 'libdex-@0@'.format(api_version))
 
+pkg_requires = ['gio-2.0']
+if host_machine.system() != 'windows'
+  pkg_requires += ['gio-unix-2.0']
+endif
+
 pkg.generate(
   description: 'Future-based programming for GLib-based applications and libraries',
     libraries: libdex,
          name: 'libdex',
      filebase: 'libdex-' + api_version,
       subdirs: 'libdex-@0@'.format(api_version),
-     requires: ['gio-2.0'],
+     requires: pkg_requires,
     variables: pkgconfig_vars,
 )
 
