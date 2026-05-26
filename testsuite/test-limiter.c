@@ -245,6 +245,41 @@ test_limiter_discard_waiting (void)
 }
 
 static DexFuture *
+test_limiter_timeout_waiting_acquire_fiber (gpointer user_data)
+{
+  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
+  g_autoptr(GError) error = NULL;
+  DexFuture *second;
+  DexFuture *third;
+
+  g_assert_true (dex_await (dex_limiter_acquire (limiter), &error));
+  g_assert_no_error (error);
+
+  second = dex_future_with_timeout_msec (dex_limiter_acquire (limiter), 1);
+  g_assert_false (dex_await (second, &error));
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_TIMED_OUT);
+  g_clear_error (&error);
+
+  third = dex_limiter_acquire (limiter);
+  g_assert_true (dex_future_is_pending (third));
+
+  dex_limiter_release (limiter);
+
+  g_assert_true (dex_await (dex_future_with_timeout_msec (third, 100), &error));
+  g_assert_no_error (error);
+
+  dex_limiter_release (limiter);
+
+  return dex_future_new_true ();
+}
+
+static void
+test_limiter_timeout_waiting_acquire (void)
+{
+  run_test_fiber (test_limiter_timeout_waiting_acquire_fiber, NULL);
+}
+
+static DexFuture *
 test_limiter_discard_run_item (gpointer user_data)
 {
   int *completed = user_data;
@@ -292,6 +327,115 @@ test_limiter_discard_run (void)
   run_test_fiber (test_limiter_discard_run_fiber, NULL);
 }
 
+typedef struct
+{
+  int started;
+  int completed;
+  guint timeout_msec;
+} TimeoutRunState;
+
+static DexFuture *
+test_limiter_timeout_run_item (gpointer user_data)
+{
+  TimeoutRunState *state = user_data;
+
+  g_atomic_int_inc (&state->started);
+  dex_await (dex_timeout_new_msec (state->timeout_msec), NULL);
+  g_atomic_int_inc (&state->completed);
+
+  return dex_future_new_true ();
+}
+
+static DexFuture *
+test_limiter_timeout_waiting_run_fiber (gpointer user_data)
+{
+  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
+  g_autoptr(GError) error = NULL;
+  DexFuture *blocked;
+  DexFuture *next;
+  TimeoutRunState blocked_state = {0};
+  TimeoutRunState next_state = {0};
+
+  g_assert_true (dex_await (dex_limiter_acquire (limiter), &error));
+  g_assert_no_error (error);
+
+  blocked = dex_future_with_timeout_msec (dex_limiter_run (limiter,
+                                                           NULL,
+                                                           0,
+                                                           test_limiter_timeout_run_item,
+                                                           &blocked_state,
+                                                           NULL),
+                                          1);
+  g_assert_false (dex_await (blocked, &error));
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_TIMED_OUT);
+  g_clear_error (&error);
+
+  next = dex_limiter_run (limiter,
+                          NULL,
+                          0,
+                          test_limiter_timeout_run_item,
+                          &next_state,
+                          NULL);
+  g_assert_true (dex_future_is_pending (next));
+
+  dex_limiter_release (limiter);
+
+  g_assert_true (dex_await (dex_future_with_timeout_msec (next, 100), &error));
+  g_assert_no_error (error);
+  g_assert_cmpint (g_atomic_int_get (&blocked_state.started), ==, 0);
+  g_assert_cmpint (g_atomic_int_get (&blocked_state.completed), ==, 0);
+  g_assert_cmpint (g_atomic_int_get (&next_state.started), ==, 1);
+  g_assert_cmpint (g_atomic_int_get (&next_state.completed), ==, 1);
+
+  return dex_future_new_true ();
+}
+
+static void
+test_limiter_timeout_waiting_run (void)
+{
+  run_test_fiber (test_limiter_timeout_waiting_run_fiber, NULL);
+}
+
+static DexFuture *
+test_limiter_timeout_running_run_fiber (gpointer user_data)
+{
+  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
+  g_autoptr(GError) error = NULL;
+  DexFuture *running;
+  DexFuture *next;
+  TimeoutRunState state = { .timeout_msec = 20 };
+
+  running = dex_future_with_timeout_msec (dex_limiter_run (limiter,
+                                                           NULL,
+                                                           0,
+                                                           test_limiter_timeout_run_item,
+                                                           &state,
+                                                           NULL),
+                                          1);
+
+  g_assert_false (dex_await (running, &error));
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_TIMED_OUT);
+  g_clear_error (&error);
+  g_assert_cmpint (g_atomic_int_get (&state.started), ==, 1);
+
+  next = dex_limiter_acquire (limiter);
+  g_assert_true (dex_future_is_pending (next));
+
+  g_assert_true (dex_await (dex_future_with_timeout_msec (next, 100), &error));
+  g_assert_no_error (error);
+  g_assert_cmpint (g_atomic_int_get (&state.completed), ==, 1);
+
+  dex_limiter_release (limiter);
+
+  return dex_future_new_true ();
+}
+
+static void
+test_limiter_timeout_running_run (void)
+{
+  run_test_fiber (test_limiter_timeout_running_run_fiber, NULL);
+}
+
 static DexFuture *
 test_limiter_close_fiber (gpointer user_data)
 {
@@ -334,7 +478,13 @@ main (int argc,
   g_test_add_func ("/Dex/TestSuite/Limiter/run", test_limiter_run);
   g_test_add_func ("/Dex/TestSuite/Limiter/run_error", test_limiter_run_error);
   g_test_add_func ("/Dex/TestSuite/Limiter/discard_waiting", test_limiter_discard_waiting);
+  g_test_add_func ("/Dex/TestSuite/Limiter/timeout_waiting_acquire",
+                   test_limiter_timeout_waiting_acquire);
   g_test_add_func ("/Dex/TestSuite/Limiter/discard_run", test_limiter_discard_run);
+  g_test_add_func ("/Dex/TestSuite/Limiter/timeout_waiting_run",
+                   test_limiter_timeout_waiting_run);
+  g_test_add_func ("/Dex/TestSuite/Limiter/timeout_running_run",
+                   test_limiter_timeout_running_run);
   g_test_add_func ("/Dex/TestSuite/Limiter/close", test_limiter_close);
 
   return g_test_run ();
