@@ -39,6 +39,7 @@ testsuite = {
   'test-scheduler': {},
   'test-semaphore': {},
   'test-stream': {},
+  'test-test': {},
   'test-thread': {},
   'test-version': {},
   'test-watch': {},

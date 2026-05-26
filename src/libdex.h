@@ -48,6 +48,7 @@
 # include "dex-promise.h"
 # include "dex-scheduler.h"
 # include "dex-static-future.h"
+# include "dex-test.h"
 # include "dex-thread.h"
 # include "dex-thread-pool-scheduler.h"
 # include "dex-timeout.h"
