@@ -114,7 +114,7 @@ dex_task_group_propagate (DexFuture *future,
         {
           should_complete = TRUE;
           resolved = (group->n_rejected == 0);
-          if (!resolved && group->first_error != NULL)
+          if (!resolved && group->first_error != NULL && error == NULL)
             error = g_error_copy (group->first_error);
         }
     }
