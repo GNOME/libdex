@@ -266,6 +266,7 @@ dex_task_group_add (DexTaskGroup *group,
     }
 
   g_return_val_if_fail (DEX_IS_TASK_GROUP (group), FALSE);
+  g_return_val_if_fail (future != DEX_FUTURE (group), FALSE);
 
   dex_object_lock (group);
   if (group->closed || group->cancelled)

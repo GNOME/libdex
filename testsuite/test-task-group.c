@@ -131,6 +131,26 @@ test_task_group_cancel_on_error (void)
 }
 
 static void
+test_task_group_add_self_subprocess (void)
+{
+  DexTaskGroup *group = dex_task_group_new (DEX_TASK_GROUP_FLAGS_NONE);
+
+  dex_task_group_add (group, dex_ref (DEX_FUTURE (group)));
+
+  dex_clear (&group);
+}
+
+static void
+test_task_group_add_self (void)
+{
+  g_test_trap_subprocess ("/dex/task-group/add-self/subprocess",
+                          0,
+                          G_TEST_SUBPROCESS_DEFAULT);
+  g_test_trap_assert_failed ();
+  g_test_trap_assert_stderr ("*dex_task_group_add: assertion 'future != DEX_FUTURE (group)' failed*");
+}
+
+static void
 test_task_group_timeout_cancels_children (void)
 {
   GMainContext *context = g_main_context_default ();
@@ -273,6 +293,8 @@ main (int argc, char *argv[])
   g_test_add_func ("/dex/task-group/cancel", test_task_group_cancel);
   g_test_add_func ("/dex/task-group/close-all-resolved", test_task_group_close_all_resolved);
   g_test_add_func ("/dex/task-group/cancel-on-error", test_task_group_cancel_on_error);
+  g_test_add_func ("/dex/task-group/add-self/subprocess", test_task_group_add_self_subprocess);
+  g_test_add_func ("/dex/task-group/add-self", test_task_group_add_self);
   g_test_add_func ("/dex/task-group/timeout-cancels-children", test_task_group_timeout_cancels_children);
   g_test_add_func ("/dex/task-group/nested-cancellation", test_task_group_nested_cancellation);
   g_test_add_func ("/dex/task-group/null-uses-thread-default", test_task_group_null_uses_thread_default);
