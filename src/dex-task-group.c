@@ -78,6 +78,7 @@ dex_task_group_propagate (DexFuture *future,
   gboolean should_discard_child = FALSE;
   gboolean resolved = FALSE;
   GError *error = NULL;
+
   dex_object_lock (group);
 
   if (group->n_pending > 0)
@@ -96,6 +97,7 @@ dex_task_group_propagate (DexFuture *future,
               if (group->first_error == NULL)
                 {
                   dex_future_get_value (completed, &group->first_error);
+
                   if (group->first_error != NULL)
                     error = g_error_copy (group->first_error);
                 }
@@ -114,6 +116,7 @@ dex_task_group_propagate (DexFuture *future,
         {
           should_complete = TRUE;
           resolved = (group->n_rejected == 0);
+
           if (!resolved && group->first_error != NULL && error == NULL)
             error = g_error_copy (group->first_error);
         }
@@ -154,12 +157,12 @@ dex_task_group_propagate (DexFuture *future,
             error = g_error_new_literal (DEX_ERROR,
                                          DEX_ERROR_DEPENDENCY_FAILED,
                                          "One or more task group children failed");
-          dex_future_complete (future, NULL, error);
+          dex_future_complete (future, NULL, g_steal_pointer (&error));
         }
-      return TRUE;
     }
 
   g_clear_error (&error);
+
   return TRUE;
 }
 
