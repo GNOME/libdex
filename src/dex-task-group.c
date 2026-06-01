@@ -75,6 +75,7 @@ dex_task_group_propagate (DexFuture *future,
   DexTaskGroup *group = DEX_TASK_GROUP (future);
   gboolean should_complete = FALSE;
   gboolean should_cancel_pending = FALSE;
+  gboolean should_discard_child = FALSE;
   gboolean resolved = FALSE;
   GError *error = NULL;
   dex_object_lock (group);
@@ -82,6 +83,7 @@ dex_task_group_propagate (DexFuture *future,
   if (group->n_pending > 0)
     {
       group->n_pending--;
+      should_discard_child = TRUE;
 
       if (!group->cancelled)
         {
@@ -118,6 +120,12 @@ dex_task_group_propagate (DexFuture *future,
     }
 
   dex_object_unlock (group);
+
+  if (should_discard_child)
+    {
+      g_queue_unlink (&group->futures, &completed->task_group_link);
+      dex_future_discard (completed, DEX_FUTURE (group));
+    }
 
   if (should_cancel_pending)
     {
