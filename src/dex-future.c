@@ -325,6 +325,7 @@ dex_future_class_init (DexFutureClass *klass)
 static void
 dex_future_init (DexFuture *future)
 {
+  future->task_group_link.data = future;
 }
 
 static void

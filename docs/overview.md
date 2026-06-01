@@ -36,6 +36,12 @@ futures, such as a [class@Dex.Promise] or [class@Dex.Timeout].
 
 See the class hierarchy for other types of futures.
 
+## Task Groups
+
+Use [class@Dex.TaskGroup] to manage a structured scope of related futures.
+Task groups let you close a scope, cancel every tracked child, and await the
+group as a single future. See [Task Groups](task-groups.html) for details.
+
 ## Fibers
 
 Libdex has support for fibers which run on a separate stack from your thread

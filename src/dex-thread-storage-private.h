@@ -36,6 +36,7 @@ typedef struct _DexThreadPoolWorker DexThreadPoolWorker;
 typedef struct _DexThreadStorage
 {
   DexScheduler        *scheduler;
+  gpointer             task_group;
   DexThreadPoolWorker *worker;
   DexAioContext       *aio_context;
   DexFiberScheduler   *fiber_scheduler;

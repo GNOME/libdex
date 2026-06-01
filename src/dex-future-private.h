@@ -41,6 +41,7 @@ typedef struct _DexFuture
   GValue resolved;
   GError *rejected;
   GQueue chained;
+  GList task_group_link;
   const char *name;
   DexFutureStatus status : 2;
 } DexFuture;

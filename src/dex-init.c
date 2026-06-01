@@ -27,6 +27,7 @@
 #include "dex-infinite-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-semaphore-private.h"
+#include "dex-task-group.h"
 #include "dex-thread-pool-worker-private.h"
 #include "dex-waiter-private.h"
 
@@ -64,6 +65,7 @@ dex_init_once (void)
   g_type_ensure (DEX_TYPE_CANCELLABLE);
   g_type_ensure (DEX_TYPE_PROMISE);
   g_type_ensure (DEX_TYPE_STATIC_FUTURE);
+  g_type_ensure (DEX_TYPE_TASK_GROUP);
   g_type_ensure (DEX_TYPE_TIMEOUT);
   g_type_ensure (DEX_TYPE_INFINITE);
 #ifdef G_OS_UNIX

@@ -39,6 +39,7 @@ testsuite = {
   'test-scheduler': {},
   'test-semaphore': {},
   'test-stream': {},
+  'test-task-group': {},
   'test-test': {},
   'test-thread': {},
   'test-thread-pool': {},
