@@ -41,6 +41,7 @@ testsuite = {
   'test-stream': {},
   'test-test': {},
   'test-thread': {},
+  'test-thread-pool': {},
   'test-version': {},
   'test-watch': {},
 }

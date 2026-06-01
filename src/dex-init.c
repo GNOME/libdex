@@ -52,6 +52,9 @@ dex_init_once (void)
   g_type_ensure (DEX_TYPE_THREAD_POOL_SCHEDULER);
   g_type_ensure (DEX_TYPE_THREAD_POOL_WORKER);
 
+  /* Thread Pool */
+  g_type_ensure (DEX_TYPE_THREAD_POOL);
+
   /* Future types */
   g_type_ensure (DEX_TYPE_FUTURE);
   g_type_ensure (DEX_TYPE_ASYNC_PAIR);

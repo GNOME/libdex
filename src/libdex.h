@@ -50,6 +50,7 @@
 # include "dex-static-future.h"
 # include "dex-test.h"
 # include "dex-thread.h"
+# include "dex-thread-pool.h"
 # include "dex-thread-pool-scheduler.h"
 # include "dex-timeout.h"
 #ifdef G_OS_UNIX
