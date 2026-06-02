@@ -27,6 +27,10 @@ G_BEGIN_DECLS
 typedef struct _DexAioContext DexAioContext;
 
 DEX_AVAILABLE_IN_1_2
+DexFuture *dex_aio_close (DexAioContext *aio_context,
+                          int            fd)
+  G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
 DexFuture *dex_aio_open  (DexAioContext *aio_context,
                           const char    *path,
                           int            flags,

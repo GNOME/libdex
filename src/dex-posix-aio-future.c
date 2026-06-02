@@ -36,7 +36,8 @@
 
 typedef enum _DexPosixAioFutureKind
 {
-  DEX_POSIX_AIO_FUTURE_OPEN = 1,
+  DEX_POSIX_AIO_FUTURE_CLOSE = 1,
+  DEX_POSIX_AIO_FUTURE_OPEN,
   DEX_POSIX_AIO_FUTURE_READ,
   DEX_POSIX_AIO_FUTURE_WRITE,
 } DexPosixAioFutureKind;
@@ -49,6 +50,10 @@ struct _DexPosixAioFuture
   DexPosixAioFutureKind  kind;
   int                    errsv;
   union {
+    struct {
+      DexFD             *fd;
+      int                res;
+    } close;
     struct {
       char              *path;
       int                flags;
@@ -87,7 +92,9 @@ dex_posix_aio_future_finalize (DexObject *object)
 {
   DexPosixAioFuture *posix_aio_future = DEX_POSIX_AIO_FUTURE (object);
 
-  if (posix_aio_future->kind == DEX_POSIX_AIO_FUTURE_OPEN)
+  if (posix_aio_future->kind == DEX_POSIX_AIO_FUTURE_CLOSE)
+    g_clear_pointer (&posix_aio_future->close.fd, dex_fd_free);
+  else if (posix_aio_future->kind == DEX_POSIX_AIO_FUTURE_OPEN)
     g_clear_pointer (&posix_aio_future->open.path, g_free);
 
   g_clear_pointer ((GSource **)&posix_aio_future->aio_context, g_source_unref);
@@ -123,6 +130,19 @@ dex_posix_aio_future_new (DexPosixAioFutureKind  kind,
   posix_aio_future->kind = kind;
   posix_aio_future->aio_context = (DexPosixAioContext *)g_source_ref ((GSource *)aio_context);
   posix_aio_future->main_context = main_context;
+
+  return posix_aio_future;
+}
+
+DexPosixAioFuture *
+dex_posix_aio_future_new_close (DexPosixAioContext *posix_aio_context,
+                                int                 fd)
+{
+  DexPosixAioFuture *posix_aio_future;
+
+  posix_aio_future = dex_posix_aio_future_new (DEX_POSIX_AIO_FUTURE_CLOSE, posix_aio_context);
+  posix_aio_future->close.fd = g_memdup2 (&fd, sizeof fd);
+  posix_aio_future->close.res = -1;
 
   return posix_aio_future;
 }
@@ -191,6 +211,14 @@ dex_posix_aio_future_run (DexPosixAioFuture *posix_aio_future)
 
   switch (posix_aio_future->kind)
     {
+    case DEX_POSIX_AIO_FUTURE_CLOSE:
+      posix_aio_future->close.res =
+        close (dex_fd_steal (posix_aio_future->close.fd));
+
+      /* Silence unused-result */
+      (void)posix_aio_future->close.res;
+      break;
+
     case DEX_POSIX_AIO_FUTURE_OPEN:
       posix_aio_future->open.res =
         open (posix_aio_future->open.path,
@@ -243,6 +271,24 @@ dex_posix_aio_future_run (DexPosixAioFuture *posix_aio_future)
 }
 
 static void
+dex_posix_aio_future_complete_boolean (DexPosixAioFuture *posix_aio_future,
+                                       int                res)
+{
+  g_assert (DEX_IS_POSIX_AIO_FUTURE (posix_aio_future));
+
+  if (res < 0)
+    dex_future_complete (DEX_FUTURE (posix_aio_future),
+                         NULL,
+                         g_error_new_literal (G_IO_ERROR,
+                                              g_io_error_from_errno (posix_aio_future->errsv),
+                                              g_strerror (posix_aio_future->errsv)));
+  else
+    dex_future_complete (DEX_FUTURE (posix_aio_future),
+                         &(GValue) { G_TYPE_BOOLEAN, {{.v_int = TRUE}}},
+                         NULL);
+}
+
+static void
 dex_posix_aio_future_complete_fd (DexPosixAioFuture *posix_aio_future,
                                   int                res)
 {
@@ -287,6 +333,11 @@ dex_posix_aio_future_complete (DexPosixAioFuture *posix_aio_future)
 
   switch (posix_aio_future->kind)
     {
+    case DEX_POSIX_AIO_FUTURE_CLOSE:
+      dex_posix_aio_future_complete_boolean (posix_aio_future,
+                                             posix_aio_future->close.res);
+      break;
+
     case DEX_POSIX_AIO_FUTURE_OPEN:
       dex_posix_aio_future_complete_fd (posix_aio_future, posix_aio_future->open.res);
       break;

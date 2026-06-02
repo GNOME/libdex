@@ -51,6 +51,18 @@ dex_aio_backend_create_context (DexAioBackend *aio_backend)
 }
 
 DexFuture *
+dex_aio_backend_close (DexAioBackend *aio_backend,
+                       DexAioContext *aio_context,
+                       int            fd)
+{
+  dex_return_error_if_fail (DEX_IS_AIO_BACKEND (aio_backend));
+  dex_return_error_if_fail (aio_context != NULL);
+  dex_return_error_if_fail (fd > -1);
+
+  return DEX_AIO_BACKEND_GET_CLASS (aio_backend)->close (aio_backend, aio_context, fd);
+}
+
+DexFuture *
 dex_aio_backend_open (DexAioBackend *aio_backend,
                       DexAioContext *aio_context,
                       const char    *path,

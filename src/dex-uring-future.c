@@ -32,7 +32,8 @@
 
 typedef enum _DexUringType
 {
-  DEX_URING_TYPE_OPEN = 1,
+  DEX_URING_TYPE_CLOSE = 1,
+  DEX_URING_TYPE_OPEN,
   DEX_URING_TYPE_READ,
   DEX_URING_TYPE_WRITE,
 } DexUringType;
@@ -42,6 +43,10 @@ struct _DexUringFuture
   DexFuture parent_instance;
   DexUringType type;
   union {
+    struct {
+      DexFD *fd;
+      int result;
+    } close;
     struct {
       char *path;
       int flags;
@@ -80,7 +85,9 @@ dex_uring_future_finalize (DexObject *object)
 {
   DexUringFuture *uring_future = DEX_URING_FUTURE (object);
 
-  if (uring_future->type == DEX_URING_TYPE_OPEN)
+  if (uring_future->type == DEX_URING_TYPE_CLOSE)
+    g_clear_pointer (&uring_future->close.fd, dex_fd_free);
+  else if (uring_future->type == DEX_URING_TYPE_OPEN)
     g_clear_pointer (&uring_future->open.path, g_free);
 
   DEX_OBJECT_CLASS (dex_uring_future_parent_class)->finalize (object);
@@ -105,6 +112,20 @@ create_error (int error_code)
   return g_error_new_literal (G_IO_ERROR,
                               g_io_error_from_errno (-error_code),
                               g_strerror (-error_code));
+}
+
+static void
+complete_boolean (DexUringFuture *uring_future,
+                  int             value)
+{
+  if (value < 0)
+    dex_future_complete (DEX_FUTURE (uring_future),
+                         NULL,
+                         create_error (value));
+  else
+    dex_future_complete (DEX_FUTURE (uring_future),
+                         &(GValue) { G_TYPE_BOOLEAN, {{.v_int = TRUE}}},
+                         NULL);
 }
 
 static void
@@ -142,6 +163,10 @@ dex_uring_future_complete (DexUringFuture *uring_future)
 {
   switch (uring_future->type)
     {
+    case DEX_URING_TYPE_CLOSE:
+      complete_boolean (uring_future, uring_future->close.result);
+      break;
+
     case DEX_URING_TYPE_OPEN:
       complete_fd (uring_future, uring_future->open.result);
       break;
@@ -165,6 +190,10 @@ dex_uring_future_cqe (DexUringFuture      *uring_future,
 {
   switch (uring_future->type)
     {
+    case DEX_URING_TYPE_CLOSE:
+      uring_future->close.result = cqe->res;
+      break;
+
     case DEX_URING_TYPE_OPEN:
       uring_future->open.result = cqe->res;
       break;
@@ -188,6 +217,10 @@ dex_uring_future_sqe (DexUringFuture      *uring_future,
 {
   switch (uring_future->type)
     {
+    case DEX_URING_TYPE_CLOSE:
+      io_uring_prep_close (sqe, dex_fd_steal (uring_future->close.fd));
+      break;
+
     case DEX_URING_TYPE_OPEN:
       io_uring_prep_openat (sqe,
                             AT_FDCWD,
@@ -215,6 +248,19 @@ dex_uring_future_sqe (DexUringFuture      *uring_future,
     default:
       g_assert_not_reached ();
     }
+}
+
+DexUringFuture *
+dex_uring_future_new_close (int fd)
+{
+  DexUringFuture *future;
+
+  future = (DexUringFuture *)dex_object_create_instance (DEX_TYPE_URING_FUTURE);
+  future->type = DEX_URING_TYPE_CLOSE;
+  future->close.fd = g_memdup2 (&fd, sizeof fd);
+  future->close.result = -1;
+
+  return future;
 }
 
 DexUringFuture *

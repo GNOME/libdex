@@ -29,6 +29,8 @@ G_BEGIN_DECLS
 #define DEX_IS_POSIX_AIO_FUTURE(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_POSIX_AIO_FUTURE))
 
 GType               dex_posix_aio_future_get_type         (void) G_GNUC_CONST;
+DexPosixAioFuture  *dex_posix_aio_future_new_close        (DexPosixAioContext  *posix_aio_context,
+                                                           int                  fd);
 DexPosixAioFuture  *dex_posix_aio_future_new_open         (DexPosixAioContext  *posix_aio_context,
                                                            const char          *path,
                                                            int                  flags,

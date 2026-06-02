@@ -42,6 +42,35 @@ dex_aio_context_current (void)
 }
 
 /**
+ * dex_aio_close:
+ * @aio_context: (nullable):
+ * @fd: the file descriptor to close
+ *
+ * An asynchronous `close()` wrapper.
+ *
+ * This function takes ownership of @fd and will close it asynchronously.
+ *
+ * Generally you want to provide `NULL` for the @aio_context as that
+ * will get the default aio context for your scheduler.
+ *
+ * Returns: (transfer full): a future that will resolve to %TRUE when the
+ *   close completes or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_aio_close (DexAioContext *aio_context,
+               int            fd)
+{
+  dex_return_error_if_fail (fd > -1);
+
+  if (aio_context == NULL)
+    aio_context = dex_aio_context_current ();
+
+  return dex_aio_backend_close (aio_context->aio_backend, aio_context, fd);
+}
+
+/**
  * dex_aio_open:
  * @aio_context: (nullable):
  * @path: the path to open
