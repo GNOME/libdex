@@ -20,16 +20,20 @@
 
 #include "config.h"
 
+#include <fcntl.h>
+
 #include <liburing.h>
 
 #include <gio/gio.h>
 
+#include "dex-fd-private.h"
 #include "dex-future-private.h"
 #include "dex-uring-future-private.h"
 
 typedef enum _DexUringType
 {
-  DEX_URING_TYPE_READ = 1,
+  DEX_URING_TYPE_OPEN = 1,
+  DEX_URING_TYPE_READ,
   DEX_URING_TYPE_WRITE,
 } DexUringType;
 
@@ -38,6 +42,12 @@ struct _DexUringFuture
   DexFuture parent_instance;
   DexUringType type;
   union {
+    struct {
+      char *path;
+      int flags;
+      int mode;
+      int result;
+    } open;
     struct {
       int fd;
       gpointer buffer;
@@ -66,8 +76,22 @@ DEX_DEFINE_FINAL_TYPE (DexUringFuture, dex_uring_future, DEX_TYPE_FUTURE)
 #define DEX_TYPE_URING_FUTURE dex_uring_future_type
 
 static void
+dex_uring_future_finalize (DexObject *object)
+{
+  DexUringFuture *uring_future = DEX_URING_FUTURE (object);
+
+  if (uring_future->type == DEX_URING_TYPE_OPEN)
+    g_clear_pointer (&uring_future->open.path, g_free);
+
+  DEX_OBJECT_CLASS (dex_uring_future_parent_class)->finalize (object);
+}
+
+static void
 dex_uring_future_class_init (DexUringFutureClass *uring_future_class)
 {
+  DexObjectClass *object_class = DEX_OBJECT_CLASS (uring_future_class);
+
+  object_class->finalize = dex_uring_future_finalize;
 }
 
 static void
@@ -81,6 +105,22 @@ create_error (int error_code)
   return g_error_new_literal (G_IO_ERROR,
                               g_io_error_from_errno (-error_code),
                               g_strerror (-error_code));
+}
+
+static void
+complete_fd (DexUringFuture *uring_future,
+             int             value)
+{
+  if (value < 0)
+    dex_future_complete (DEX_FUTURE (uring_future),
+                         NULL,
+                         create_error (value));
+  else
+    dex_future_complete (DEX_FUTURE (uring_future),
+                         &(GValue) { DEX_TYPE_FD,
+                                     {{.v_pointer = g_memdup2 (&value, sizeof value)},
+                                      {.v_int = 0}}},
+                         NULL);
 }
 
 static void
@@ -102,6 +142,10 @@ dex_uring_future_complete (DexUringFuture *uring_future)
 {
   switch (uring_future->type)
     {
+    case DEX_URING_TYPE_OPEN:
+      complete_fd (uring_future, uring_future->open.result);
+      break;
+
     case DEX_URING_TYPE_READ:
       complete_ssize (uring_future, uring_future->read.result);
       break;
@@ -121,6 +165,10 @@ dex_uring_future_cqe (DexUringFuture      *uring_future,
 {
   switch (uring_future->type)
     {
+    case DEX_URING_TYPE_OPEN:
+      uring_future->open.result = cqe->res;
+      break;
+
     case DEX_URING_TYPE_READ:
       uring_future->read.result = cqe->res;
       break;
@@ -140,6 +188,14 @@ dex_uring_future_sqe (DexUringFuture      *uring_future,
 {
   switch (uring_future->type)
     {
+    case DEX_URING_TYPE_OPEN:
+      io_uring_prep_openat (sqe,
+                            AT_FDCWD,
+                            uring_future->open.path,
+                            uring_future->open.flags,
+                            uring_future->open.mode);
+      break;
+
     case DEX_URING_TYPE_READ:
       io_uring_prep_read (sqe,
                           uring_future->read.fd,
@@ -159,6 +215,23 @@ dex_uring_future_sqe (DexUringFuture      *uring_future,
     default:
       g_assert_not_reached ();
     }
+}
+
+DexUringFuture *
+dex_uring_future_new_open (const char *path,
+                           int         flags,
+                           int         mode)
+{
+  DexUringFuture *future;
+
+  future = (DexUringFuture *)dex_object_create_instance (DEX_TYPE_URING_FUTURE);
+  future->type = DEX_URING_TYPE_OPEN;
+  future->open.path = g_strdup (path);
+  future->open.flags = flags;
+  future->open.mode = mode;
+  future->open.result = -1;
+
+  return future;
 }
 
 DexUringFuture *

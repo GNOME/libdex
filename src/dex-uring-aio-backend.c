@@ -323,6 +323,17 @@ failure:
 }
 
 static DexFuture *
+dex_uring_aio_backend_open (DexAioBackend *aio_backend,
+                            DexAioContext *aio_context,
+                            const char    *path,
+                            int            flags,
+                            int            mode)
+{
+  return dex_uring_aio_context_queue ((DexUringAioContext *)aio_context,
+                                      dex_uring_future_new_open (path, flags, mode));
+}
+
+static DexFuture *
 dex_uring_aio_backend_read (DexAioBackend *aio_backend,
                             DexAioContext *aio_context,
                             int            fd,
@@ -352,6 +363,7 @@ dex_uring_aio_backend_class_init (DexUringAioBackendClass *uring_aio_backend_cla
   DexAioBackendClass *aio_backend_class = DEX_AIO_BACKEND_CLASS (uring_aio_backend_class);
 
   aio_backend_class->create_context = dex_uring_aio_backend_create_context;
+  aio_backend_class->open = dex_uring_aio_backend_open;
   aio_backend_class->read = dex_uring_aio_backend_read;
   aio_backend_class->write = dex_uring_aio_backend_write;
 }

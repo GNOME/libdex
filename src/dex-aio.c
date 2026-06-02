@@ -20,6 +20,8 @@
 
 #include "config.h"
 
+#include <gio/gio.h>
+
 #include "dex-aio.h"
 #include "dex-aio-backend-private.h"
 #include "dex-scheduler-private.h"
@@ -37,6 +39,40 @@ dex_aio_context_current (void)
     return dex_scheduler_get_aio_context (storage->scheduler);
 
   g_return_val_if_reached (NULL);
+}
+
+/**
+ * dex_aio_open:
+ * @aio_context: (nullable):
+ * @path: the path to open
+ * @flags: flags for `open()`
+ * @mode: permissions to use when creating the file
+ *
+ * An asynchronous `open()` wrapper.
+ *
+ * Generally you want to provide `NULL` for the @aio_context as that
+ * will get the default aio context for your scheduler.
+ *
+ * The resulting future resolves to a file descriptor which can be consumed
+ * with [method@Dex.Future.await_fd].
+ *
+ * Returns: (transfer full): a future that will resolve when the
+ *   open completes or rejects with error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_aio_open (DexAioContext *aio_context,
+              const char    *path,
+              int            flags,
+              int            mode)
+{
+  dex_return_error_if_fail (path != NULL);
+
+  if (aio_context == NULL)
+    aio_context = dex_aio_context_current ();
+
+  return dex_aio_backend_open (aio_context->aio_backend, aio_context, path, flags, mode);
 }
 
 /**

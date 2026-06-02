@@ -20,6 +20,8 @@
 
 #include "config.h"
 
+#include <gio/gio.h>
+
 #include "dex-aio-backend-private.h"
 
 #ifdef HAVE_LIBURING
@@ -49,6 +51,21 @@ dex_aio_backend_create_context (DexAioBackend *aio_backend)
 }
 
 DexFuture *
+dex_aio_backend_open (DexAioBackend *aio_backend,
+                      DexAioContext *aio_context,
+                      const char    *path,
+                      int            flags,
+                      int            mode)
+{
+  dex_return_error_if_fail (DEX_IS_AIO_BACKEND (aio_backend));
+  dex_return_error_if_fail (aio_context != NULL);
+  dex_return_error_if_fail (path != NULL);
+
+  return DEX_AIO_BACKEND_GET_CLASS (aio_backend)->open (aio_backend, aio_context,
+                                                        path, flags, mode);
+}
+
+DexFuture *
 dex_aio_backend_read (DexAioBackend *aio_backend,
                       DexAioContext *aio_context,
                       int            fd,
@@ -56,8 +73,8 @@ dex_aio_backend_read (DexAioBackend *aio_backend,
                       gsize          count,
                       goffset        offset)
 {
-  g_return_val_if_fail (DEX_IS_AIO_BACKEND (aio_backend), NULL);
-  g_return_val_if_fail (aio_context != NULL, NULL);
+  dex_return_error_if_fail (DEX_IS_AIO_BACKEND (aio_backend));
+  dex_return_error_if_fail (aio_context != NULL);
 
   return DEX_AIO_BACKEND_GET_CLASS (aio_backend)->read (aio_backend, aio_context, fd, buffer, count, offset);
 }
@@ -70,8 +87,8 @@ dex_aio_backend_write (DexAioBackend *aio_backend,
                        gsize          count,
                        goffset        offset)
 {
-  g_return_val_if_fail (DEX_IS_AIO_BACKEND (aio_backend), NULL);
-  g_return_val_if_fail (aio_context != NULL, NULL);
+  dex_return_error_if_fail (DEX_IS_AIO_BACKEND (aio_backend));
+  dex_return_error_if_fail (aio_context != NULL);
 
   return DEX_AIO_BACKEND_GET_CLASS (aio_backend)->write (aio_backend, aio_context, fd, buffer, count, offset);
 }

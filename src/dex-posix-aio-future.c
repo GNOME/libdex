@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <fcntl.h>
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -28,13 +29,15 @@
 
 #include <gio/gio.h>
 
+#include "dex-fd-private.h"
 #include "dex-future-private.h"
 #include "dex-posix-aio-backend-private.h"
 #include "dex-posix-aio-future-private.h"
 
 typedef enum _DexPosixAioFutureKind
 {
-  DEX_POSIX_AIO_FUTURE_READ = 1,
+  DEX_POSIX_AIO_FUTURE_OPEN = 1,
+  DEX_POSIX_AIO_FUTURE_READ,
   DEX_POSIX_AIO_FUTURE_WRITE,
 } DexPosixAioFutureKind;
 
@@ -46,6 +49,12 @@ struct _DexPosixAioFuture
   DexPosixAioFutureKind  kind;
   int                    errsv;
   union {
+    struct {
+      char              *path;
+      int                flags;
+      int                mode;
+      int                res;
+    } open;
     struct {
       int                fd;
       gpointer           buffer;
@@ -77,6 +86,9 @@ static void
 dex_posix_aio_future_finalize (DexObject *object)
 {
   DexPosixAioFuture *posix_aio_future = DEX_POSIX_AIO_FUTURE (object);
+
+  if (posix_aio_future->kind == DEX_POSIX_AIO_FUTURE_OPEN)
+    g_clear_pointer (&posix_aio_future->open.path, g_free);
 
   g_clear_pointer ((GSource **)&posix_aio_future->aio_context, g_source_unref);
   g_clear_pointer (&posix_aio_future->main_context, g_main_context_unref);
@@ -111,6 +123,23 @@ dex_posix_aio_future_new (DexPosixAioFutureKind  kind,
   posix_aio_future->kind = kind;
   posix_aio_future->aio_context = (DexPosixAioContext *)g_source_ref ((GSource *)aio_context);
   posix_aio_future->main_context = main_context;
+
+  return posix_aio_future;
+}
+
+DexPosixAioFuture *
+dex_posix_aio_future_new_open (DexPosixAioContext *posix_aio_context,
+                               const char          *path,
+                               int                  flags,
+                               int                  mode)
+{
+  DexPosixAioFuture *posix_aio_future;
+
+  posix_aio_future = dex_posix_aio_future_new (DEX_POSIX_AIO_FUTURE_OPEN, posix_aio_context);
+  posix_aio_future->open.path = g_strdup (path);
+  posix_aio_future->open.flags = flags;
+  posix_aio_future->open.mode = mode;
+  posix_aio_future->open.res = -1;
 
   return posix_aio_future;
 }
@@ -162,6 +191,16 @@ dex_posix_aio_future_run (DexPosixAioFuture *posix_aio_future)
 
   switch (posix_aio_future->kind)
     {
+    case DEX_POSIX_AIO_FUTURE_OPEN:
+      posix_aio_future->open.res =
+        open (posix_aio_future->open.path,
+              posix_aio_future->open.flags,
+              posix_aio_future->open.mode);
+
+      /* Silence unused-result */
+      (void)posix_aio_future->open.res;
+      break;
+
     case DEX_POSIX_AIO_FUTURE_READ:
       if (posix_aio_future->read.offset >= 0)
         posix_aio_future->read.res =
@@ -204,6 +243,26 @@ dex_posix_aio_future_run (DexPosixAioFuture *posix_aio_future)
 }
 
 static void
+dex_posix_aio_future_complete_fd (DexPosixAioFuture *posix_aio_future,
+                                  int                res)
+{
+  g_assert (DEX_IS_POSIX_AIO_FUTURE (posix_aio_future));
+
+  if (res < 0)
+    dex_future_complete (DEX_FUTURE (posix_aio_future),
+                         NULL,
+                         g_error_new_literal (G_IO_ERROR,
+                                              g_io_error_from_errno (posix_aio_future->errsv),
+                                              g_strerror (posix_aio_future->errsv)));
+  else
+    dex_future_complete (DEX_FUTURE (posix_aio_future),
+                         &(GValue) { DEX_TYPE_FD,
+                                     {{.v_pointer = g_memdup2 (&res, sizeof res)},
+                                      {.v_int = 0}}},
+                         NULL);
+}
+
+static void
 dex_posix_aio_future_complete_int64 (DexPosixAioFuture *posix_aio_future,
                                      gint64             res)
 {
@@ -228,6 +287,10 @@ dex_posix_aio_future_complete (DexPosixAioFuture *posix_aio_future)
 
   switch (posix_aio_future->kind)
     {
+    case DEX_POSIX_AIO_FUTURE_OPEN:
+      dex_posix_aio_future_complete_fd (posix_aio_future, posix_aio_future->open.res);
+      break;
+
     case DEX_POSIX_AIO_FUTURE_READ:
       dex_posix_aio_future_complete_int64 (posix_aio_future, posix_aio_future->read.res);
       break;

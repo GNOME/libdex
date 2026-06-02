@@ -28,6 +28,7 @@ if have_gdbus_codegen
 endif
 
 testsuite = {
+  'test-aio': {},
   'test-async-result': {},
   'test-channel': {},
   'test-dbus': {'extra-sources': dbus_foo, 'disable': not have_gdbus_codegen},

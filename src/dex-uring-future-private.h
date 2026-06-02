@@ -33,6 +33,9 @@ G_BEGIN_DECLS
 typedef struct _DexUringFuture DexUringFuture;
 
 GType           dex_uring_future_get_type  (void) G_GNUC_CONST;
+DexUringFuture *dex_uring_future_new_open  (const char          *path,
+                                            int                  flags,
+                                            int                  mode);
 DexUringFuture *dex_uring_future_new_read  (int                  fd,
                                             gpointer             buffer,
                                             gsize                count,

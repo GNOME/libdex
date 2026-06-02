@@ -45,6 +45,11 @@ struct _DexAioBackendClass
   DexObjectClass parent_class;
 
   DexAioContext *(*create_context) (DexAioBackend *aio_backend);
+  DexFuture     *(*open)           (DexAioBackend *aio_backend,
+                                    DexAioContext *aio_context,
+                                    const char    *path,
+                                    int            flags,
+                                    int            mode);
   DexFuture     *(*read)           (DexAioBackend *aio_backend,
                                     DexAioContext *aio_context,
                                     int            fd,
@@ -69,6 +74,11 @@ struct _DexAioContext
 GType          dex_aio_backend_get_type       (void) G_GNUC_CONST;
 DexAioBackend *dex_aio_backend_get_default    (void);
 DexAioContext *dex_aio_backend_create_context (DexAioBackend *aio_backend);
+DexFuture     *dex_aio_backend_open           (DexAioBackend *aio_backend,
+                                               DexAioContext *aio_context,
+                                               const char    *path,
+                                               int            flags,
+                                               int            mode);
 DexFuture     *dex_aio_backend_read           (DexAioBackend *aio_backend,
                                                DexAioContext *aio_context,
                                                int            fd,

@@ -181,6 +181,22 @@ dex_posix_aio_backend_create_context (DexAioBackend *aio_backend)
 }
 
 static DexFuture *
+dex_posix_aio_backend_open (DexAioBackend *aio_backend,
+                            DexAioContext *aio_context,
+                            const char    *path,
+                            int            flags,
+                            int            mode)
+{
+  DexPosixAioFuture *posix_aio_future;
+
+  posix_aio_future = dex_posix_aio_future_new_open ((DexPosixAioContext *)aio_context,
+                                                    path, flags, mode);
+  g_thread_pool_push (io_thread_pool, dex_ref (posix_aio_future), NULL);
+
+  return DEX_FUTURE (posix_aio_future);
+}
+
+static DexFuture *
 dex_posix_aio_backend_read (DexAioBackend *aio_backend,
                             DexAioContext *aio_context,
                             int            fd,
@@ -233,6 +249,7 @@ dex_posix_aio_backend_class_init (DexPosixAioBackendClass *posix_aio_backend_cla
   GError *error = NULL;
 
   aio_backend_class->create_context = dex_posix_aio_backend_create_context;
+  aio_backend_class->open = dex_posix_aio_backend_open;
   aio_backend_class->read = dex_posix_aio_backend_read;
   aio_backend_class->write = dex_posix_aio_backend_write;
 
