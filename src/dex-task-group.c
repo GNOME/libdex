@@ -128,6 +128,7 @@ dex_task_group_propagate (DexFuture *future,
     {
       g_queue_unlink (&group->futures, &completed->task_group_link);
       dex_future_discard (completed, DEX_FUTURE (group));
+      dex_unref (completed);
     }
 
   if (should_cancel_pending)
