@@ -301,11 +301,13 @@ dex_posix_aio_future_complete_fd (DexPosixAioFuture *posix_aio_future,
                                               g_io_error_from_errno (posix_aio_future->errsv),
                                               g_strerror (posix_aio_future->errsv)));
   else
-    dex_future_complete (DEX_FUTURE (posix_aio_future),
-                         &(GValue) { DEX_TYPE_FD,
-                                     {{.v_pointer = g_memdup2 (&res, sizeof res)},
-                                      {.v_int = 0}}},
-                         NULL);
+    {
+      GValue value = G_VALUE_INIT;
+
+      g_value_init (&value, DEX_TYPE_FD);
+      g_value_take_boxed (&value, g_memdup2 (&res, sizeof res));
+      dex_future_complete_steal (DEX_FUTURE (posix_aio_future), &value, NULL);
+    }
 }
 
 static void

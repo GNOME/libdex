@@ -173,6 +173,7 @@ dex_uring_aio_context_prepare (GSource *source,
       future = g_queue_pop_head (&aio_context->queued);
       dex_uring_future_sqe (future, sqe);
       io_uring_sqe_set_data (sqe, dex_ref (future));
+      dex_unref (future);
     }
 
   if (do_submit || io_uring_sq_ready (&aio_context->ring) > 0)

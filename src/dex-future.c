@@ -99,6 +99,45 @@ dex_chained_future_free (DexChainedFuture *cf)
   g_free (cf);
 }
 
+static void
+dex_future_notify_complete (DexFuture *future,
+                            GQueue    *queue)
+{
+  g_assert (DEX_IS_FUTURE (future));
+  g_assert (queue != NULL);
+
+  /* Iterate in reverse order to give some predictable ordering based on
+   * when chained futures were attached. We've released the lock at this
+   * point to avoid any requests back on future from deadlocking.
+   */
+  while (queue->tail != NULL)
+    {
+      DexChainedFuture *cf = g_queue_pop_tail_link (queue)->data;
+      DexFuture *chained;
+
+      g_assert (cf != NULL);
+      g_assert (cf->link.data == cf);
+
+      chained = dex_weak_ref_get (&cf->wr);
+      dex_weak_ref_set (&cf->wr, NULL);
+
+      g_assert (!chained || DEX_IS_FUTURE (chained));
+
+      /* Always notify even if the future isn't awaiting as
+       * it can provide a bit more information to futures that
+       * are bringing in results until their callbacks are
+       * scheduled for execution.
+       */
+      if (chained != NULL)
+        {
+          dex_future_propagate (chained, future);
+          dex_unref (chained);
+        }
+
+      dex_chained_future_free (cf);
+    }
+}
+
 void
 dex_future_complete_from (DexFuture *future,
                           DexFuture *completed)
@@ -143,36 +182,48 @@ dex_future_complete (DexFuture    *future,
     }
   dex_object_unlock (DEX_OBJECT (future));
 
-  /* Iterate in reverse order to give some predictable ordering based on
-   * when chained futures were attached. We've released the lock at this
-   * point to avoid any requests back on future from deadlocking.
-   */
-  while (queue.tail != NULL)
+  dex_future_notify_complete (future, &queue);
+}
+
+void
+dex_future_complete_steal (DexFuture *future,
+                           GValue    *resolved,
+                           GError    *rejected)
+{
+  GQueue queue = G_QUEUE_INIT;
+
+  g_return_if_fail (DEX_IS_FUTURE (future));
+  g_return_if_fail (resolved != NULL || rejected != NULL);
+  g_return_if_fail (resolved == NULL || G_IS_VALUE (resolved));
+
+  dex_object_lock (DEX_OBJECT (future));
+  if (future->status == DEX_FUTURE_STATUS_PENDING)
     {
-      DexChainedFuture *cf = g_queue_pop_tail_link (&queue)->data;
-      DexFuture *chained;
-
-      g_assert (cf != NULL);
-      g_assert (cf->link.data == cf);
-
-      chained = dex_weak_ref_get (&cf->wr);
-      dex_weak_ref_set (&cf->wr, NULL);
-
-      g_assert (!chained || DEX_IS_FUTURE (chained));
-
-      /* Always notify even if the future isn't awaiting as
-       * it can provide a bit more information to futures that
-       * are bringing in results until their callbacks are
-       * scheduled for execution.
-       */
-      if (chained != NULL)
+      if (resolved != NULL)
         {
-          dex_future_propagate (chained, future);
-          dex_unref (chained);
+          future->resolved = *resolved;
+          memset (resolved, 0, sizeof *resolved);
+          future->status = DEX_FUTURE_STATUS_RESOLVED;
+          g_clear_error (&rejected);
+        }
+      else
+        {
+          future->rejected = g_steal_pointer (&rejected);
+          future->status = DEX_FUTURE_STATUS_REJECTED;
         }
 
-      dex_chained_future_free (cf);
+      queue = future->chained;
+      future->chained = (GQueue) {NULL, NULL, 0};
     }
+  else
+    {
+      if (resolved != NULL)
+        g_value_unset (resolved);
+      g_clear_error (&rejected);
+    }
+  dex_object_unlock (DEX_OBJECT (future));
+
+  dex_future_notify_complete (future, &queue);
 }
 
 const GValue *

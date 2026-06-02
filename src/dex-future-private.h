@@ -60,6 +60,9 @@ void          dex_future_chain         (DexFuture     *future,
 void          dex_future_complete      (DexFuture     *future,
                                         const GValue  *value,
                                         GError        *error);
+void          dex_future_complete_steal (DexFuture     *future,
+                                         GValue        *value,
+                                         GError        *error);
 void          dex_future_complete_from (DexFuture     *future,
                                         DexFuture     *completed);
 void          dex_future_discard       (DexFuture     *future,

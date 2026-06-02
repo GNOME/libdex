@@ -137,11 +137,13 @@ complete_fd (DexUringFuture *uring_future,
                          NULL,
                          create_error (value));
   else
-    dex_future_complete (DEX_FUTURE (uring_future),
-                         &(GValue) { DEX_TYPE_FD,
-                                     {{.v_pointer = g_memdup2 (&value, sizeof value)},
-                                      {.v_int = 0}}},
-                         NULL);
+    {
+      GValue gvalue = G_VALUE_INIT;
+
+      g_value_init (&gvalue, DEX_TYPE_FD);
+      g_value_take_boxed (&gvalue, g_memdup2 (&value, sizeof value));
+      dex_future_complete_steal (DEX_FUTURE (uring_future), &gvalue, NULL);
+    }
 }
 
 static void
