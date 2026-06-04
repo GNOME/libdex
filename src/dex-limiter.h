@@ -26,6 +26,7 @@
 #endif
 
 #include "dex-scheduler.h"
+#include "dex-thread-pool.h"
 #include "dex-version-macros.h"
 
 G_BEGIN_DECLS
@@ -53,6 +54,12 @@ DexFuture  *dex_limiter_run                 (DexLimiter     *limiter,
                                              DexFiberFunc    func,
                                              gpointer        func_data,
                                              GDestroyNotify  func_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+DexFuture  *dex_limiter_run_on_pool         (DexLimiter     *limiter,
+                                             DexThreadPool  *pool,
+                                             DexThreadFunc   thread_func,
+                                             gpointer        user_data,
+                                             GDestroyNotify  user_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
 void        dex_limiter_close               (DexLimiter     *limiter);
 

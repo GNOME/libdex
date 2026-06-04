@@ -51,6 +51,11 @@ the returned future, not to the underlying OS thread. Use it to make the
 queued work visible in tracing and debugging output without paying the cost of
 renaming the worker itself.
 
+If the pool is shared by multiple workloads and one workload needs a smaller
+concurrency budget, submit it through [method@Dex.Limiter.run_on_pool]. That
+keeps the pool reusable while limiting how many jobs from that workload may
+run at once.
+
 This is a good fit for:
 
 * blocking filesystem or database work;

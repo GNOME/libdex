@@ -37,6 +37,33 @@ If many calls to [method@Dex.Limiter.run] are made, only the configured number
 will run at once. Once a fiber has started, dropping the returned future does
 not stop the fiber; it is allowed to complete so the permit can be released.
 
+Use [method@Dex.Limiter.run_on_pool] when the limited work should run on a
+[class@Dex.ThreadPool] instead of a fiber. This is useful for blocking or
+foreign APIs that should not run on a scheduler thread.
+
+```c
+static DexFuture *
+run_blocking_thumbnailer (gpointer user_data)
+{
+  ThumbnailJob *job = user_data;
+
+  return thumbnail_job_run_blocking (job);
+}
+
+DexLimiter *limiter = dex_limiter_new (4);
+DexThreadPool *pool = dex_thread_pool_new (4);
+DexFuture *future = dex_limiter_run_on_pool (limiter,
+                                             pool,
+                                             run_blocking_thumbnailer,
+                                             thumbnail_job_ref (job),
+                                             thumbnail_job_unref);
+```
+
+The returned future resolves or rejects with the result of the submitted
+thread-pool work. Once the work has been submitted, dropping the returned
+future does not stop the work; it is allowed to complete so the permit can be
+released.
+
 ## Manual Scopes
 
 Use [method@Dex.Limiter.acquire] and [method@Dex.Limiter.release] when a permit

@@ -36,8 +36,9 @@
  *
  * A limiter starts with a fixed number of permits. Use [method@Dex.Limiter.acquire]
  * and [method@Dex.Limiter.release] directly when a permit must cover a custom
- * scope, or use [method@Dex.Limiter.run] to acquire a permit, spawn a fiber, and
- * release the permit automatically when that fiber completes.
+ * scope, or use [method@Dex.Limiter.run] or
+ * [method@Dex.Limiter.run_on_pool] to acquire a permit and release it
+ * automatically when the work completes.
  *
  * Since: 1.2
  */
@@ -81,6 +82,15 @@ typedef struct _DexLimiterRun
   GDestroyNotify func_data_destroy;
   gsize stack_size;
 } DexLimiterRun;
+
+typedef struct _DexLimiterRunOnPool
+{
+  DexLimiter *limiter;
+  DexThreadPool *pool;
+  DexThreadFunc thread_func;
+  gpointer user_data;
+  GDestroyNotify user_data_destroy;
+} DexLimiterRunOnPool;
 
 #define DEX_TYPE_LIMITER_ACQUIRE    (dex_limiter_acquire_get_type())
 #define DEX_IS_LIMITER_ACQUIRE(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_LIMITER_ACQUIRE))
@@ -258,6 +268,21 @@ dex_limiter_run_free (DexLimiterRun *state)
   g_free (state);
 }
 
+static void
+dex_limiter_run_on_pool_free (DexLimiterRunOnPool *state)
+{
+  if (state == NULL)
+    return;
+
+  dex_clear (&state->limiter);
+  dex_clear (&state->pool);
+
+  if (state->user_data_destroy != NULL)
+    state->user_data_destroy (state->user_data);
+
+  g_free (state);
+}
+
 static DexFuture *
 dex_limiter_run_release_cb (DexFuture *completed,
                             gpointer   user_data)
@@ -291,6 +316,39 @@ dex_limiter_run_acquired_cb (DexFuture *completed,
                                func_data,
                                func_data_destroy);
   ret = dex_future_finally (fiber,
+                            dex_limiter_run_release_cb,
+                            dex_ref (state->limiter),
+                            dex_unref);
+
+  dex_future_disown (dex_ref (ret));
+
+  return ret;
+}
+
+static DexFuture *
+dex_limiter_run_on_pool_acquired_cb (DexFuture *completed,
+                                     gpointer   user_data)
+{
+  DexLimiterRunOnPool *state = user_data;
+  gpointer thread_data;
+  GDestroyNotify thread_data_destroy;
+  DexFuture *ret;
+  DexFuture *thread;
+
+  g_assert (state != NULL);
+  g_assert (DEX_IS_LIMITER (state->limiter));
+  g_assert (DEX_IS_THREAD_POOL (state->pool));
+  g_assert (state->thread_func != NULL);
+
+  thread_data = g_steal_pointer (&state->user_data);
+  thread_data_destroy = g_steal_pointer (&state->user_data_destroy);
+
+  thread = dex_thread_pool_submit (state->pool,
+                                   "[dex-limiter-run-on-pool]",
+                                   state->thread_func,
+                                   thread_data,
+                                   thread_data_destroy);
+  ret = dex_future_finally (thread,
                             dex_limiter_run_release_cb,
                             dex_ref (state->limiter),
                             dex_unref);
@@ -486,6 +544,56 @@ dex_limiter_run (DexLimiter     *limiter,
                           dex_limiter_run_acquired_cb,
                           state,
                           (GDestroyNotify)dex_limiter_run_free);
+}
+
+/**
+ * dex_limiter_run_on_pool:
+ * @limiter: a `DexLimiter`
+ * @pool: a `DexThreadPool`
+ * @thread_func: (scope async) (closure user_data) (destroy user_data_destroy):
+ *   function to run on @pool after a permit is acquired
+ * @user_data: closure data for @thread_func
+ * @user_data_destroy: destroy notify for @user_data
+ *
+ * Runs @thread_func on @pool while holding one permit from @limiter.
+ *
+ * The returned future resolves or rejects with the result of the submitted
+ * thread-pool work. The permit is released automatically after the work
+ * resolves or rejects. If the returned future is discarded after the work is
+ * submitted to @pool, the work is allowed to complete so that the permit can be
+ * released.
+ *
+ * Workers in `DexThreadPool` are not scheduler threads, so @thread_func must
+ * not use `dex_await()`.
+ *
+ * Returns: (transfer full): a future representing the submitted work
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_limiter_run_on_pool (DexLimiter     *limiter,
+                         DexThreadPool  *pool,
+                         DexThreadFunc   thread_func,
+                         gpointer        user_data,
+                         GDestroyNotify  user_data_destroy)
+{
+  DexLimiterRunOnPool *state;
+
+  dex_return_error_if_fail (DEX_IS_LIMITER (limiter));
+  dex_return_error_if_fail (DEX_IS_THREAD_POOL (pool));
+  dex_return_error_if_fail (thread_func != NULL);
+
+  state = g_new0 (DexLimiterRunOnPool, 1);
+  state->limiter = dex_ref (limiter);
+  state->pool = dex_ref (pool);
+  state->thread_func = thread_func;
+  state->user_data = user_data;
+  state->user_data_destroy = user_data_destroy;
+
+  return dex_future_then (dex_limiter_acquire (limiter),
+                          dex_limiter_run_on_pool_acquired_cb,
+                          state,
+                          (GDestroyNotify)dex_limiter_run_on_pool_free);
 }
 
 /**

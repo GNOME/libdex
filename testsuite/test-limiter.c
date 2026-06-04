@@ -172,6 +172,79 @@ test_limiter_run (void)
 }
 
 static DexFuture *
+test_limiter_run_on_pool_item (gpointer user_data)
+{
+  ItemState *item = user_data;
+  RunState *state = item->state;
+  int active;
+  int max_active;
+
+  active = g_atomic_int_add (&state->active, 1) + 1;
+
+  while (active > (max_active = g_atomic_int_get (&state->max_active)))
+    {
+      if (g_atomic_int_compare_and_exchange (&state->max_active, max_active, active))
+        break;
+    }
+
+  g_assert_cmpuint (active, <=, dex_limiter_get_max_concurrency (state->limiter));
+
+  g_usleep (5000);
+
+  g_atomic_int_dec_and_test (&state->active);
+  g_atomic_int_inc (&state->completed);
+
+  return dex_future_new_for_uint (item->value);
+}
+
+static DexFuture *
+test_limiter_run_on_pool_fiber (gpointer user_data)
+{
+  g_autoptr(DexLimiter) limiter = dex_limiter_new (3);
+  g_autoptr(DexThreadPool) pool = dex_thread_pool_new (8);
+  g_autoptr(GPtrArray) futures = NULL;
+  g_autoptr(GError) error = NULL;
+  RunState state = {0};
+
+  state.limiter = limiter;
+  futures = g_ptr_array_new_with_free_func (dex_unref);
+
+  for (guint i = 0; i < 24; i++)
+    {
+      ItemState *item = g_new0 (ItemState, 1);
+
+      item->state = &state;
+      item->value = i;
+      g_ptr_array_add (futures,
+                       dex_limiter_run_on_pool (limiter,
+                                                pool,
+                                                test_limiter_run_on_pool_item,
+                                                item,
+                                                g_free));
+    }
+
+  g_assert_true (dex_await (dex_future_allv ((DexFuture **)futures->pdata, futures->len),
+                            &error));
+  g_assert_no_error (error);
+
+  g_assert_cmpuint (g_atomic_int_get (&state.completed), ==, futures->len);
+  g_assert_cmpuint (g_atomic_int_get (&state.max_active), ==, 3);
+  g_assert_cmpuint (g_atomic_int_get (&state.active), ==, 0);
+
+  g_assert_true (dex_await (dex_thread_pool_close (pool, DEX_THREAD_POOL_SHUTDOWN_DRAIN),
+                            &error));
+  g_assert_no_error (error);
+
+  return dex_future_new_true ();
+}
+
+static void
+test_limiter_run_on_pool (void)
+{
+  run_test_fiber (test_limiter_run_on_pool_fiber, NULL);
+}
+
+static DexFuture *
 test_limiter_error_item (gpointer user_data)
 {
   return dex_future_new_reject (G_IO_ERROR, G_IO_ERROR_FAILED, "Failed");
@@ -201,6 +274,37 @@ static void
 test_limiter_run_error (void)
 {
   run_test_fiber (test_limiter_run_error_fiber, NULL);
+}
+
+static DexFuture *
+test_limiter_run_on_pool_error_fiber (gpointer user_data)
+{
+  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
+  g_autoptr(DexThreadPool) pool = dex_thread_pool_new (1);
+  g_autoptr(GError) error = NULL;
+  DexFuture *future;
+
+  future = dex_limiter_run_on_pool (limiter, pool, test_limiter_error_item, NULL, NULL);
+
+  g_assert_false (dex_await (future, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_clear_error (&error);
+
+  g_assert_true (dex_await (dex_limiter_acquire (limiter), &error));
+  g_assert_no_error (error);
+  dex_limiter_release (limiter);
+
+  g_assert_true (dex_await (dex_thread_pool_close (pool, DEX_THREAD_POOL_SHUTDOWN_DRAIN),
+                            &error));
+  g_assert_no_error (error);
+
+  return dex_future_new_true ();
+}
+
+static void
+test_limiter_run_on_pool_error (void)
+{
+  run_test_fiber (test_limiter_run_on_pool_error_fiber, NULL);
 }
 
 static DexFuture *
@@ -325,6 +429,70 @@ static void
 test_limiter_discard_run (void)
 {
   run_test_fiber (test_limiter_discard_run_fiber, NULL);
+}
+
+typedef struct
+{
+  int started;
+  int completed;
+  guint sleep_usec;
+} PoolDiscardState;
+
+static DexFuture *
+test_limiter_discard_run_on_pool_item (gpointer user_data)
+{
+  PoolDiscardState *state = user_data;
+
+  g_atomic_int_inc (&state->started);
+  g_usleep (state->sleep_usec);
+  g_atomic_int_inc (&state->completed);
+
+  return dex_future_new_true ();
+}
+
+static DexFuture *
+test_limiter_discard_run_on_pool_fiber (gpointer user_data)
+{
+  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
+  g_autoptr(DexThreadPool) pool = dex_thread_pool_new (1);
+  g_autoptr(GError) error = NULL;
+  DexFuture *block;
+  DexFuture *future;
+  PoolDiscardState state = { .sleep_usec = 10000 };
+
+  future = dex_limiter_run_on_pool (limiter,
+                                    pool,
+                                    test_limiter_discard_run_on_pool_item,
+                                    &state,
+                                    NULL);
+  block = dex_future_then (future, test_limiter_not_reached, NULL, NULL);
+
+  for (guint i = 0; i < 100 && g_atomic_int_get (&state.started) == 0; i++)
+    dex_await (dex_timeout_new_msec (1), NULL);
+
+  g_assert_cmpint (g_atomic_int_get (&state.started), ==, 1);
+
+  dex_clear (&block);
+
+  for (guint i = 0; i < 100 && g_atomic_int_get (&state.completed) == 0; i++)
+    dex_await (dex_timeout_new_msec (1), NULL);
+
+  g_assert_cmpint (g_atomic_int_get (&state.completed), ==, 1);
+  g_assert_true (dex_await (dex_limiter_acquire (limiter), &error));
+  g_assert_no_error (error);
+  dex_limiter_release (limiter);
+
+  g_assert_true (dex_await (dex_thread_pool_close (pool, DEX_THREAD_POOL_SHUTDOWN_DRAIN),
+                            &error));
+  g_assert_no_error (error);
+
+  return dex_future_new_true ();
+}
+
+static void
+test_limiter_discard_run_on_pool (void)
+{
+  run_test_fiber (test_limiter_discard_run_on_pool_fiber, NULL);
 }
 
 typedef struct
@@ -476,11 +644,16 @@ main (int argc,
 
   g_test_add_func ("/Dex/TestSuite/Limiter/basic", test_limiter_basic);
   g_test_add_func ("/Dex/TestSuite/Limiter/run", test_limiter_run);
+  g_test_add_func ("/Dex/TestSuite/Limiter/run_on_pool", test_limiter_run_on_pool);
   g_test_add_func ("/Dex/TestSuite/Limiter/run_error", test_limiter_run_error);
+  g_test_add_func ("/Dex/TestSuite/Limiter/run_on_pool_error",
+                   test_limiter_run_on_pool_error);
   g_test_add_func ("/Dex/TestSuite/Limiter/discard_waiting", test_limiter_discard_waiting);
   g_test_add_func ("/Dex/TestSuite/Limiter/timeout_waiting_acquire",
                    test_limiter_timeout_waiting_acquire);
   g_test_add_func ("/Dex/TestSuite/Limiter/discard_run", test_limiter_discard_run);
+  g_test_add_func ("/Dex/TestSuite/Limiter/discard_run_on_pool",
+                   test_limiter_discard_run_on_pool);
   g_test_add_func ("/Dex/TestSuite/Limiter/timeout_waiting_run",
                    test_limiter_timeout_waiting_run);
   g_test_add_func ("/Dex/TestSuite/Limiter/timeout_running_run",
