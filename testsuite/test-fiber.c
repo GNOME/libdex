@@ -37,6 +37,20 @@
 
 static int test_arg = 123;
 
+typedef struct _YieldState
+{
+  int order[3];
+  guint next;
+} YieldState;
+
+typedef struct _YieldCancelState
+{
+  int stage;
+} YieldCancelState;
+
+static DexFuture *after_fiber_cancelled (DexFuture *future,
+                                         gpointer   user_data);
+
 static DexFuture *
 scheduler_fiber_func (gpointer user_data)
 {
@@ -48,6 +62,130 @@ static DexFuture *
 scheduler_fiber_error (gpointer user_data)
 {
   return NULL;
+}
+
+static DexFuture *
+yield_order_first_fiber (gpointer user_data)
+{
+  YieldState *state = user_data;
+  GError *error = NULL;
+
+  g_assert_nonnull (state);
+
+  state->order[state->next++] = 1;
+  g_assert_true (dex_fiber_yield (&error));
+  g_assert_no_error (error);
+  state->order[state->next++] = 3;
+
+  return dex_future_new_for_boolean (TRUE);
+}
+
+static DexFuture *
+yield_order_second_fiber (gpointer user_data)
+{
+  YieldState *state = user_data;
+
+  g_assert_nonnull (state);
+
+  state->order[state->next++] = 2;
+
+  return dex_future_new_for_boolean (TRUE);
+}
+
+static void
+test_fiber_yield_no_fiber (void)
+{
+  g_autoptr(GError) error = NULL;
+
+  g_assert_false (dex_fiber_yield (&error));
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_NO_FIBER);
+}
+
+static void
+test_fiber_yield_order (void)
+{
+  DexFiberScheduler *fiber_scheduler = dex_fiber_scheduler_new ();
+  YieldState state = {{0, 0, 0}, 0};
+  DexFiber *fiber1 = dex_fiber_new (yield_order_first_fiber, &state, NULL, 0);
+  DexFiber *fiber2 = dex_fiber_new (yield_order_second_fiber, &state, NULL, 0);
+
+  dex_fiber_scheduler_register (fiber_scheduler, fiber1);
+  dex_fiber_scheduler_register (fiber_scheduler, fiber2);
+  g_source_attach ((GSource *)fiber_scheduler, NULL);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  g_assert_cmpint (state.next, ==, 3);
+  g_assert_cmpint (state.order[0], ==, 1);
+  g_assert_cmpint (state.order[1], ==, 2);
+  g_assert_cmpint (state.order[2], ==, 3);
+
+  ASSERT_STATUS (fiber1, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (fiber2, DEX_FUTURE_STATUS_RESOLVED);
+
+  dex_clear (&fiber1);
+  dex_clear (&fiber2);
+
+  g_source_destroy ((GSource *)fiber_scheduler);
+  g_source_unref ((GSource *)fiber_scheduler);
+}
+
+static DexFuture *
+yield_cancel_fiber (gpointer user_data)
+{
+  YieldCancelState *state = user_data;
+  GError *error = NULL;
+
+  g_assert_nonnull (state);
+
+  state->stage = 1;
+
+  if (!dex_fiber_yield (&error))
+    {
+      g_assert_error (error, DEX_ERROR, DEX_ERROR_FIBER_CANCELLED);
+      state->stage = 2;
+      return dex_future_new_for_error (g_steal_pointer (&error));
+    }
+
+  g_assert_not_reached ();
+  return NULL;
+}
+
+static void
+test_fiber_yield_cancel (void)
+{
+  DexFiberScheduler *fiber_scheduler = dex_fiber_scheduler_new ();
+  YieldCancelState state = {0};
+  DexFiber *fiber = dex_fiber_new (yield_cancel_fiber, &state, NULL, 0);
+  DexFuture *block;
+
+  block = dex_future_then (dex_ref (DEX_FUTURE (fiber)),
+                           after_fiber_cancelled,
+                           NULL,
+                           NULL);
+
+  dex_fiber_scheduler_register (fiber_scheduler, fiber);
+  g_source_attach ((GSource *)fiber_scheduler, NULL);
+
+  g_main_context_iteration (NULL, TRUE);
+
+  g_assert_cmpint (state.stage, ==, 1);
+  ASSERT_STATUS (fiber, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (block, DEX_FUTURE_STATUS_PENDING);
+
+  dex_clear (&block);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  g_assert_cmpint (state.stage, ==, 2);
+  ASSERT_ERROR (fiber, DEX_ERROR, DEX_ERROR_FIBER_CANCELLED);
+
+  dex_clear (&fiber);
+
+  g_source_destroy ((GSource *)fiber_scheduler);
+  g_source_unref ((GSource *)fiber_scheduler);
 }
 
 static void
@@ -231,6 +369,9 @@ main (int argc,
 {
   dex_init ();
   g_test_init (&argc, &argv, NULL);
+  g_test_add_func ("/Dex/TestSuite/FiberScheduler/yield_no_fiber", test_fiber_yield_no_fiber);
+  g_test_add_func ("/Dex/TestSuite/FiberScheduler/yield_order", test_fiber_yield_order);
+  g_test_add_func ("/Dex/TestSuite/FiberScheduler/yield_cancel", test_fiber_yield_cancel);
   g_test_add_func ("/Dex/TestSuite/FiberScheduler/basic", test_fiber_scheduler_basic);
   g_test_add_func ("/Dex/TestSuite/FiberScheduler/await", test_fiber_scheduler_await);
   g_test_add_func ("/Dex/TestSuite/FiberScheduler/cancel_propagate", test_fiber_cancel_propagate);

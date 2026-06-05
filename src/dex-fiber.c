@@ -63,9 +63,39 @@ DEX_DEFINE_FINAL_TYPE (DexFiber, dex_fiber, DEX_TYPE_FUTURE)
 #undef DEX_TYPE_FIBER
 #define DEX_TYPE_FIBER dex_fiber_type
 
-static void dex_fiber_start (DexFiber *fiber);
+typedef struct _DexYield
+{
+  DexFuture parent_instance;
+} DexYield;
+
+typedef struct _DexYieldClass
+{
+  DexFutureClass parent_class;
+} DexYieldClass;
+
+GType dex_yield_get_type (void) G_GNUC_CONST;
+DEX_DEFINE_FINAL_TYPE (DexYield, dex_yield, DEX_TYPE_FUTURE)
+
+#undef DEX_TYPE_YIELD
+#define DEX_TYPE_YIELD dex_yield_type
+
+static void          dex_fiber_start         (DexFiber  *fiber);
+static const GValue *dex_fiber_yield_current (DexFiber  *fiber,
+                                              GError   **error);
 
 static DexFuture *cancelled_future;
+static DexFuture *yield_future;
+static GValue yield_value = G_VALUE_INIT;
+
+static void
+dex_yield_class_init (DexYieldClass *yield_class)
+{
+}
+
+static void
+dex_yield_init (DexYield *yield)
+{
+}
 
 static void
 dex_fiber_scheduler_set_queue (DexFiberScheduler *scheduler,
@@ -203,6 +233,15 @@ dex_fiber_class_init (DexFiberClass *fiber_class)
     cancelled_future = dex_future_new_reject (DEX_ERROR,
                                               DEX_ERROR_FIBER_CANCELLED,
                                               "The fiber was cancelled");
+
+  if (yield_future == NULL)
+    {
+      g_value_init (&yield_value, G_TYPE_BOOLEAN);
+      g_value_set_boolean (&yield_value, TRUE);
+
+      yield_future = DEX_FUTURE (dex_object_create_instance (dex_yield_get_type ()));
+      dex_future_set_static_name (yield_future, "[dex-yield]");
+    }
 }
 
 static void
@@ -529,6 +568,46 @@ dex_fiber_current (void)
   return fiber_scheduler ? fiber_scheduler->running : NULL;
 }
 
+static const GValue *
+dex_fiber_yield_current (DexFiber  *fiber,
+                         GError   **error)
+{
+  DexFiberScheduler *fiber_scheduler = fiber->fiber_scheduler;
+  const GValue *ret = NULL;
+
+  g_assert (DEX_IS_FIBER (fiber));
+  g_assert (fiber_scheduler != NULL);
+
+  g_mutex_lock (&fiber_scheduler->mutex);
+  g_assert (fiber->running);
+  g_assert (fiber->queue == QUEUE_RUNNABLE);
+
+  g_queue_unlink (&fiber_scheduler->runnable, &fiber->link);
+  g_queue_push_tail_link (&fiber_scheduler->runnable, &fiber->link);
+  g_mutex_unlock (&fiber_scheduler->mutex);
+
+  dex_fiber_context_switch (&fiber->context, &fiber_scheduler->context);
+
+  dex_object_lock (fiber);
+  if (fiber->cancelled)
+    {
+      g_clear_error (error);
+
+      if (error != NULL)
+        g_set_error_literal (error,
+                             DEX_ERROR,
+                             DEX_ERROR_FIBER_CANCELLED,
+                             "Fiber cancelled");
+    }
+  else
+    {
+      ret = &yield_value;
+    }
+  dex_object_unlock (fiber);
+
+  return ret;
+}
+
 static inline void
 dex_fiber_await (DexFiber  *fiber,
                  DexFuture *future)
@@ -570,6 +649,24 @@ dex_await_borrowed (DexFuture  *future,
   const GValue *ret;
 
   g_return_val_if_fail (DEX_IS_FUTURE (future), NULL);
+
+  if (future == yield_future)
+    {
+      if G_UNLIKELY (!(fiber = dex_fiber_current ()))
+        {
+          g_set_error_literal (error,
+                               DEX_ERROR,
+                               DEX_ERROR_NO_FIBER,
+                               "Not running on a fiber, cannot yield");
+          return NULL;
+        }
+
+      dex_ref (fiber);
+      ret = dex_fiber_yield_current (fiber, error);
+      dex_unref (fiber);
+
+      return ret;
+    }
 
   /* If the future is ready then return immediately without yielding
    * to the scheduler. This allows using the dex_await() functions when
@@ -651,4 +748,42 @@ dex_await (DexFuture  *future,
   const GValue *value = dex_await_borrowed (future, error);
   dex_unref (future);
   return value != NULL;
+}
+
+/**
+ * dex_fiber_yield:
+ * @error: a location for a [struct@GLib.Error], or %NULL
+ *
+ * Cooperatively yields execution back to the current scheduler.
+ *
+ * This may only be called from within a [class@Dex.Fiber]. If it is called
+ * from any other context, @error is set to %DEX_ERROR_NO_FIBER.
+ *
+ * Returns: %TRUE if execution was yielded and the fiber resumed successfully;
+ *   otherwise %FALSE and @error is set.
+ *
+ * Since: 1.2
+ */
+gboolean
+dex_fiber_yield (GError **error)
+{
+  DexFiber *fiber;
+  gboolean ret;
+
+  if G_UNLIKELY (!(fiber = dex_fiber_current ()))
+    {
+      g_set_error_literal (error,
+                           DEX_ERROR,
+                           DEX_ERROR_NO_FIBER,
+                           "Not running on a fiber, cannot yield");
+      return FALSE;
+    }
+
+  g_return_val_if_fail (yield_future != NULL, FALSE);
+
+  dex_ref (yield_future);
+  ret = dex_await_borrowed (yield_future, error) != NULL;
+  dex_unref (yield_future);
+
+  return ret;
 }
