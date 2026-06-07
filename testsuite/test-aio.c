@@ -62,8 +62,8 @@ await_future (DexFuture *future)
 static void
 run_aio_close_success (DexAioContext *aio_context)
 {
-  g_autofree char *path = NULL;
-  g_autoptr(GError) error = NULL;
+  char *path = NULL;
+  GError * error = NULL;
   DexFuture *future;
   gboolean ret;
   int fd;
@@ -88,7 +88,7 @@ run_aio_close_success (DexAioContext *aio_context)
 static void
 run_aio_close_bad_fd (DexAioContext *aio_context)
 {
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
   DexFuture *future;
   gboolean ret;
 
@@ -103,8 +103,8 @@ static void
 run_aio_open_success (DexAioContext *aio_context)
 {
   static const char contents[] = "libdex aio open";
-  g_autofree char *path = NULL;
-  g_autoptr(GError) error = NULL;
+  char *path = NULL;
+  GError * error = NULL;
   DexFuture *future;
   char buffer[sizeof contents] = {0};
   int source_fd;
@@ -131,8 +131,8 @@ run_aio_open_success (DexAioContext *aio_context)
 static void
 run_aio_open_missing (DexAioContext *aio_context)
 {
-  g_autofree char *path = NULL;
-  g_autoptr(GError) error = NULL;
+  char *path = NULL;
+  GError * error = NULL;
   DexFuture *future;
   int fd;
 

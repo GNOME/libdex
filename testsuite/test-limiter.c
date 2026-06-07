@@ -77,8 +77,8 @@ run_test_fiber (TestFiberFunc func,
 static DexFuture *
 test_limiter_basic_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (1);
+  GError * error = NULL;
   DexFuture *second;
 
   g_assert_true (DEX_IS_LIMITER (limiter));
@@ -134,8 +134,8 @@ test_limiter_run_item (gpointer user_data)
 static DexFuture *
 test_limiter_run_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (3);
-  g_autoptr(GPtrArray) futures = NULL;
+  DexLimiter * limiter = dex_limiter_new (3);
+  GPtrArray * futures = NULL;
   RunState state = {0};
 
   state.limiter = limiter;
@@ -200,10 +200,10 @@ test_limiter_run_on_pool_item (gpointer user_data)
 static DexFuture *
 test_limiter_run_on_pool_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (3);
-  g_autoptr(DexThreadPool) pool = dex_thread_pool_new (8);
-  g_autoptr(GPtrArray) futures = NULL;
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (3);
+  DexThreadPool * pool = dex_thread_pool_new (8);
+  GPtrArray * futures = NULL;
+  GError * error = NULL;
   RunState state = {0};
 
   state.limiter = limiter;
@@ -253,8 +253,8 @@ test_limiter_error_item (gpointer user_data)
 static DexFuture *
 test_limiter_run_error_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (1);
+  GError * error = NULL;
   DexFuture *future;
 
   future = dex_limiter_run (limiter, NULL, 0, test_limiter_error_item, NULL, NULL);
@@ -279,9 +279,9 @@ test_limiter_run_error (void)
 static DexFuture *
 test_limiter_run_on_pool_error_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
-  g_autoptr(DexThreadPool) pool = dex_thread_pool_new (1);
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (1);
+  DexThreadPool * pool = dex_thread_pool_new (1);
+  GError * error = NULL;
   DexFuture *future;
 
   future = dex_limiter_run_on_pool (limiter, pool, test_limiter_error_item, NULL, NULL);
@@ -318,8 +318,8 @@ test_limiter_not_reached (DexFuture *future,
 static DexFuture *
 test_limiter_discard_waiting_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (1);
+  GError * error = NULL;
   DexFuture *block;
   DexFuture *second;
   DexFuture *third;
@@ -351,8 +351,8 @@ test_limiter_discard_waiting (void)
 static DexFuture *
 test_limiter_timeout_waiting_acquire_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (1);
+  GError * error = NULL;
   DexFuture *second;
   DexFuture *third;
 
@@ -397,8 +397,8 @@ test_limiter_discard_run_item (gpointer user_data)
 static DexFuture *
 test_limiter_discard_run_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (1);
+  GError * error = NULL;
   DexFuture *block;
   DexFuture *future;
   int completed = 0;
@@ -453,9 +453,9 @@ test_limiter_discard_run_on_pool_item (gpointer user_data)
 static DexFuture *
 test_limiter_discard_run_on_pool_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
-  g_autoptr(DexThreadPool) pool = dex_thread_pool_new (1);
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (1);
+  DexThreadPool * pool = dex_thread_pool_new (1);
+  GError * error = NULL;
   DexFuture *block;
   DexFuture *future;
   PoolDiscardState state = { .sleep_usec = 10000 };
@@ -517,8 +517,8 @@ test_limiter_timeout_run_item (gpointer user_data)
 static DexFuture *
 test_limiter_timeout_waiting_run_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (1);
+  GError * error = NULL;
   DexFuture *blocked;
   DexFuture *next;
   TimeoutRunState blocked_state = {0};
@@ -567,8 +567,8 @@ test_limiter_timeout_waiting_run (void)
 static DexFuture *
 test_limiter_timeout_running_run_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (1);
+  GError * error = NULL;
   DexFuture *running;
   DexFuture *next;
   TimeoutRunState state = { .timeout_msec = 20 };
@@ -607,8 +607,8 @@ test_limiter_timeout_running_run (void)
 static DexFuture *
 test_limiter_close_fiber (gpointer user_data)
 {
-  g_autoptr(DexLimiter) limiter = dex_limiter_new (1);
-  g_autoptr(GError) error = NULL;
+  DexLimiter * limiter = dex_limiter_new (1);
+  GError * error = NULL;
   DexFuture *future;
 
   g_assert_true (dex_await (dex_limiter_acquire (limiter), &error));

@@ -690,9 +690,9 @@ test_object_basic (void)
 static void
 test_object_property (void)
 {
-  g_autoptr(GObject) object = NULL;
-  g_autoptr(DexPromise) promise = NULL;
-  g_autoptr(DexFuture) borrowed = NULL;
+  GObject * object = NULL;
+  DexPromise * promise = NULL;
+  DexFuture * borrowed = NULL;
   GParamSpec *pspec;
   GValue value = G_VALUE_INIT;
 

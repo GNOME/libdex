@@ -263,9 +263,9 @@ test_watch_multiple_events (void)
 static void
 test_socket_wait_read_ready (void)
 {
-  g_autoptr(GError) error = NULL;
-  g_autoptr(GSocket) read_socket = NULL;
-  g_autoptr(GSocket) write_socket = NULL;
+  GError * error = NULL;
+  GSocket * read_socket = NULL;
+  GSocket * write_socket = NULL;
   int socket_fds[2];
   DexFuture *wait;
   GMainLoop *main_loop;

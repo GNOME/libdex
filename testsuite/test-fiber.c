@@ -95,7 +95,7 @@ yield_order_second_fiber (gpointer user_data)
 static void
 test_fiber_yield_no_fiber (void)
 {
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
 
   g_assert_false (dex_fiber_yield (&error));
   g_assert_error (error, DEX_ERROR, DEX_ERROR_NO_FIBER);

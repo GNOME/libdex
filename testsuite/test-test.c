@@ -46,8 +46,8 @@ resolve_cb (gpointer user_data)
 static void
 test_test_add_func (void)
 {
-  g_autoptr(GError) error = NULL;
-  g_autoptr(DexPromise) promise = NULL;
+  GError * error = NULL;
+  DexPromise * promise = NULL;
 
   g_assert_true (DEX_IS_SCHEDULER (dex_scheduler_get_thread_default ()));
 

@@ -20,7 +20,7 @@ timeout_task_group_fiber (gpointer data)
   DexPromise *first = dex_promise_new_cancellable ();
   DexPromise *second = dex_promise_new_cancellable ();
   DexFuture *timed;
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
   GCancellable *first_cancellable = dex_promise_get_cancellable (first);
   GCancellable *second_cancellable = dex_promise_get_cancellable (second);
 
@@ -49,7 +49,7 @@ test_task_group_cancel (void)
   DexTaskGroup *group = dex_task_group_new (DEX_TASK_GROUP_FLAGS_NONE);
   DexPromise *promise = dex_promise_new_cancellable ();
   GCancellable *cancellable = dex_promise_get_cancellable (promise);
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
   GValue value = G_VALUE_INIT;
 
   g_assert_true (dex_task_group_add (group, dex_ref (DEX_FUTURE (promise))));
@@ -77,7 +77,7 @@ test_task_group_close_all_resolved (void)
   DexTaskGroup *group = dex_task_group_new (DEX_TASK_GROUP_FLAGS_NONE);
   DexFuture *group_future;
   DexPromise *promise = dex_promise_new ();
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
   const GValue *resolved;
 
   g_assert_true (dex_task_group_add (group, dex_ref (DEX_FUTURE (promise))));
@@ -104,7 +104,7 @@ test_task_group_cancel_on_error (void)
   DexPromise *first = dex_promise_new ();
   DexPromise *second = dex_promise_new_cancellable ();
   GCancellable *second_cancellable = dex_promise_get_cancellable (second);
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
 
   g_assert_true (dex_task_group_add (group, dex_ref (DEX_FUTURE (first))));
   g_assert_true (dex_task_group_add (group, dex_ref (DEX_FUTURE (second))));
@@ -134,7 +134,7 @@ test_task_group_timeout_cancels_children (void)
   GMainContext *context = g_main_context_default ();
   TimeoutTestState state = {0};
   DexFuture *future;
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
   const GValue *value;
 
   future = dex_scheduler_spawn (NULL, 0,
@@ -188,7 +188,7 @@ test_task_group_null_uses_thread_default (void)
   DexTaskGroup *group = dex_task_group_new (DEX_TASK_GROUP_FLAGS_NONE);
   DexPromise *promise = dex_promise_new_cancellable ();
   GCancellable *cancellable = dex_promise_get_cancellable (promise);
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
 
   dex_task_group_push_thread_default (group);
   g_assert_true (dex_task_group_add (NULL, dex_ref (DEX_FUTURE (promise))));

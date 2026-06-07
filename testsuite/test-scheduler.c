@@ -101,7 +101,7 @@ named_fiber_func (gpointer user_data)
 static void
 test_scheduler_spawn_static_name (void)
 {
-  g_autoptr(DexFuture) future = NULL;
+  DexFuture * future = NULL;
 
   future = dex_scheduler_spawn (NULL, 0, named_fiber_func, NULL, NULL);
 

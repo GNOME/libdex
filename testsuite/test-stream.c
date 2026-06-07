@@ -92,9 +92,9 @@ static void
 test_data_input_stream_read_line_utf8 (void)
 {
   static const char data[] = "alpha\nbeta\n";
-  g_autoptr(GInputStream) base = NULL;
-  g_autoptr(GDataInputStream) stream = NULL;
-  g_autoptr(GError) error = NULL;
+  GInputStream * base = NULL;
+  GDataInputStream * stream = NULL;
+  GError * error = NULL;
   DexFuture *future;
   const GValue *value;
 
@@ -116,9 +116,9 @@ static void
 test_data_input_stream_read_upto (void)
 {
   static const char data[] = "alpha,beta";
-  g_autoptr(GInputStream) base = NULL;
-  g_autoptr(GDataInputStream) stream = NULL;
-  g_autoptr(GError) error = NULL;
+  GInputStream * base = NULL;
+  GDataInputStream * stream = NULL;
+  GError * error = NULL;
   DexFuture *future;
   const GValue *value;
 
@@ -145,8 +145,8 @@ test_output_stream_writev_all (void)
     { one, strlen (one) },
     { two, strlen (two) },
   };
-  g_autoptr(GOutputStream) stream = NULL;
-  g_autoptr(GError) error = NULL;
+  GOutputStream * stream = NULL;
+  GError * error = NULL;
   DexFuture *future;
   const GValue *value;
 

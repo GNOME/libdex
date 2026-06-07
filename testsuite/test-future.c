@@ -180,7 +180,7 @@ test_timeout (void)
 static void
 test_future_with_timeout_resolves (void)
 {
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
   DexFuture *future;
   const GValue *value;
 
@@ -200,7 +200,7 @@ test_future_with_timeout_resolves (void)
 static void
 test_future_with_timeout_rejects (void)
 {
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
   DexFuture *future;
 
   future = dex_future_with_timeout (dex_future_new_reject (DEX_ERROR,
@@ -219,7 +219,7 @@ static void
 test_future_with_timeout_times_out (void)
 {
   GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
   DexFuture *future;
 
   future = dex_future_with_deadline (dex_future_new_infinite (), g_get_monotonic_time ());
@@ -251,7 +251,7 @@ test_promise_type (void)
 static void
 test_promise_autoptr (void)
 {
-  G_GNUC_UNUSED g_autoptr(DexPromise) promise = NULL;
+  G_GNUC_UNUSED DexPromise * promise = NULL;
 }
 #endif
 
@@ -943,7 +943,7 @@ static void
 test_future_with_timeout_disowned (void)
 {
   GMainLoop *main_loop = g_main_loop_new (NULL, FALSE);
-  g_autoptr(GError) error = NULL;
+  GError * error = NULL;
   GMenu *menu = g_menu_new ();
   DexFuture *call;
   DexFuture *future;
