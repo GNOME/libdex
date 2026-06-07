@@ -32,6 +32,7 @@ testsuite = {
   'test-async-result': {},
   'test-channel': {},
   'test-dbus': {'extra-sources': dbus_foo, 'disable': not have_gdbus_codegen},
+  'test-coroutine': {},
   'test-object': {},
   'test-fiber': {},
   'test-future': {},

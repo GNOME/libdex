@@ -55,6 +55,10 @@ will get you the default thread pool.
 Fibers are scheduled from a [struct@GLib.Source] in a [struct@GLib.MainContext]
 which allows them to run cooperatively with other work.
 
+For lower-overhead async control flow, use a [class@Dex.Coroutine], which is a
+stackless alternative to fibers. See [Coroutines](coroutines.html) for the usage
+pattern.
+
 ## Awaiting Futures
 
 If you are running on a fiber, you may await completion of a future. This will

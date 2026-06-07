@@ -33,7 +33,8 @@ G_BEGIN_DECLS
 #define DEX_SCHEDULER(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_SCHEDULER, DexScheduler))
 #define DEX_IS_SCHEDULER(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_SCHEDULER))
 
-typedef struct _DexScheduler DexScheduler;
+typedef struct _DexScheduler        DexScheduler;
+typedef struct _DexCoroutineContext DexCoroutineContext;
 
 typedef void (*DexSchedulerFunc) (gpointer user_data);
 
@@ -55,6 +56,23 @@ typedef void (*DexSchedulerFunc) (gpointer user_data);
  * Returns: (transfer full) (nullable): a [class@Dex.Future] or %NULL
  */
 typedef DexFuture *(*DexFiberFunc) (gpointer user_data);
+
+/**
+ * DexCoroutineFunc:
+ *
+ * This function prototype is used for spawning stackless coroutines.
+ *
+ * A coroutine function receives a [struct@Dex.CoroutineContext] and optional user
+ * data and returns the next future for completion.
+ *
+ * If the function returns %NULL to indicate suspension, it must have stashed the
+ * currently awaited future in `coroutine` using the
+ * [macro@DEX_COROUTINE_SUSPEND_*] helpers.
+ *
+ * Returns: (transfer full) (nullable): a [class@Dex.Future]
+ */
+typedef DexFuture *(*DexCoroutineFunc) (DexCoroutineContext *context,
+                                        gpointer             user_data);
 
 DEX_AVAILABLE_IN_ALL
 GType         dex_scheduler_get_type           (void) G_GNUC_CONST;
@@ -78,8 +96,13 @@ DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
                                                 gpointer          func_data,
                                                 GDestroyNotify    func_data_destroy)
   G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
+DexFuture    *dex_scheduler_spawn_coroutine    (DexScheduler     *scheduler,
+                                                DexCoroutineFunc  func,
+                                                gpointer          user_data)
+  G_GNUC_WARN_UNUSED_RESULT;
 
-#if G_GNUC_CHECK_VERSION(3,0) && !defined(DEX_DISABLE_STATIC_NAME_MACROS)
+#if !defined(DEX_DISABLE_STATIC_NAME_MACROS)
 # define _DEX_FIBER_NEW_(counter, scheduler, stack_size, func, func_data, func_data_destroy) \
   ({ DexFuture *G_PASTE(__f, counter) = dex_scheduler_spawn ((scheduler), \
                                                              (stack_size), \
@@ -90,6 +113,15 @@ DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
      G_PASTE (__f, counter); })
 # define _DEX_FIBER_NEW(...) _DEX_FIBER_NEW_(__COUNTER__, __VA_ARGS__)
 # define dex_scheduler_spawn(...) _DEX_FIBER_NEW(__VA_ARGS__)
+
+# define _DEX_COROUTINE_NEW_(counter, scheduler, func, user_data) \
+  ({ DexFuture *G_PASTE(__f, counter) = dex_scheduler_spawn_coroutine ((scheduler), \
+                                                                       (func), \
+                                                                       (user_data)); \
+     dex_future_set_static_name (DEX_FUTURE (G_PASTE (__f, counter)), G_STRINGIFY (func)); \
+     G_PASTE (__f, counter); })
+# define _DEX_COROUTINE_NEW(...) _DEX_COROUTINE_NEW_(__COUNTER__, __VA_ARGS__)
+# define dex_scheduler_spawn_coroutine(...) _DEX_COROUTINE_NEW(__VA_ARGS__)
 #endif
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexScheduler, dex_unref)

@@ -52,6 +52,7 @@ content_files = [
   "integration.md",
   "aio.md",
   "schedulers.md",
+  "coroutines.md",
   "threads.md",
   "channels.md",
   "limiters.md",

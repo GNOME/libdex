@@ -60,6 +60,7 @@ dex_init_once (void)
   g_type_ensure (DEX_TYPE_FUTURE);
   g_type_ensure (DEX_TYPE_ASYNC_PAIR);
   g_type_ensure (DEX_TYPE_FIBER);
+  g_type_ensure (DEX_TYPE_COROUTINE);
   g_type_ensure (DEX_TYPE_FUTURE_SET);
   g_type_ensure (DEX_TYPE_BLOCK);
   g_type_ensure (DEX_TYPE_CANCELLABLE);

@@ -49,6 +49,21 @@ Fibers are a [class@Dex.Future] which means you can await the completion of a fi
 Note that fibers are pinned to a scheduler.
 They will not be migrated between schedulers even when a thread pool is in use.
 
+# Stackless Coroutines
+
+Coroutines are a stackless alternative that are still futures managed by the same
+[class@Dex.Scheduler]. Use [method@Dex.Scheduler.spawn_coroutine] to create them.
+
+A coroutine function is given a [struct@Dex.CoroutineContext] and is expected to
+return a [class@Dex.Future] or suspend by returning `NULL`.
+
+Stackless coroutines generally have lower memory overhead than fibers when you are
+mainly waiting on futures between steps.
+
+Use [macro@DEX_COROUTINE_BEGIN] and [macro@DEX_COROUTINE_END] when writing
+coroutines. Suspend with one of the `DEX_COROUTINE_SUSPEND_*` helpers.
+See [Coroutines](coroutines.html) for more guidance.
+
 ## Cancellation
 
 Fibers may be cancelled if the fiber has been discarded by all futures awaiting completion.

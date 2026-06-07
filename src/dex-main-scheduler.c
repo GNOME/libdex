@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include "dex-aio-backend-private.h"
+#include "dex-coroutine-private.h"
 #include "dex-fiber-private.h"
 #include "dex-main-scheduler-private.h"
 #include "dex-scheduler-private.h"
@@ -59,6 +60,7 @@ typedef struct _DexMainScheduler
   GMainContext     *main_context;
   GSource          *aio_context;
   GSource          *fiber_scheduler;
+  GSource          *coroutine_scheduler;
   GSource          *work_queue_source;
   GQueue            work_queue;
 } DexMainScheduler;
@@ -176,6 +178,18 @@ dex_main_scheduler_spawn (DexScheduler *scheduler,
 }
 
 static void
+dex_main_scheduler_spawn_coroutine (DexScheduler *scheduler,
+                                    DexCoroutine *coroutine)
+{
+  DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (scheduler);
+
+  g_assert (DEX_IS_MAIN_SCHEDULER (main_scheduler));
+
+  dex_coroutine_scheduler_register ((DexCoroutineScheduler *)main_scheduler->coroutine_scheduler,
+                                    coroutine);
+}
+
+static void
 dex_main_scheduler_finalize (DexObject *object)
 {
   DexMainScheduler *main_scheduler = DEX_MAIN_SCHEDULER (object);
@@ -195,6 +209,10 @@ dex_main_scheduler_finalize (DexObject *object)
   /* Clear DexFiberScheduler context */
   g_source_destroy (main_scheduler->fiber_scheduler);
   g_clear_pointer (&main_scheduler->fiber_scheduler, g_source_unref);
+
+  /* Clear DexCoroutineScheduler context */
+  g_source_destroy (main_scheduler->coroutine_scheduler);
+  g_clear_pointer (&main_scheduler->coroutine_scheduler, g_source_unref);
 
   /* Clear work queue source */
   g_source_destroy (main_scheduler->work_queue_source);
@@ -218,6 +236,7 @@ dex_main_scheduler_class_init (DexMainSchedulerClass *main_scheduler_class)
   scheduler_class->get_main_context = dex_main_scheduler_get_main_context;
   scheduler_class->push = dex_main_scheduler_push;
   scheduler_class->spawn = dex_main_scheduler_spawn;
+  scheduler_class->spawn_coroutine = dex_main_scheduler_spawn_coroutine;
 }
 
 static void
@@ -230,6 +249,7 @@ dex_main_scheduler_new (GMainContext *main_context)
 {
   DexMainWorkQueueSource *work_queue_source;
   DexFiberScheduler *fiber_scheduler;
+  DexCoroutineScheduler *coroutine_scheduler;
   DexMainScheduler *main_scheduler;
   DexAioBackend *aio_backend;
   DexAioContext *aio_context;
@@ -241,11 +261,13 @@ dex_main_scheduler_new (GMainContext *main_context)
   aio_context = dex_aio_backend_create_context (aio_backend);
 
   fiber_scheduler = dex_fiber_scheduler_new ();
+  coroutine_scheduler = dex_coroutine_scheduler_new ();
 
   main_scheduler = (DexMainScheduler *)dex_object_create_instance (DEX_TYPE_MAIN_SCHEDULER);
   main_scheduler->main_context = g_main_context_ref (main_context);
   main_scheduler->aio_context = (GSource *)aio_context;
   main_scheduler->fiber_scheduler = (GSource *)fiber_scheduler;
+  main_scheduler->coroutine_scheduler = (GSource *)coroutine_scheduler;
 
   work_queue_source = (DexMainWorkQueueSource *)
     g_source_new (&dex_main_work_queue_source_funcs, sizeof *work_queue_source);
@@ -258,6 +280,7 @@ dex_main_scheduler_new (GMainContext *main_context)
 
   g_source_attach (main_scheduler->aio_context, main_context);
   g_source_attach (main_scheduler->fiber_scheduler, main_context);
+  g_source_attach (main_scheduler->coroutine_scheduler, main_context);
   g_source_attach (main_scheduler->work_queue_source, main_context);
 
   return main_scheduler;

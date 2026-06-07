@@ -205,6 +205,20 @@ More care will be spent on fibers later on but suffice to say that the result of
 DexFuture *future = dex_scheduler_spawn (NULL, 0, my_fiber, state, state_free);
 ```
 
+## Coroutines
+
+Another type of future is a stackless "coroutine", [class@Dex.Coroutine].
+
+Use [method@Dex.Scheduler.spawn_coroutine] to create a coroutine for work that is
+mostly waiting on other futures.
+
+The coroutine function receives a [struct@Dex.CoroutineContext] and must use
+the [macro@DEX_COROUTINE_BEGIN] / [macro@DEX_COROUTINE_END] pair together with
+`DEX_COROUTINE_SUSPEND_*` macros to yield and resume across waits.
+
+Coroutines are often useful for lower-overhead state-machine style async code.
+See [Coroutines](coroutines.html) for practical guidance.
+
 # Cancellation Propagation
 
 Futures within your application will inevitably depend on other futures.

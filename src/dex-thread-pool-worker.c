@@ -26,6 +26,7 @@
 #include "dex-aio-backend-private.h"
 #include "dex-compat-private.h"
 #include "dex-fiber-private.h"
+#include "dex-coroutine-private.h"
 #include "dex-posix-aio-backend-private.h"
 #include "dex-thread-pool-worker-private.h"
 #include "dex-thread-storage-private.h"
@@ -56,6 +57,7 @@ struct _DexThreadPoolWorker
   GSource                   *set_source;
   GSource                   *local_source;
   GSource                   *fiber_scheduler;
+  GSource                   *coroutine_scheduler;
 
   GMutex                     setup_mutex;
   GCond                      setup_cond;
@@ -183,6 +185,7 @@ dex_thread_pool_worker_finalize (DexObject *object)
   g_clear_pointer (&thread_pool_worker->set_source, g_source_unref);
   g_clear_pointer (&thread_pool_worker->local_source, g_source_unref);
   g_clear_pointer (&thread_pool_worker->fiber_scheduler, g_source_unref);
+  g_clear_pointer (&thread_pool_worker->coroutine_scheduler, g_source_unref);
 
   g_clear_pointer (&thread_pool_worker->thread, g_thread_unref);
   g_clear_pointer (&thread_pool_worker->main_context, g_main_context_unref);
@@ -232,6 +235,18 @@ dex_thread_pool_worker_spawn (DexScheduler *scheduler,
 }
 
 static void
+dex_thread_pool_worker_spawn_coroutine (DexScheduler *scheduler,
+                                        DexCoroutine *coroutine)
+{
+  DexThreadPoolWorker *thread_pool_worker = DEX_THREAD_POOL_WORKER (scheduler);
+
+  g_assert (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
+
+  dex_coroutine_scheduler_register ((DexCoroutineScheduler *)thread_pool_worker->coroutine_scheduler,
+                                    coroutine);
+}
+
+static void
 dex_thread_pool_worker_class_init (DexThreadPoolWorkerClass *thread_pool_worker_class)
 {
   DexObjectClass *object_class = DEX_OBJECT_CLASS (thread_pool_worker_class);
@@ -242,6 +257,7 @@ dex_thread_pool_worker_class_init (DexThreadPoolWorkerClass *thread_pool_worker_
   scheduler_class->push = dex_thread_pool_worker_push;
   scheduler_class->get_main_context = dex_thread_pool_worker_get_main_context;
   scheduler_class->spawn = dex_thread_pool_worker_spawn;
+  scheduler_class->spawn_coroutine = dex_thread_pool_worker_spawn_coroutine;
   scheduler_class->get_aio_context = dex_thread_pool_worker_get_aio_context;
 }
 
@@ -318,6 +334,11 @@ dex_thread_pool_worker_thread_func (gpointer data)
   g_source_attach (source, thread_pool_worker->main_context);
   thread_pool_worker->fiber_scheduler = g_steal_pointer (&source);
 
+  /* Setup coroutine scheduler source */
+  source = (GSource *)dex_coroutine_scheduler_new ();
+  g_source_attach (source, thread_pool_worker->main_context);
+  thread_pool_worker->coroutine_scheduler = g_steal_pointer (&source);
+
   storage->scheduler = DEX_SCHEDULER (thread_pool_worker);
   storage->worker = thread_pool_worker;
   storage->aio_context = thread_pool_worker->aio_context;
@@ -352,6 +373,7 @@ dex_thread_pool_worker_thread_func (gpointer data)
   g_source_destroy (thread_pool_worker->set_source);
   g_source_destroy (thread_pool_worker->local_source);
   g_source_destroy (thread_pool_worker->fiber_scheduler);
+  g_source_destroy (thread_pool_worker->coroutine_scheduler);
 
   thread_pool_worker->status = DEX_THREAD_POOL_WORKER_FINISHED;
   g_main_context_pop_thread_default (thread_pool_worker->main_context);

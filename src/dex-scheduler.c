@@ -21,8 +21,11 @@
 
 #include "config.h"
 
+#include <gio/gio.h>
+
 #include "dex-aio-backend-private.h"
 #include "dex-fiber-private.h"
+#include "dex-coroutine-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-thread-storage-private.h"
 
@@ -233,13 +236,54 @@ DexFuture *
 {
   DexFiber *fiber;
 
-  g_return_val_if_fail (!scheduler || DEX_IS_SCHEDULER (scheduler), NULL);
-  g_return_val_if_fail (func != NULL, NULL);
+  dex_return_error_if_fail (!scheduler || DEX_IS_SCHEDULER (scheduler));
+  dex_return_error_if_fail (func != NULL);
 
   if (scheduler == NULL)
     scheduler = dex_scheduler_get_default ();
 
+  dex_return_error_if_fail (scheduler != NULL);
+  dex_return_error_if_fail (DEX_SCHEDULER_GET_CLASS (scheduler)->spawn != NULL);
+
   fiber = dex_fiber_new (func, func_data, func_data_destroy, stack_size);
   DEX_SCHEDULER_GET_CLASS (scheduler)->spawn (scheduler, fiber);
   return DEX_FUTURE (fiber);
+}
+
+/**
+ * dex_scheduler_spawn_coroutine:
+ * @scheduler: (nullable): a [class@Dex.Scheduler]
+ * @func: (scope notified): coroutine entrypoint
+ * @user_data: (transfer none): user data passed to the coroutine entrypoint
+ *
+ * Request @scheduler to spawn a [class@Dex.Coroutine] and execute
+ * @func with user data.
+ *
+ * If the function returns %NULL while suspended, it should have set an awaited
+ * future in its context using one of the [macro@DEX_COROUTINE_SUSPEND_*] helpers.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that will resolve or reject
+ *   when @func finishes or returns an error.
+ *
+ * Since: 1.2
+ */
+DexFuture *
+(dex_scheduler_spawn_coroutine) (DexScheduler     *scheduler,
+                                 DexCoroutineFunc  func,
+                                 gpointer          user_data)
+{
+  DexCoroutine *coroutine;
+
+  dex_return_error_if_fail (!scheduler || DEX_IS_SCHEDULER (scheduler));
+  dex_return_error_if_fail (func != NULL);
+  if (scheduler == NULL)
+    scheduler = dex_scheduler_get_default ();
+
+  dex_return_error_if_fail (scheduler != NULL);
+  dex_return_error_if_fail (DEX_SCHEDULER_GET_CLASS (scheduler)->spawn_coroutine != NULL);
+
+  coroutine = dex_coroutine_new (func, user_data);
+  DEX_SCHEDULER_GET_CLASS (scheduler)->spawn_coroutine (scheduler, coroutine);
+
+  return DEX_FUTURE (coroutine);
 }
