@@ -244,6 +244,143 @@ test_limiter_run_on_pool (void)
   run_test_fiber (test_limiter_run_on_pool_fiber, NULL);
 }
 
+static gboolean
+test_limiter_sleep_cb (gpointer user_data)
+{
+  dex_promise_resolve_boolean (DEX_PROMISE (user_data), TRUE);
+  return G_SOURCE_REMOVE;
+}
+
+static DexFuture *
+test_limiter_run_sleep (int msec)
+{
+  DexPromise *promise;
+
+  promise = dex_promise_new ();
+  g_timeout_add_full (G_PRIORITY_DEFAULT,
+                      msec,
+                      test_limiter_sleep_cb,
+                      dex_ref (promise),
+                      (GDestroyNotify) dex_unref);
+
+  return DEX_FUTURE (promise);
+}
+
+static DexFuture *
+test_limiter_run_coroutine_item (DexCoroutineContext *context,
+                                 gpointer             user_data)
+{
+  ItemState *item = user_data;
+  RunState *state = item->state;
+  int active;
+  int max_active;
+  GError *error = NULL;
+  gboolean timeout;
+
+  DEX_COROUTINE_BEGIN (context);
+
+  active = g_atomic_int_add (&state->active, 1) + 1;
+
+  while (active > (max_active = g_atomic_int_get (&state->max_active)))
+    {
+      if (g_atomic_int_compare_and_exchange (&state->max_active, max_active, active))
+        break;
+    }
+
+  g_assert_cmpuint (active, <=, dex_limiter_get_max_concurrency (state->limiter));
+
+  DEX_COROUTINE_SUSPEND_BOOLEAN (&timeout, &error, test_limiter_run_sleep (5));
+  if (error != NULL)
+    {
+      g_atomic_int_dec_and_test (&state->active);
+
+      return dex_future_new_for_error (g_steal_pointer (&error));
+    }
+
+  g_atomic_int_dec_and_test (&state->active);
+  g_atomic_int_inc (&state->completed);
+
+  return dex_future_new_for_uint (item->value);
+
+  DEX_COROUTINE_END;
+}
+
+static DexFuture *
+test_limiter_run_coroutine_fiber (gpointer user_data)
+{
+  DexLimiter * limiter = dex_limiter_new (3);
+  GPtrArray *futures = NULL;
+  RunState state = {0};
+
+  state.limiter = limiter;
+  futures = g_ptr_array_new_with_free_func (dex_unref);
+
+  for (guint i = 0; i < 24; i++)
+    {
+      ItemState *item = g_new0 (ItemState, 1);
+
+      item->state = &state;
+      item->value = i;
+      g_ptr_array_add (futures,
+                       dex_limiter_run_coroutine (limiter,
+                                                  NULL,
+                                                  test_limiter_run_coroutine_item,
+                                                  item,
+                                                  g_free));
+    }
+
+  dex_await (dex_future_allv ((DexFuture **) futures->pdata, futures->len), NULL);
+
+  g_assert_cmpuint (g_atomic_int_get (&state.completed), ==, futures->len);
+  g_assert_cmpuint (g_atomic_int_get (&state.max_active), ==, 3);
+  g_assert_cmpuint (g_atomic_int_get (&state.active), ==, 0);
+
+  return dex_future_new_true ();
+}
+
+static void
+test_limiter_run_coroutine (void)
+{
+  run_test_fiber (test_limiter_run_coroutine_fiber, NULL);
+}
+
+static DexFuture *
+test_limiter_run_coroutine_error_item (DexCoroutineContext *context,
+                                       gpointer             user_data)
+{
+  return dex_future_new_reject (G_IO_ERROR, G_IO_ERROR_FAILED, "Failed");
+}
+
+static DexFuture *
+test_limiter_run_coroutine_error_fiber (gpointer user_data)
+{
+  DexLimiter *limiter = dex_limiter_new (1);
+  GError *error = NULL;
+  DexFuture *future;
+
+  future = dex_limiter_run_coroutine (limiter,
+                                      NULL,
+                                      test_limiter_run_coroutine_error_item,
+                                      NULL,
+                                      NULL);
+
+  g_assert_false (dex_await (future, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_clear_error (&error);
+
+  g_assert_true (dex_await (dex_limiter_acquire (limiter), &error));
+  g_assert_no_error (error);
+  dex_limiter_release (limiter);
+
+  return dex_future_new_true ();
+}
+
+static void
+test_limiter_run_coroutine_error (void)
+{
+  run_test_fiber (test_limiter_run_coroutine_error_fiber, NULL);
+}
+
 static DexFuture *
 test_limiter_error_item (gpointer user_data)
 {
@@ -645,7 +782,10 @@ main (int argc,
   g_test_add_func ("/Dex/TestSuite/Limiter/basic", test_limiter_basic);
   g_test_add_func ("/Dex/TestSuite/Limiter/run", test_limiter_run);
   g_test_add_func ("/Dex/TestSuite/Limiter/run_on_pool", test_limiter_run_on_pool);
+  g_test_add_func ("/Dex/TestSuite/Limiter/run_coroutine", test_limiter_run_coroutine);
   g_test_add_func ("/Dex/TestSuite/Limiter/run_error", test_limiter_run_error);
+  g_test_add_func ("/Dex/TestSuite/Limiter/run_coroutine_error",
+                   test_limiter_run_coroutine_error);
   g_test_add_func ("/Dex/TestSuite/Limiter/run_on_pool_error",
                    test_limiter_run_on_pool_error);
   g_test_add_func ("/Dex/TestSuite/Limiter/discard_waiting", test_limiter_discard_waiting);

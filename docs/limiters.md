@@ -64,6 +64,30 @@ thread-pool work. Once the work has been submitted, dropping the returned
 future does not stop the work; it is allowed to complete so the permit can be
 released.
 
+For stackless async workflows, use [method@Dex.Limiter.run_coroutine]. This
+acquires a permit and then runs a [type@Dex.CoroutineFunc] from a scheduler.
+
+```c
+static DexFuture *
+load_one_cache (DexCoroutineContext *context,
+                gpointer             user_data)
+{
+  DEX_COROUTINE_BEGIN (context);
+
+  DEX_COROUTINE_END ();
+}
+
+DexLimiter *limiter = dex_limiter_new (4);
+DexFuture *future = dex_limiter_run_coroutine (limiter,
+                                               NULL,
+                                               load_one_cache,
+                                               g_object_ref (key),
+                                               g_object_unref);
+```
+
+`load_one_cache` uses stackless coroutine style and avoids allocating a fiber
+stack while still participating in limiter scoping.
+
 ## Manual Scopes
 
 Use [method@Dex.Limiter.acquire] and [method@Dex.Limiter.release] when a permit

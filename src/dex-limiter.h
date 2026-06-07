@@ -40,28 +40,34 @@ typedef struct _DexLimiter DexLimiter;
 DEX_AVAILABLE_IN_1_2
 GType       dex_limiter_get_type            (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_1_2
-DexLimiter *dex_limiter_new                 (guint           max_concurrency);
+DexLimiter *dex_limiter_new                 (guint             max_concurrency);
 DEX_AVAILABLE_IN_1_2
-guint       dex_limiter_get_max_concurrency (DexLimiter     *limiter);
+guint       dex_limiter_get_max_concurrency (DexLimiter       *limiter);
 DEX_AVAILABLE_IN_1_2
-DexFuture  *dex_limiter_acquire             (DexLimiter     *limiter) G_GNUC_WARN_UNUSED_RESULT;
+DexFuture  *dex_limiter_acquire             (DexLimiter       *limiter) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-void        dex_limiter_release             (DexLimiter     *limiter);
+void        dex_limiter_release             (DexLimiter       *limiter);
 DEX_AVAILABLE_IN_1_2
-DexFuture  *dex_limiter_run                 (DexLimiter     *limiter,
-                                             DexScheduler   *scheduler,
-                                             gsize           stack_size,
-                                             DexFiberFunc    func,
-                                             gpointer        func_data,
-                                             GDestroyNotify  func_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
+DexFuture  *dex_limiter_run                 (DexLimiter       *limiter,
+                                             DexScheduler     *scheduler,
+                                             gsize             stack_size,
+                                             DexFiberFunc      func,
+                                             gpointer          func_data,
+                                             GDestroyNotify    func_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-DexFuture  *dex_limiter_run_on_pool         (DexLimiter     *limiter,
-                                             DexThreadPool  *pool,
-                                             DexThreadFunc   thread_func,
-                                             gpointer        user_data,
-                                             GDestroyNotify  user_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
+DexFuture  *dex_limiter_run_coroutine       (DexLimiter       *limiter,
+                                             DexScheduler     *scheduler,
+                                             DexCoroutineFunc  func,
+                                             gpointer          user_data,
+                                             GDestroyNotify    user_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-void        dex_limiter_close               (DexLimiter     *limiter);
+DexFuture  *dex_limiter_run_on_pool         (DexLimiter       *limiter,
+                                             DexThreadPool    *pool,
+                                             DexThreadFunc     thread_func,
+                                             gpointer          user_data,
+                                             GDestroyNotify    user_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
+void        dex_limiter_close               (DexLimiter       *limiter);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexLimiter, dex_unref)
 

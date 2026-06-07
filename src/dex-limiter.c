@@ -50,9 +50,9 @@ struct _DexLimiter
   DexObject parent_instance;
 
   DexSemaphore *semaphore;
-  guint max_concurrency;
-  guint acquired;
-  guint closed : 1;
+  guint         max_concurrency;
+  guint         acquired;
+  guint         closed : 1;
 };
 
 typedef struct _DexLimiterClass
@@ -65,7 +65,7 @@ struct _DexLimiterAcquire
   DexFuture parent_instance;
 
   DexLimiter *limiter;
-  guint discarded : 1;
+  guint       discarded : 1;
 };
 
 typedef struct _DexLimiterAcquireClass
@@ -75,21 +75,30 @@ typedef struct _DexLimiterAcquireClass
 
 typedef struct _DexLimiterRun
 {
-  DexLimiter *limiter;
-  DexScheduler *scheduler;
-  DexFiberFunc func;
-  gpointer func_data;
-  GDestroyNotify func_data_destroy;
-  gsize stack_size;
+  DexLimiter     *limiter;
+  DexScheduler   *scheduler;
+  DexFiberFunc    func;
+  gpointer        func_data;
+  GDestroyNotify  func_data_destroy;
+  gsize           stack_size;
 } DexLimiterRun;
+
+typedef struct _DexLimiterRunCoroutine
+{
+  DexLimiter       *limiter;
+  DexScheduler     *scheduler;
+  DexCoroutineFunc  func;
+  gpointer          user_data;
+  GDestroyNotify    user_data_destroy;
+} DexLimiterRunCoroutine;
 
 typedef struct _DexLimiterRunOnPool
 {
-  DexLimiter *limiter;
-  DexThreadPool *pool;
-  DexThreadFunc thread_func;
-  gpointer user_data;
-  GDestroyNotify user_data_destroy;
+  DexLimiter     *limiter;
+  DexThreadPool  *pool;
+  DexThreadFunc   thread_func;
+  gpointer        user_data;
+  GDestroyNotify  user_data_destroy;
 } DexLimiterRunOnPool;
 
 #define DEX_TYPE_LIMITER_ACQUIRE    (dex_limiter_acquire_get_type())
@@ -272,6 +281,20 @@ dex_limiter_run_free (DexLimiterRun *state)
 }
 
 static void
+dex_limiter_run_coroutine_free (DexLimiterRunCoroutine *state)
+{
+  if (state == NULL)
+    return;
+
+  dex_clear (&state->limiter);
+  dex_clear (&state->scheduler);
+  if (state->user_data_destroy != NULL)
+    state->user_data_destroy (g_steal_pointer (&state->user_data));
+
+  g_free (state);
+}
+
+static void
 dex_limiter_run_on_pool_free (DexLimiterRunOnPool *state)
 {
   if (state == NULL)
@@ -302,7 +325,6 @@ dex_limiter_run_acquired_cb (DexFuture *completed,
   DexLimiterRun *state = user_data;
   gpointer func_data;
   GDestroyNotify func_data_destroy;
-  DexFuture *ret;
   DexFuture *fiber;
 
   g_assert (state != NULL);
@@ -318,14 +340,37 @@ dex_limiter_run_acquired_cb (DexFuture *completed,
                                state->func,
                                func_data,
                                func_data_destroy);
-  ret = dex_future_finally (fiber,
-                            dex_limiter_run_release_cb,
-                            dex_ref (state->limiter),
-                            dex_unref);
 
-  dex_future_disown (dex_ref (ret));
+  dex_future_disown (dex_future_finally (dex_ref (fiber),
+                                         dex_limiter_run_release_cb,
+                                         dex_ref (state->limiter),
+                                         dex_unref));
 
-  return ret;
+  return fiber;
+}
+
+static DexFuture *
+dex_limiter_run_coroutine_acquired_cb (DexFuture *completed,
+                                       gpointer   user_data)
+{
+  DexLimiterRunCoroutine *state = user_data;
+  DexFuture *coroutine;
+
+  g_assert (state != NULL);
+  g_assert (DEX_IS_LIMITER (state->limiter));
+  g_assert (state->scheduler == NULL || DEX_IS_SCHEDULER (state->scheduler));
+  g_assert (state->func != NULL);
+
+  coroutine = dex_scheduler_spawn_coroutine (state->scheduler,
+                                             state->func,
+                                             state->user_data);
+
+  dex_future_disown (dex_future_finally (dex_ref (coroutine),
+                                         dex_limiter_run_release_cb,
+                                         dex_ref (state->limiter),
+                                         dex_unref));
+
+  return coroutine;
 }
 
 static DexFuture *
@@ -335,7 +380,6 @@ dex_limiter_run_on_pool_acquired_cb (DexFuture *completed,
   DexLimiterRunOnPool *state = user_data;
   gpointer thread_data;
   GDestroyNotify thread_data_destroy;
-  DexFuture *ret;
   DexFuture *thread;
 
   g_assert (state != NULL);
@@ -351,14 +395,13 @@ dex_limiter_run_on_pool_acquired_cb (DexFuture *completed,
                                    state->thread_func,
                                    thread_data,
                                    thread_data_destroy);
-  ret = dex_future_finally (thread,
-                            dex_limiter_run_release_cb,
-                            dex_ref (state->limiter),
-                            dex_unref);
 
-  dex_future_disown (dex_ref (ret));
+  dex_future_disown (dex_future_finally (dex_ref (thread),
+                                         dex_limiter_run_release_cb,
+                                         dex_ref (state->limiter),
+                                         dex_unref));
 
-  return ret;
+  return thread;
 }
 
 static void
@@ -547,6 +590,51 @@ dex_limiter_run (DexLimiter     *limiter,
                           dex_limiter_run_acquired_cb,
                           state,
                           (GDestroyNotify)dex_limiter_run_free);
+}
+
+/**
+ * dex_limiter_run_coroutine:
+ * @limiter: a `DexLimiter`
+ * @scheduler: (nullable): scheduler to spawn @func on, or %NULL for the thread default
+ * @func: (scope async): coroutine function to run after a permit is acquired
+ * @user_data: closure data for @func
+ * @user_data_destroy: destroy notify for @user_data
+ *
+ * Runs @func while holding one permit from @limiter.
+ *
+ * The returned future resolves or rejects with the result of the spawned
+ * coroutine. The permit is released automatically after the coroutine resolves
+ * or rejects. If the returned future is discarded after the coroutine starts,
+ * the coroutine is allowed to complete so that the permit can be released.
+ *
+ * Returns: (transfer full): a future representing the spawned coroutine
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_limiter_run_coroutine (DexLimiter       *limiter,
+                           DexScheduler     *scheduler,
+                           DexCoroutineFunc  func,
+                           gpointer          user_data,
+                           GDestroyNotify    user_data_destroy)
+{
+  DexLimiterRunCoroutine *state;
+
+  dex_return_error_if_fail (DEX_IS_LIMITER (limiter));
+  dex_return_error_if_fail (scheduler == NULL || DEX_IS_SCHEDULER (scheduler));
+  dex_return_error_if_fail (func != NULL);
+
+  state = g_new0 (DexLimiterRunCoroutine, 1);
+  state->limiter = dex_ref (limiter);
+  state->scheduler = scheduler ? dex_ref (scheduler) : NULL;
+  state->func = func;
+  state->user_data = user_data;
+  state->user_data_destroy = user_data_destroy;
+
+  return dex_future_then (dex_limiter_acquire (limiter),
+                          dex_limiter_run_coroutine_acquired_cb,
+                          state,
+                          (GDestroyNotify)dex_limiter_run_coroutine_free);
 }
 
 /**
