@@ -77,12 +77,14 @@ run_aio_close_success (DexAioContext *aio_context)
 
   g_assert_no_error (error);
   g_assert_true (ret);
+  g_clear_error (&error);
 
   errno = 0;
   g_assert_cmpint (fcntl (fd, F_GETFD), ==, -1);
   g_assert_cmpint (errno, ==, EBADF);
 
   g_assert_cmpint (g_unlink (path), ==, 0);
+  g_clear_pointer (&path, g_free);
 }
 
 static void
@@ -97,6 +99,7 @@ run_aio_close_bad_fd (DexAioContext *aio_context)
 
   g_assert_false (ret);
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_clear_error (&error);
 }
 
 static void
@@ -124,8 +127,10 @@ run_aio_open_success (DexAioContext *aio_context)
   g_assert_cmpint (read (fd, buffer, sizeof buffer), ==, strlen (contents));
   g_assert_cmpmem (buffer, strlen (contents), contents, strlen (contents));
   g_assert_cmpint (close (fd), ==, 0);
+  g_clear_error (&error);
 
   g_assert_cmpint (g_unlink (path), ==, 0);
+  g_clear_pointer (&path, g_free);
 }
 
 static void
@@ -147,6 +152,9 @@ run_aio_open_missing (DexAioContext *aio_context)
 
   g_assert_cmpint (fd, ==, -1);
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
+  g_clear_error (&error);
+
+  g_clear_pointer (&path, g_free);
 }
 
 static void

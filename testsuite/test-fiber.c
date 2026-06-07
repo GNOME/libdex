@@ -99,6 +99,7 @@ test_fiber_yield_no_fiber (void)
 
   g_assert_false (dex_fiber_yield (&error));
   g_assert_error (error, DEX_ERROR, DEX_ERROR_NO_FIBER);
+  g_clear_error (&error);
 }
 
 static void

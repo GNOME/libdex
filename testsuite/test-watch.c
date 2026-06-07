@@ -305,6 +305,8 @@ test_socket_wait_read_ready (void)
   condition = g_value_get_flags (value);
   g_assert_cmpint (condition & G_IO_IN, !=, 0);
 
+  g_clear_object (&read_socket);
+  g_clear_object (&write_socket);
   g_main_loop_unref (main_loop);
   dex_unref (wait);
 }

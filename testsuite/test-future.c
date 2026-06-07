@@ -211,6 +211,7 @@ test_future_with_timeout_rejects (void)
   g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_REJECTED);
   g_assert_null (dex_future_get_value (future, &error));
   g_assert_error (error, DEX_ERROR, DEX_ERROR_DEPENDENCY_FAILED);
+  g_clear_error (&error);
 
   dex_clear (&future);
 }
@@ -232,6 +233,7 @@ test_future_with_timeout_times_out (void)
   g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_REJECTED);
   g_assert_null (dex_future_get_value (future, &error));
   g_assert_error (error, DEX_ERROR, DEX_ERROR_TIMED_OUT);
+  g_clear_error (&error);
 
   dex_clear (&future);
 
@@ -973,6 +975,7 @@ test_future_with_timeout_disowned (void)
   g_assert_cmpint (dex_future_get_status (future), ==, DEX_FUTURE_STATUS_REJECTED);
   g_assert_null (dex_future_get_value (future, &error));
   g_assert_error (error, DEX_ERROR, DEX_ERROR_TIMED_OUT);
+  g_clear_error (&error);
   g_assert_false (was_cancelled);
   g_assert_nonnull (disown_discard_task);
 

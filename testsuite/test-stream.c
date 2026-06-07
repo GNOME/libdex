@@ -63,6 +63,7 @@ test_read_bytes (void)
   if (stream == NULL)
     {
       g_clear_error (&error);
+      g_clear_object (&file);
       g_test_skip ("/etc/os-release not available");
       return;
     }
@@ -109,6 +110,8 @@ test_data_input_stream_read_line_utf8 (void)
   g_assert_true (G_VALUE_HOLDS (value, G_TYPE_STRING));
   g_assert_cmpstr (g_value_get_string (value), ==, "alpha");
 
+  g_clear_object (&stream);
+  g_clear_object (&base);
   dex_unref (future);
 }
 
@@ -133,6 +136,8 @@ test_data_input_stream_read_upto (void)
   g_assert_true (G_VALUE_HOLDS (value, G_TYPE_STRING));
   g_assert_cmpstr (g_value_get_string (value), ==, "alpha");
 
+  g_clear_object (&stream);
+  g_clear_object (&base);
   dex_unref (future);
 }
 
@@ -164,6 +169,7 @@ test_output_stream_writev_all (void)
                    "alphabeta",
                    strlen ("alphabeta"));
 
+  g_clear_object (&stream);
   dex_unref (future);
 }
 

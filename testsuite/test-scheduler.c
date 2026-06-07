@@ -109,6 +109,8 @@ test_scheduler_spawn_static_name (void)
 
   while (dex_future_get_status (future) == DEX_FUTURE_STATUS_PENDING)
     g_main_context_iteration (NULL, TRUE);
+
+  dex_clear (&future);
 }
 
 static DexFuture *

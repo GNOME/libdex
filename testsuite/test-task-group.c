@@ -66,6 +66,7 @@ test_task_group_cancel (void)
   g_assert_false (dex_future_is_resolved (DEX_FUTURE (promise)));
   g_assert_null (dex_future_get_value (DEX_FUTURE (promise), &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+  g_clear_error (&error);
 
   dex_clear (&promise);
   dex_clear (&group);
@@ -121,6 +122,7 @@ test_task_group_cancel_on_error (void)
   g_assert_false (dex_future_is_resolved (DEX_FUTURE (group_future)));
   g_assert_null (dex_future_get_value (DEX_FUTURE (group_future), &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_clear_error (&error);
 
   dex_clear (&group_future);
   dex_clear (&group);
@@ -200,6 +202,7 @@ test_task_group_null_uses_thread_default (void)
   g_assert_true (dex_future_is_rejected (DEX_FUTURE (promise)));
   g_assert_null (dex_future_get_value (DEX_FUTURE (promise), &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+  g_clear_error (&error);
 
   dex_clear (&promise);
   dex_clear (&group);

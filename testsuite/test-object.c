@@ -717,6 +717,9 @@ test_object_property (void)
   g_assert_true (borrowed == DEX_FUTURE (promise));
 
   g_value_unset (&value);
+  dex_clear (&borrowed);
+  dex_clear (&promise);
+  g_clear_object (&object);
 }
 
 int
