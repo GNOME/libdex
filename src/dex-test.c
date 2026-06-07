@@ -70,10 +70,10 @@ static void
 dex_test_runner (gconstpointer user_data)
 {
   DexTest *test = (gpointer)user_data;
-  g_autoptr(DexScheduler) scheduler = NULL;
-  g_autoptr(DexFuture) future = NULL;
-  g_autoptr(GMainContext) main_context = NULL;
-  g_autoptr(GError) error = NULL;
+  DexScheduler *scheduler = NULL;
+  DexFuture *future = NULL;
+  GMainContext *main_context = NULL;
+  GError *error = NULL;
   const GValue *value;
   gboolean created_scheduler;
 
@@ -105,6 +105,11 @@ dex_test_runner (gconstpointer user_data)
       storage->scheduler = NULL;
       storage->aio_context = NULL;
     }
+
+  g_clear_error (&error);
+  g_clear_pointer (&future, dex_unref);
+  g_clear_pointer (&scheduler, dex_unref);
+  g_clear_pointer (&main_context, g_main_context_unref);
 }
 
 /**

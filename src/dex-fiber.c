@@ -296,15 +296,20 @@ dex_fiber_start (DexFiber *fiber)
 
 #ifdef HAVE_SYSPROF
   {
-    g_autofree char *formatted_name = NULL;
+    char *formatted_name = NULL;
     const char *name = dex_future_get_name (DEX_FUTURE (fiber));
     const char *mark_name = "fiber";
     gint64 duration = DEX_PROFILER_CURRENT_TIME - fiber->begin_time;
 
     if (name != NULL && name[0] != 0)
-      mark_name = formatted_name = g_strconcat ("fiber.", name, NULL);
+      {
+        formatted_name = g_strconcat ("fiber.", name, NULL);
+        mark_name = formatted_name;
+      }
 
     DEX_PROFILER_MARK_AT_TIME (fiber->begin_time, duration, mark_name, "lifetime");
+
+    g_free (formatted_name);
   }
 #endif
 

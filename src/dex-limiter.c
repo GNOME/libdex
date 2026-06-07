@@ -158,7 +158,7 @@ dex_limiter_acquire_wait_cb (DexFuture *completed,
 {
   static const GValue limiter_acquired_value = {G_TYPE_BOOLEAN, {{.v_int = TRUE}, {.v_int = 0}}};
   DexLimiterAcquire *acquire = user_data;
-  g_autoptr(GError) error = NULL;
+  GError *error = NULL;
   gboolean should_release = FALSE;
   gboolean closed;
   const GValue *value;
@@ -193,6 +193,7 @@ dex_limiter_acquire_wait_cb (DexFuture *completed,
                                                       "Limiter acquisition was cancelled"));
         }
 
+
       if (should_release)
         dex_semaphore_post (acquire->limiter->semaphore);
     }
@@ -211,6 +212,8 @@ dex_limiter_acquire_wait_cb (DexFuture *completed,
       else
         dex_future_complete (DEX_FUTURE (acquire), NULL, g_steal_pointer (&error));
     }
+
+  g_clear_error (&error);
 
   return NULL;
 }

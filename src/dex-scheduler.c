@@ -201,11 +201,11 @@ dex_scheduler_get_aio_context (DexScheduler *scheduler)
  * fiber_func (gpointer data)
  * {
  *   GInputStream *stream = data;
- *   g_autoptr(GError) error = NULL;
- *   g_autoptr(GBytes) bytes = NULL;
+ *   GError *error = NULL;
+ *   GBytes *bytes = NULL;
  *
  *   if (!(bytes = dex_await_boxed (dex_input_stream_read_bytes (stream, 4096, 0), &error)))
- *     return dex_future_new_for_error (g_steal_pointer (&error));
+ *     return dex_future_new_for_error (error);
  *
  *   ...
  *
