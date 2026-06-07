@@ -52,6 +52,7 @@ libdex_headers = [
   'dex-block.h',
   'dex-cancellable.h',
   'dex-channel.h',
+  'dex-closure.h',
   'dex-delayed.h',
   'dex-enums.h',
   'dex-error.h',
