@@ -42,6 +42,8 @@ GType       dex_limiter_get_type            (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_1_2
 DexLimiter *dex_limiter_new                 (guint             max_concurrency);
 DEX_AVAILABLE_IN_1_2
+DexFuture  *dex_limiter_close_after_drain   (DexLimiter       *limiter) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
 guint       dex_limiter_get_max_concurrency (DexLimiter       *limiter);
 DEX_AVAILABLE_IN_1_2
 DexFuture  *dex_limiter_acquire             (DexLimiter       *limiter) G_GNUC_WARN_UNUSED_RESULT;

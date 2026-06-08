@@ -47,10 +47,11 @@ typedef struct _DexLimiterAcquire DexLimiterAcquire;
 
 struct _DexLimiter
 {
-  DexObject parent_instance;
-
+  DexObject     parent_instance;
   DexSemaphore *semaphore;
+  DexPromise   *drain_promise;
   guint         max_concurrency;
+  guint         pending_acquires;
   guint         acquired;
   guint         closed : 1;
 };
@@ -104,7 +105,8 @@ typedef struct _DexLimiterRunOnPool
 #define DEX_TYPE_LIMITER_ACQUIRE    (dex_limiter_acquire_get_type())
 #define DEX_IS_LIMITER_ACQUIRE(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_LIMITER_ACQUIRE))
 
-GType dex_limiter_acquire_get_type (void) G_GNUC_CONST;
+static GType dex_limiter_acquire_get_type    (void) G_GNUC_CONST;
+static void  dex_limiter_maybe_resolve_drain (DexLimiter *limiter);
 
 DEX_DEFINE_FINAL_TYPE (DexLimiter, dex_limiter, DEX_TYPE_OBJECT)
 DEX_DEFINE_FINAL_TYPE (DexLimiterAcquire, dex_limiter_acquire, DEX_TYPE_FUTURE)
@@ -129,6 +131,29 @@ dex_limiter_do_release (DexLimiter *limiter)
 
   if (post)
     dex_semaphore_post (limiter->semaphore);
+
+  dex_limiter_maybe_resolve_drain (limiter);
+}
+
+static void
+dex_limiter_maybe_resolve_drain (DexLimiter *limiter)
+{
+  DexPromise *drain_promise = NULL;
+
+  g_assert (DEX_IS_LIMITER (limiter));
+
+  dex_object_lock (limiter);
+  if (limiter->drain_promise != NULL &&
+      limiter->pending_acquires == 0 &&
+      limiter->acquired == 0)
+    drain_promise = g_steal_pointer (&limiter->drain_promise);
+  dex_object_unlock (limiter);
+
+  if (drain_promise != NULL)
+    {
+      dex_promise_resolve_boolean (drain_promise, TRUE);
+      dex_clear (&drain_promise);
+    }
 }
 
 static gboolean
@@ -223,6 +248,12 @@ dex_limiter_acquire_wait_cb (DexFuture *completed,
     }
 
   g_clear_error (&error);
+  dex_object_lock (acquire->limiter);
+  if (acquire->limiter->pending_acquires > 0)
+    acquire->limiter->pending_acquires--;
+  dex_object_unlock (acquire->limiter);
+
+  dex_limiter_maybe_resolve_drain (acquire->limiter);
 
   return NULL;
 }
@@ -412,6 +443,8 @@ dex_limiter_finalize (DexObject *object)
   if (limiter->semaphore != NULL)
     dex_semaphore_close (limiter->semaphore);
 
+  dex_clear (&limiter->drain_promise);
+
   dex_clear (&limiter->semaphore);
 
   DEX_OBJECT_CLASS (dex_limiter_parent_class)->finalize (object);
@@ -510,6 +543,8 @@ dex_limiter_acquire (DexLimiter *limiter)
                                     DEX_ERROR_SEMAPHORE_CLOSED,
                                     "Limiter is closed");
     }
+
+  limiter->pending_acquires++;
   dex_object_unlock (limiter);
 
   acquire = (DexLimiterAcquire *)dex_object_create_instance (dex_limiter_acquire_get_type ());
@@ -542,6 +577,48 @@ dex_limiter_release (DexLimiter *limiter)
   g_return_if_fail (DEX_IS_LIMITER (limiter));
 
   dex_limiter_do_release (limiter);
+}
+
+/**
+ * dex_limiter_close_after_drain:
+ * @limiter: a `DexLimiter`
+ *
+ * Closes @limiter and waits for all queued and running work to complete.
+ *
+ * After this function is called, new acquire attempts are rejected with
+ * %DEX_ERROR_SEMAPHORE_CLOSED.
+ *
+ * The returned future resolves to `%TRUE` once all outstanding pending acquire
+ * futures and held permits are complete. Existing permit holders must still
+ * eventually release.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to `true`
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_limiter_close_after_drain (DexLimiter *limiter)
+{
+  DexPromise *drain_promise;
+  gboolean     should_close = FALSE;
+
+  g_return_val_if_fail (DEX_IS_LIMITER (limiter), NULL);
+
+  dex_object_lock (limiter);
+  if (limiter->drain_promise == NULL)
+    limiter->drain_promise = dex_promise_new ();
+
+  drain_promise = dex_ref (limiter->drain_promise);
+  if (!limiter->closed)
+    should_close = TRUE;
+  dex_object_unlock (limiter);
+
+  if (should_close)
+    dex_limiter_close (limiter);
+
+  dex_limiter_maybe_resolve_drain (limiter);
+
+  return DEX_FUTURE (drain_promise);
 }
 
 /**

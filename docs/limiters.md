@@ -123,5 +123,10 @@ in the queue.
 
 Call [method@Dex.Limiter.close] when no new work should start. Pending and
 future acquisitions reject with [error@Dex.Error.SEMAPHORE_CLOSED]. Work that
-already holds a permit may continue, but releasing after close does not make
-new permits available.
+already holds a permit may continue, but releasing after close does not make new
+permits available.
+
+If you need to wait for graceful shutdown, call
+[method@Dex.Limiter.close_after_drain], which both closes the limiter and
+returns a future that resolves once all queued acquires have settled and all
+running holders have released.

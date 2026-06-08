@@ -772,6 +772,49 @@ test_limiter_close (void)
   run_test_fiber (test_limiter_close_fiber, NULL);
 }
 
+static DexFuture *
+test_limiter_close_after_drain_fiber (gpointer user_data)
+{
+  DexLimiter *limiter = dex_limiter_new (1);
+  GError *error = NULL;
+  DexFuture *first;
+  DexFuture *next;
+  DexFuture *drain;
+  DexFuture *drain_timeout;
+
+  first = dex_limiter_acquire (limiter);
+  g_assert_true (dex_await (first, &error));
+  g_assert_no_error (error);
+
+  next = dex_limiter_acquire (limiter);
+  g_assert_true (dex_future_is_pending (next));
+
+  drain = dex_limiter_close_after_drain (limiter);
+  g_assert_true (dex_future_is_pending (drain));
+
+  drain_timeout = dex_future_with_timeout_msec (dex_ref (drain), 1);
+
+  g_assert_false (dex_await (drain_timeout, &error));
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_TIMED_OUT);
+  g_clear_error (&error);
+
+  dex_limiter_release (limiter);
+
+  g_assert_false (dex_await (next, &error));
+  g_clear_error (&error);
+
+  g_assert_true (dex_await (drain, &error));
+  g_assert_no_error (error);
+
+  return dex_future_new_true ();
+}
+
+static void
+test_limiter_close_after_drain (void)
+{
+  run_test_fiber (test_limiter_close_after_drain_fiber, NULL);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -799,6 +842,8 @@ main (int argc,
   g_test_add_func ("/Dex/TestSuite/Limiter/timeout_running_run",
                    test_limiter_timeout_running_run);
   g_test_add_func ("/Dex/TestSuite/Limiter/close", test_limiter_close);
+  g_test_add_func ("/Dex/TestSuite/Limiter/close_after_drain",
+                   test_limiter_close_after_drain);
 
   return g_test_run ();
 }
