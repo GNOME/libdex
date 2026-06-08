@@ -333,6 +333,8 @@ dex_coroutine_wait_for (DexCoroutine *coroutine,
                         DexFuture    *future,
                         gboolean      awaiting_final)
 {
+  DexCoroutineScheduler *scheduler;
+
   g_assert (coroutine != NULL);
   g_assert (DEX_IS_COROUTINE (coroutine));
   g_assert (future != NULL);
@@ -343,22 +345,19 @@ dex_coroutine_wait_for (DexCoroutine *coroutine,
   coroutine->context.pending = g_steal_pointer (&future);
 
   coroutine->awaiting_final = awaiting_final;
-  dex_future_chain (coroutine->context.pending, DEX_FUTURE (coroutine));
 
-  if (coroutine->coroutine_scheduler != NULL)
+  if ((scheduler = coroutine->coroutine_scheduler) != NULL)
     {
       GSource *source;
       DexThreadStorage *thread_storage;
 
-      g_mutex_lock (&coroutine->coroutine_scheduler->mutex);
-      dex_coroutine_set_queue (coroutine->coroutine_scheduler,
-                               coroutine,
-                               CORO_QUEUE_BLOCKED);
+      g_mutex_lock (&scheduler->mutex);
+      dex_coroutine_set_queue (scheduler, coroutine, CORO_QUEUE_BLOCKED);
       thread_storage = dex_thread_storage_get ();
-      source = thread_storage->coroutine_scheduler == coroutine->coroutine_scheduler
+      source = thread_storage->coroutine_scheduler == scheduler
                  ? NULL
-                 : g_source_ref ((GSource *)coroutine->coroutine_scheduler);
-      g_mutex_unlock (&coroutine->coroutine_scheduler->mutex);
+                 : g_source_ref ((GSource *)scheduler);
+      g_mutex_unlock (&scheduler->mutex);
 
       if (source != NULL)
         {
@@ -366,6 +365,8 @@ dex_coroutine_wait_for (DexCoroutine *coroutine,
           g_source_unref (source);
         }
     }
+
+  dex_future_chain (coroutine->context.pending, DEX_FUTURE (coroutine));
 }
 
 static void
@@ -412,7 +413,11 @@ dex_coroutine_resume (DexCoroutine *coroutine)
   else if (dex_future_is_pending (coroutine->context.pending))
     dex_coroutine_wait_for (coroutine, g_steal_pointer (&coroutine->context.pending), FALSE);
   else
-    dex_coroutine_complete_from_future (coroutine, g_steal_pointer (&coroutine->context.pending));
+    {
+      DexFuture *completed = g_steal_pointer (&coroutine->context.pending);
+      dex_coroutine_complete_from_future (coroutine, completed);
+      dex_unref (completed);
+    }
 }
 
 static gboolean
@@ -442,7 +447,7 @@ dex_coroutine_scheduler_prepare (GSource *source,
 static gboolean
 dex_coroutine_scheduler_iteration (DexCoroutineScheduler *scheduler)
 {
-  DexCoroutine *coroutine;
+  DexCoroutine *coroutine = NULL;
   gboolean ret;
   gboolean release = FALSE;
 
@@ -494,6 +499,7 @@ dex_coroutine_scheduler_dispatch (GSource     *source,
   DexCoroutineScheduler *scheduler = (DexCoroutineScheduler *)source;
   guint max_iterations;
   DexThreadStorage *thread_storage;
+  DexCoroutineScheduler *previous_scheduler;
 
   g_assert (scheduler != NULL);
 
@@ -502,10 +508,11 @@ dex_coroutine_scheduler_dispatch (GSource     *source,
   g_mutex_unlock (&scheduler->mutex);
 
   thread_storage = dex_thread_storage_get ();
+  previous_scheduler = thread_storage->coroutine_scheduler;
   thread_storage->coroutine_scheduler = scheduler;
   while (max_iterations && dex_coroutine_scheduler_iteration (scheduler))
     max_iterations--;
-  thread_storage->coroutine_scheduler = NULL;
+  thread_storage->coroutine_scheduler = previous_scheduler;
 
   return G_SOURCE_CONTINUE;
 }
@@ -666,7 +673,7 @@ dex_coroutine_propagate (DexFuture *future,
       return TRUE;
     }
 
-  coroutine->context.pending = NULL;
+  dex_clear (&coroutine->context.pending);
 
   coroutine->awaiting_final = FALSE;
   coroutine->exited = TRUE;

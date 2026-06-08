@@ -38,6 +38,12 @@ DEX_DEFINE_CLOSURE_TYPE (TestCoroutineSuspendVoidState, test_coroutine_suspend_v
                          DEX_DEFINE_CLOSURE_POINTER (DexPromise *, gate, dex_unref),
                          DEX_DEFINE_CLOSURE_POINTER (guint *, run_count, g_free))
 
+DEX_DEFINE_CLOSURE_TYPE (TestCoroutineSuspendGauntletState,
+                         test_coroutine_suspend_gauntlet_state,
+                         DEX_DEFINE_CLOSURE_POINTER (guint *, run_count, g_free),
+                         DEX_DEFINE_CLOSURE_VALUE (guint, limit),
+                         DEX_DEFINE_CLOSURE_VALUE (guint, suspend_count))
+
 DEX_DEFINE_CLOSURE_TYPE (TestCoroutineTaskGroupCancelState,
                          test_coroutine_task_group_cancel_state,
                          DEX_DEFINE_CLOSURE_POINTER (DexPromise *, gate, dex_unref))
@@ -46,6 +52,17 @@ DEX_DEFINE_CLOSURE_TYPE (TestCoroutineDestroyState,
                          DEX_DEFINE_CLOSURE_VALUE (gboolean, value))
 
 static gint test_coroutine_destroy_state_freed = 0;
+
+#define TEST_COROUTINE_TIMEOUT() dex_timeout_new_usec (G_USEC_PER_SEC / 10000)
+
+#define TEST_COROUTINE_JUMP_STEP(state)                                     \
+  G_STMT_START {                                                            \
+    (*((state)->run_count))++;                                              \
+    DEX_COROUTINE_SUSPEND_BOOLEAN (&value, &error,                          \
+                                   TEST_COROUTINE_TIMEOUT ());              \
+    g_assert_error (error, DEX_ERROR, DEX_ERROR_TIMED_OUT);                 \
+    g_clear_error (&error);                                                 \
+  } G_STMT_END
 
 static DexFuture *
 test_coroutine_complete_func (DexCoroutineContext *context,
@@ -102,6 +119,60 @@ test_coroutine_suspend_void_func (DexCoroutineContext *context,
   (*state->run_count)++;
   DEX_COROUTINE_SUSPEND (dex_ref (DEX_FUTURE (state->gate)), NULL);
   (*state->run_count)++;
+
+  return dex_future_new_true ();
+
+  DEX_COROUTINE_END;
+}
+
+static DexFuture *
+test_coroutine_suspend_gauntlet_func (DexCoroutineContext *context,
+                                      gpointer             user_data)
+{
+  TestCoroutineSuspendGauntletState *state = user_data;
+  GError *error = NULL;
+  gboolean value = FALSE;
+
+  DEX_COROUTINE_BEGIN (context);
+
+  while (state->suspend_count < state->limit)
+    {
+      state->suspend_count++;
+      (*state->run_count)++;
+
+      DEX_COROUTINE_SUSPEND_BOOLEAN (&value,
+                                     &error,
+                                     TEST_COROUTINE_TIMEOUT ());
+
+      g_assert_error (error, DEX_ERROR, DEX_ERROR_TIMED_OUT);
+      g_clear_error (&error);
+    }
+
+  return dex_future_new_true ();
+
+  DEX_COROUTINE_END;
+}
+
+static DexFuture *
+test_coroutine_suspend_jump_func (DexCoroutineContext *context,
+                                  gpointer             user_data)
+{
+  TestCoroutineSuspendGauntletState *state = user_data;
+  GError *error = NULL;
+  gboolean value = FALSE;
+
+  DEX_COROUTINE_BEGIN (context);
+
+  TEST_COROUTINE_JUMP_STEP (state);
+  TEST_COROUTINE_JUMP_STEP (state);
+  TEST_COROUTINE_JUMP_STEP (state);
+  TEST_COROUTINE_JUMP_STEP (state);
+  TEST_COROUTINE_JUMP_STEP (state);
+  TEST_COROUTINE_JUMP_STEP (state);
+  TEST_COROUTINE_JUMP_STEP (state);
+  TEST_COROUTINE_JUMP_STEP (state);
+  TEST_COROUTINE_JUMP_STEP (state);
+  TEST_COROUTINE_JUMP_STEP (state);
 
   return dex_future_new_true ();
 
@@ -396,6 +467,50 @@ test_coroutine_suspend_void (void)
 }
 
 static void
+test_coroutine_suspend_gauntlet (void)
+{
+  TestCoroutineSuspendGauntletState *state;
+  DexFuture *future;
+
+  state = test_coroutine_suspend_gauntlet_state_new ();
+  state->run_count = g_new0 (guint, 1);
+  state->limit = 10000;
+
+  future = dex_scheduler_spawn_coroutine (NULL,
+                                          test_coroutine_suspend_gauntlet_func,
+                                          state,
+                                          NULL);
+
+  g_assert_true (dex_await_boolean (dex_ref (future), NULL));
+  g_assert_cmpuint (*state->run_count, ==, state->limit);
+
+  test_coroutine_suspend_gauntlet_state_free (state);
+  dex_clear (&future);
+}
+
+static void
+test_coroutine_suspend_jump (void)
+{
+  TestCoroutineSuspendGauntletState *state;
+  DexFuture *future;
+
+  state = test_coroutine_suspend_gauntlet_state_new ();
+  state->run_count = g_new0 (guint, 1);
+  state->limit = 10;
+
+  future = dex_scheduler_spawn_coroutine (NULL,
+                                          test_coroutine_suspend_jump_func,
+                                          state,
+                                          NULL);
+
+  g_assert_true (dex_await_boolean (dex_ref (future), NULL));
+  g_assert_cmpuint (*state->run_count, ==, state->limit);
+
+  test_coroutine_suspend_gauntlet_state_free (state);
+  dex_clear (&future);
+}
+
+static void
 test_coroutine_returns_int (void)
 {
   GError *error = NULL;
@@ -568,6 +683,8 @@ main (int   argc,
   _g_test_add_func ("/Dex/TestSuite/Coroutine/cancel_race_awaited", test_coroutine_cancel_race);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/suspend_resume", test_coroutine_suspend_resume);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/suspend_void", test_coroutine_suspend_void);
+  _g_test_add_func ("/Dex/TestSuite/Coroutine/suspend_gauntlet", test_coroutine_suspend_gauntlet);
+  _g_test_add_func ("/Dex/TestSuite/Coroutine/suspend_jump", test_coroutine_suspend_jump);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/returns-int", test_coroutine_returns_int);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/returns-uint", test_coroutine_returns_uint);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/returns-boolean", test_coroutine_returns_boolean);

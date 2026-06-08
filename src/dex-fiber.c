@@ -412,7 +412,7 @@ dex_fiber_scheduler_prepare (GSource *source,
 static gboolean
 dex_fiber_scheduler_iteration (DexFiberScheduler *fiber_scheduler)
 {
-  DexFiber *fiber;
+  DexFiber *fiber = NULL;
   gboolean ret;
 
   g_assert (fiber_scheduler != NULL);
@@ -470,6 +470,8 @@ dex_fiber_scheduler_dispatch (GSource     *source,
                               gpointer     user_data)
 {
   DexFiberScheduler *fiber_scheduler = (DexFiberScheduler *)source;
+  DexThreadStorage *thread_storage;
+  DexFiberScheduler *previous_scheduler;
   guint max_iterations;
 
   g_assert (fiber_scheduler != NULL);
@@ -480,10 +482,12 @@ dex_fiber_scheduler_dispatch (GSource     *source,
    */
   max_iterations = MAX (1, fiber_scheduler->runnable.length);
 
-  dex_thread_storage_get ()->fiber_scheduler = fiber_scheduler;
+  thread_storage = dex_thread_storage_get ();
+  previous_scheduler = thread_storage->fiber_scheduler;
+  thread_storage->fiber_scheduler = fiber_scheduler;
   while (max_iterations && dex_fiber_scheduler_iteration (fiber_scheduler))
     max_iterations--;
-  dex_thread_storage_get ()->fiber_scheduler = NULL;
+  thread_storage->fiber_scheduler = previous_scheduler;
 
   return G_SOURCE_CONTINUE;
 }
