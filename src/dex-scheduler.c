@@ -255,6 +255,7 @@ DexFuture *
  * @scheduler: (nullable): a [class@Dex.Scheduler]
  * @func: (scope notified): coroutine entrypoint
  * @user_data: (transfer none): user data passed to the coroutine entrypoint
+ * @user_data_destroy: destroy notify for @user_data
  *
  * Request @scheduler to spawn a [class@Dex.Coroutine] and execute
  * @func with user data.
@@ -270,7 +271,8 @@ DexFuture *
 DexFuture *
 (dex_scheduler_spawn_coroutine) (DexScheduler     *scheduler,
                                  DexCoroutineFunc  func,
-                                 gpointer          user_data)
+                                 gpointer          user_data,
+                                 GDestroyNotify    user_data_destroy)
 {
   DexCoroutine *coroutine;
 
@@ -282,7 +284,7 @@ DexFuture *
   dex_return_error_if_fail (scheduler != NULL);
   dex_return_error_if_fail (DEX_SCHEDULER_GET_CLASS (scheduler)->spawn_coroutine != NULL);
 
-  coroutine = dex_coroutine_new (func, user_data);
+  coroutine = dex_coroutine_new (func, user_data, user_data_destroy);
   DEX_SCHEDULER_GET_CLASS (scheduler)->spawn_coroutine (scheduler, coroutine);
 
   return DEX_FUTURE (coroutine);

@@ -74,6 +74,7 @@ struct _DexCoroutine
   DexCoroutineFunc       func;
   DexCoroutineContext    context;
   gpointer               user_data;
+  GDestroyNotify         user_data_destroy;
   DexCoroutineScheduler *coroutine_scheduler;
   DexCoroutineQueue      queue : 2;
   guint                  running : 1;
@@ -96,6 +97,7 @@ static void     dex_coroutine_complete_from_future  (DexCoroutine          *coro
 static void     dex_coroutine_wait_for              (DexCoroutine          *coroutine,
                                                      DexFuture             *future,
                                                      gboolean               awaiting_final);
+static void     dex_coroutine_clear_user_data       (DexCoroutine          *coroutine);
 static void     dex_coroutine_clear_pending         (DexCoroutine          *coroutine);
 static void     dex_coroutine_set_queue             (DexCoroutineScheduler *scheduler,
                                                      DexCoroutine          *coroutine,
@@ -183,6 +185,7 @@ dex_coroutine_finalize (DexObject *object)
   g_assert (coroutine->coroutine_scheduler == NULL);
   g_assert (coroutine->link.data == coroutine);
 
+  dex_coroutine_clear_user_data (coroutine);
   dex_coroutine_clear_pending (coroutine);
 
   DEX_OBJECT_CLASS (dex_coroutine_parent_class)->finalize (object);
@@ -197,6 +200,23 @@ dex_coroutine_class_init (DexCoroutineClass *coroutine_class)
   object_class->finalize = dex_coroutine_finalize;
   future_class->discard = dex_coroutine_discard;
   future_class->propagate = dex_coroutine_propagate;
+}
+
+static void
+dex_coroutine_clear_user_data (DexCoroutine *coroutine)
+{
+  GDestroyNotify user_data_destroy;
+  gpointer user_data;
+
+  if (coroutine->user_data_destroy == NULL)
+    return;
+
+  user_data_destroy = coroutine->user_data_destroy;
+  user_data = g_steal_pointer (&coroutine->user_data);
+
+  coroutine->user_data_destroy = NULL;
+  coroutine->user_data = NULL;
+  user_data_destroy (user_data);
 }
 
 static void
@@ -268,6 +288,7 @@ dex_coroutine_complete_error (DexCoroutine *coroutine,
   coroutine->awaiting_final = FALSE;
   coroutine->exited = TRUE;
 
+  dex_coroutine_clear_user_data (coroutine);
   dex_coroutine_clear_pending (coroutine);
   dex_coroutine_detach_from_scheduler (coroutine);
 
@@ -289,6 +310,7 @@ dex_coroutine_complete_from_future (DexCoroutine *coroutine,
   coroutine->awaiting_final = FALSE;
   coroutine->exited = TRUE;
 
+  dex_coroutine_clear_user_data (coroutine);
   dex_coroutine_clear_pending (coroutine);
   dex_coroutine_detach_from_scheduler (coroutine);
 
@@ -661,7 +683,8 @@ dex_coroutine_propagate (DexFuture *future,
 
 DexCoroutine *
 dex_coroutine_new (DexCoroutineFunc func,
-                   gpointer         user_data)
+                   gpointer         user_data,
+                   GDestroyNotify   user_data_destroy)
 {
   DexCoroutine *coroutine;
 
@@ -670,6 +693,7 @@ dex_coroutine_new (DexCoroutineFunc func,
   coroutine = (DexCoroutine *)dex_object_create_instance (DEX_TYPE_COROUTINE);
   coroutine->func = func;
   coroutine->user_data = user_data;
+  coroutine->user_data_destroy = user_data_destroy;
 
   return coroutine;
 }

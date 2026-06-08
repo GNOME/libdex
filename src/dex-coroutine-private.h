@@ -30,7 +30,8 @@ typedef struct _DexCoroutine          DexCoroutine;
 typedef struct _DexCoroutineScheduler DexCoroutineScheduler;
 
 DexCoroutine          *dex_coroutine_new                (DexCoroutineFunc       func,
-                                                         gpointer               user_data);
+                                                         gpointer               user_data,
+                                                         GDestroyNotify         user_data_destroy);
 DexCoroutineScheduler *dex_coroutine_scheduler_new      (void);
 void                   dex_coroutine_scheduler_register (DexCoroutineScheduler *scheduler,
                                                          DexCoroutine          *coroutine);

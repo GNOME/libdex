@@ -386,15 +386,22 @@ dex_limiter_run_coroutine_acquired_cb (DexFuture *completed,
 {
   DexLimiterRunCoroutine *state = user_data;
   DexFuture *coroutine;
+  GDestroyNotify user_data_destroy;
+  gpointer data;
 
   g_assert (state != NULL);
   g_assert (DEX_IS_LIMITER (state->limiter));
   g_assert (state->scheduler == NULL || DEX_IS_SCHEDULER (state->scheduler));
   g_assert (state->func != NULL);
 
+  data = g_steal_pointer (&state->user_data);
+  user_data_destroy = state->user_data_destroy;
+  state->user_data_destroy = NULL;
+
   coroutine = dex_scheduler_spawn_coroutine (state->scheduler,
                                              state->func,
-                                             state->user_data);
+                                             data,
+                                             user_data_destroy);
 
   dex_future_disown (dex_future_finally (dex_ref (coroutine),
                                          dex_limiter_run_release_cb,

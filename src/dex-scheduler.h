@@ -99,7 +99,8 @@ DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
 DEX_AVAILABLE_IN_ALL
 DexFuture    *dex_scheduler_spawn_coroutine    (DexScheduler     *scheduler,
                                                 DexCoroutineFunc  func,
-                                                gpointer          user_data)
+                                                gpointer          user_data,
+                                                GDestroyNotify    user_data_destroy)
   G_GNUC_WARN_UNUSED_RESULT;
 
 #if !defined(DEX_DISABLE_STATIC_NAME_MACROS)
@@ -114,10 +115,11 @@ DexFuture    *dex_scheduler_spawn_coroutine    (DexScheduler     *scheduler,
 # define _DEX_FIBER_NEW(...) _DEX_FIBER_NEW_(__COUNTER__, __VA_ARGS__)
 # define dex_scheduler_spawn(...) _DEX_FIBER_NEW(__VA_ARGS__)
 
-# define _DEX_COROUTINE_NEW_(counter, scheduler, func, user_data) \
+# define _DEX_COROUTINE_NEW_(counter, scheduler, func, user_data, user_data_destroy) \
   ({ DexFuture *G_PASTE(__f, counter) = dex_scheduler_spawn_coroutine ((scheduler), \
                                                                        (func), \
-                                                                       (user_data)); \
+                                                                       (user_data), \
+                                                                       (user_data_destroy)); \
      dex_future_set_static_name (DEX_FUTURE (G_PASTE (__f, counter)), G_STRINGIFY (func)); \
      G_PASTE (__f, counter); })
 # define _DEX_COROUTINE_NEW(...) _DEX_COROUTINE_NEW_(__COUNTER__, __VA_ARGS__)

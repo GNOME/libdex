@@ -43,7 +43,8 @@ my_coroutine (DexCoroutineContext *context,
 DexFuture *future =
   dex_scheduler_spawn_coroutine (NULL,
                                  my_coroutine,
-                                 user_data);
+                                 user_data,
+                                 user_data_destroy);
 ```
 
 If `scheduler` is `NULL`, the default scheduler is used.
