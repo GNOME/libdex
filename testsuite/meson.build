@@ -31,7 +31,7 @@ testsuite = {
   'test-aio': {},
   'test-async-result': {},
   'test-channel': {},
-  'test-dbus': {'extra-sources': dbus_foo, 'disable': not have_gdbus_codegen},
+  'test-dbus': {'extra-sources': dbus_foo, 'disable': not have_gdbus_codegen, 'is_parallel': false},
   'test-coroutine': {},
   'test-object': {},
   'test-fiber': {},
@@ -68,5 +68,5 @@ foreach test, params: testsuite
     dependencies: testsuite_deps,
   )
 
-  test(test, test_exe, env: test_env)
+  test(test, test_exe, env: test_env, is_parallel: params.get('is_parallel', true))
 endforeach
