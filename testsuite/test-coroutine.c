@@ -117,7 +117,7 @@ test_coroutine_return_uint_func (DexCoroutineContext *context,
 
 static DexFuture *
 test_coroutine_return_boolean_func (DexCoroutineContext *context,
-                                   gpointer            user_data)
+                                    gpointer             user_data)
 {
   return dex_future_new_for_boolean (TRUE);
 }
@@ -195,6 +195,68 @@ test_coroutine_spawn_complete (void)
   g_assert_cmpuint (*state->ran, ==, 1);
   test_coroutine_complete_state_free (state);
   dex_clear (&future);
+}
+
+typedef struct _TestCoroutineCancelRaceState
+{
+  DexFuture  *future;
+  DexPromise *gate;
+  gint        entered;
+} TestCoroutineCancelRaceState;
+
+static DexFuture *
+test_coroutine_cancel_race_func (DexCoroutineContext *context,
+                                 gpointer             user_data)
+{
+  TestCoroutineCancelRaceState *state = user_data;
+  GError *error = NULL;
+  gboolean value = FALSE;
+
+  DEX_COROUTINE_BEGIN (context);
+
+  g_atomic_int_set (&state->entered, 1);
+  DEX_COROUTINE_SUSPEND_BOOLEAN (&value, &error, dex_ref (DEX_FUTURE (state->gate)));
+  if (error != NULL)
+    return dex_future_new_for_error (g_steal_pointer (&error));
+
+  return dex_future_new_for_boolean (value);
+
+  DEX_COROUTINE_END;
+}
+
+static void
+test_coroutine_cancel_race (void)
+{
+  GError *error = NULL;
+
+  for (guint i = 0; i < 128; i++)
+    {
+      TestCoroutineCancelRaceState state = {0};
+      DexFuture *future;
+      DexTaskGroup *group;
+
+      state.gate = dex_promise_new ();
+      state.future = future = dex_scheduler_spawn_coroutine (NULL,
+                                                             test_coroutine_cancel_race_func,
+                                                             &state);
+      group = dex_task_group_new (DEX_TASK_GROUP_FLAGS_NONE);
+      g_assert_true (dex_task_group_add (group, dex_ref (future)));
+
+      while (g_atomic_int_get (&state.entered) == 0)
+        g_main_context_iteration (NULL, TRUE);
+
+      dex_task_group_cancel (group);
+      dex_promise_resolve_boolean (state.gate, TRUE);
+
+      g_assert_false (dex_await_boolean (dex_ref (future), &error));
+      g_assert_error (error, DEX_ERROR, DEX_ERROR_FIBER_CANCELLED);
+      g_clear_error (&error);
+
+      dex_clear (&group);
+      dex_clear (&state.gate);
+      dex_clear (&future);
+      state.entered = 0;
+    }
 }
 
 static void
@@ -290,7 +352,10 @@ test_coroutine_returns_object (void)
   GError *error = NULL;
   GObject *value = NULL;
 
-  value = dex_await_object (dex_scheduler_spawn_coroutine (NULL, test_coroutine_return_object_func, NULL), &error);
+  value = dex_await_object (dex_scheduler_spawn_coroutine (NULL,
+                                                           test_coroutine_return_object_func,
+                                                           NULL),
+                            &error);
   g_assert_no_error (error);
   g_assert_nonnull (value);
   g_assert_true (G_IS_OBJECT (value));
@@ -387,6 +452,7 @@ main (int   argc,
   g_test_init (&argc, &argv, NULL);
 
   _g_test_add_func ("/Dex/TestSuite/Coroutine/spawn_complete", test_coroutine_spawn_complete);
+  _g_test_add_func ("/Dex/TestSuite/Coroutine/cancel_race_awaited", test_coroutine_cancel_race);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/suspend_resume", test_coroutine_suspend_resume);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/returns-int", test_coroutine_returns_int);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/returns-uint", test_coroutine_returns_uint);

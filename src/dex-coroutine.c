@@ -24,6 +24,7 @@
 #include "dex-error.h"
 #include "dex-future-private.h"
 #include "dex-compat-private.h"
+#include "dex-thread-storage-private.h"
 
 /**
  * DexCoroutine:
@@ -325,16 +326,23 @@ dex_coroutine_wait_for (DexCoroutine *coroutine,
   if (coroutine->coroutine_scheduler != NULL)
     {
       GSource *source;
+      DexThreadStorage *thread_storage;
 
       g_mutex_lock (&coroutine->coroutine_scheduler->mutex);
       dex_coroutine_set_queue (coroutine->coroutine_scheduler,
                                coroutine,
                                CORO_QUEUE_BLOCKED);
-      source = g_source_ref ((GSource *)coroutine->coroutine_scheduler);
+      thread_storage = dex_thread_storage_get ();
+      source = thread_storage->coroutine_scheduler == coroutine->coroutine_scheduler
+                 ? NULL
+                 : g_source_ref ((GSource *)coroutine->coroutine_scheduler);
       g_mutex_unlock (&coroutine->coroutine_scheduler->mutex);
 
-      g_main_context_wakeup (g_source_get_context (source));
-      g_source_unref (source);
+      if (source != NULL)
+        {
+          g_main_context_wakeup (g_source_get_context (source));
+          g_source_unref (source);
+        }
     }
 }
 
@@ -392,7 +400,9 @@ dex_coroutine_scheduler_check (GSource *source)
   gboolean ret;
 
   g_mutex_lock (&scheduler->mutex);
-  ret = scheduler->runnable.length > 0;
+  g_assert (scheduler->runnable.length == 0 || scheduler->runnable.head != NULL);
+  g_assert (scheduler->runnable.length > 0 || scheduler->runnable.head == NULL);
+  ret = scheduler->runnable.head != NULL;
   g_mutex_unlock (&scheduler->mutex);
 
   return ret;
@@ -410,65 +420,48 @@ dex_coroutine_scheduler_prepare (GSource *source,
 static gboolean
 dex_coroutine_scheduler_iteration (DexCoroutineScheduler *scheduler)
 {
-  guint depth;
+  DexCoroutine *coroutine;
+  gboolean ret;
+  gboolean release = FALSE;
 
   g_mutex_lock (&scheduler->mutex);
-  if ((depth = scheduler->runnable.length) > 0)
-    goto skip_to_first;
-  g_mutex_unlock (&scheduler->mutex);
-
-  for (guint i = 0; i < depth; i++)
+  if ((coroutine = g_queue_peek_head (&scheduler->runnable)))
     {
-      DexCoroutine *coroutine = NULL;
-      gboolean release = FALSE;
-
-      g_mutex_lock (&scheduler->mutex);
-    skip_to_first:
-
-      if (!(coroutine = g_queue_peek_head (&scheduler->runnable)))
-        {
-          g_mutex_unlock (&scheduler->mutex);
-          break;
-        }
+      g_queue_unlink (&scheduler->runnable, &coroutine->link);
 
       g_assert (coroutine->queue == CORO_QUEUE_RUNNABLE);
       g_assert (coroutine->link.data == coroutine);
-
-      g_queue_unlink (&scheduler->runnable, &coroutine->link);
 
       coroutine->queue = CORO_QUEUE_NONE;
       coroutine->running = TRUE;
       coroutine->coroutine_scheduler = scheduler;
       scheduler->running = coroutine;
+    }
+  g_mutex_unlock (&scheduler->mutex);
 
-      g_mutex_unlock (&scheduler->mutex);
+  if (coroutine == NULL)
+    return FALSE;
 
-      if (coroutine == NULL)
-        break;
+  dex_coroutine_resume (coroutine);
 
-      dex_coroutine_resume (coroutine);
+  g_mutex_lock (&scheduler->mutex);
+  coroutine->running = FALSE;
+  scheduler->running = NULL;
 
-      g_mutex_lock (&scheduler->mutex);
-
-      coroutine->running = FALSE;
-      scheduler->running = NULL;
-
-      if (coroutine->exited)
-        {
-          coroutine->coroutine_scheduler = NULL;
-          coroutine->released = TRUE;
-          release = TRUE;
-        }
-      else
-        release = FALSE;
-
-      g_mutex_unlock (&scheduler->mutex);
-
-      if (release)
-        dex_unref (coroutine);
+  if (coroutine->exited)
+    {
+      coroutine->coroutine_scheduler = NULL;
+      coroutine->released = TRUE;
+      release = TRUE;
     }
 
-  return TRUE;
+  ret = scheduler->runnable.length > 0;
+  g_mutex_unlock (&scheduler->mutex);
+
+  if (release)
+    dex_unref (coroutine);
+
+  return ret;
 }
 
 static gboolean
@@ -477,10 +470,22 @@ dex_coroutine_scheduler_dispatch (GSource     *source,
                                   gpointer     callback_data)
 {
   DexCoroutineScheduler *scheduler = (DexCoroutineScheduler *)source;
+  guint max_iterations;
+  DexThreadStorage *thread_storage;
 
   g_assert (scheduler != NULL);
 
-  return dex_coroutine_scheduler_iteration (scheduler);
+  g_mutex_lock (&scheduler->mutex);
+  max_iterations = MAX (1, scheduler->runnable.length);
+  g_mutex_unlock (&scheduler->mutex);
+
+  thread_storage = dex_thread_storage_get ();
+  thread_storage->coroutine_scheduler = scheduler;
+  while (max_iterations && dex_coroutine_scheduler_iteration (scheduler))
+    max_iterations--;
+  thread_storage->coroutine_scheduler = NULL;
+
+  return G_SOURCE_CONTINUE;
 }
 
 static void
@@ -533,7 +538,7 @@ dex_coroutine_scheduler_new (void)
 
 void
 dex_coroutine_scheduler_register (DexCoroutineScheduler *scheduler,
-                                  DexCoroutine          *coroutine)
+                                 DexCoroutine          *coroutine)
 {
   g_return_if_fail (scheduler != NULL);
   g_return_if_fail (DEX_IS_COROUTINE (coroutine));
@@ -547,13 +552,13 @@ dex_coroutine_scheduler_register (DexCoroutineScheduler *scheduler,
   g_assert (coroutine->queue == CORO_QUEUE_NONE);
   g_assert (coroutine->coroutine_scheduler == NULL);
 
-  coroutine->runnable = TRUE;
   coroutine->coroutine_scheduler = scheduler;
   dex_coroutine_set_queue (scheduler, coroutine, CORO_QUEUE_RUNNABLE);
 
   g_mutex_unlock (&scheduler->mutex);
 
-  g_source_set_ready_time ((GSource *)scheduler, 0);
+  if (dex_thread_storage_get ()->coroutine_scheduler != scheduler)
+    g_main_context_wakeup (g_source_get_context ((GSource *)scheduler));
 }
 
 static void
@@ -617,16 +622,23 @@ dex_coroutine_propagate (DexFuture *future,
       if (coroutine->coroutine_scheduler != NULL)
         {
           GSource *source;
+          DexThreadStorage *thread_storage;
 
           g_mutex_lock (&coroutine->coroutine_scheduler->mutex);
           dex_coroutine_set_queue (coroutine->coroutine_scheduler,
                                    coroutine,
                                    CORO_QUEUE_RUNNABLE);
-          source = g_source_ref ((GSource *)coroutine->coroutine_scheduler);
+          thread_storage = dex_thread_storage_get ();
+          source = thread_storage->coroutine_scheduler == coroutine->coroutine_scheduler
+                     ? NULL
+                     : g_source_ref ((GSource *)coroutine->coroutine_scheduler);
           g_mutex_unlock (&coroutine->coroutine_scheduler->mutex);
 
-          g_main_context_wakeup (g_source_get_context (source));
-          g_source_unref (source);
+          if (source != NULL)
+            {
+              g_main_context_wakeup (g_source_get_context (source));
+              g_source_unref (source);
+            }
         }
 
       return TRUE;

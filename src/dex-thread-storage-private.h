@@ -28,19 +28,21 @@ G_BEGIN_DECLS
 #define DEX_THREAD_POOL_WORKER_CURRENT (dex_thread_storage_get()->worker)
 #define DEX_DISPATCH_RECURSE_MAX       4
 
-typedef struct _DexAioContext DexAioContext;
-typedef struct _DexFiberScheduler DexFiberScheduler;
-typedef struct _DexScheduler DexScheduler;
-typedef struct _DexThreadPoolWorker DexThreadPoolWorker;
+typedef struct _DexAioContext         DexAioContext;
+typedef struct _DexCoroutineScheduler DexCoroutineScheduler;
+typedef struct _DexFiberScheduler     DexFiberScheduler;
+typedef struct _DexScheduler          DexScheduler;
+typedef struct _DexThreadPoolWorker   DexThreadPoolWorker;
 
 typedef struct _DexThreadStorage
 {
-  DexScheduler        *scheduler;
-  gpointer             task_group;
-  DexThreadPoolWorker *worker;
-  DexAioContext       *aio_context;
-  DexFiberScheduler   *fiber_scheduler;
-  guint                sync_dispatch_depth;
+  DexScheduler          *scheduler;
+  gpointer               task_group;
+  DexThreadPoolWorker   *worker;
+  DexAioContext         *aio_context;
+  DexFiberScheduler     *fiber_scheduler;
+  DexCoroutineScheduler *coroutine_scheduler;
+  guint                  sync_dispatch_depth;
 } DexThreadStorage;
 
 DexThreadStorage *dex_thread_storage_get  (void);
