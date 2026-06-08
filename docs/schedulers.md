@@ -22,9 +22,6 @@ The thread pool scheduler will manage a number of threads that is deemed useful 
 Work items created from outside of the thread pool are placed into a global queue.
 Thread pool workers will take items from the global queue when they have no more items to process.
 
-To avoid "thundering herd" situations often caused by global queues and thread pools a pollable semaphore is used.
-On Linux, specifically, io_uring and eventfd combined with `EFD_SEMAPHORE` allow waking up a single worker when a work item is queued.
-
 All thread pool workers have a local [class@Dex.Scheduler] so use of timeouts and other [struct@GLib.Source] features continue to work.
 
 If you need to interact with long-blocking API calls it is better to use [func@Dex.thread_spawn] rather than a thread pool thread.
