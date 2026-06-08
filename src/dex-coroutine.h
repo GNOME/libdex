@@ -95,7 +95,25 @@ void  dex_coroutine_context_resume  (DexCoroutineContext  *context,
       *(_out) = (__typeof__(*(_out))) (_await (g_steal_pointer (&__future), (_error)));   \
   }
 
+#define _DEX_COROUTINE_SUSPEND_VOID(_error, _future, _id)                                 \
+  G_GNUC_FALLTHROUGH;                                                                     \
+  case _id:                                                                               \
+    {                                                                                     \
+      gboolean __resumed = __dex_coro_pc == (_id);                                        \
+      DexFuture *__future = __resumed ? __dex_coro_pending : (_future);                   \
+      if (dex_future_is_pending (__future))                                               \
+        {                                                                                 \
+          dex_coroutine_context_suspend (__dex_coro, (_id), g_steal_pointer (&__future)); \
+          return NULL;                                                                    \
+        }                                                                                 \
+      __dex_coro_pc = 0;                                                                  \
+      (void) dex_await (g_steal_pointer (&__future), (_error));                           \
+  }
+
 #define _DEX_COROUTINE_LABEL_ID() (__COUNTER__ + 1)
+
+#define DEX_COROUTINE_SUSPEND(_future, _error) \
+  _DEX_COROUTINE_SUSPEND_VOID (_error, _future, _DEX_COROUTINE_LABEL_ID ())
 
 #define DEX_COROUTINE_SUSPEND_BOOLEAN(_out, _error, _future) \
   _DEX_COROUTINE_SUSPEND (_out, _error, _future, dex_await_boolean, _DEX_COROUTINE_LABEL_ID ())

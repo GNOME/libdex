@@ -61,6 +61,7 @@ The recommended pattern is:
 
 * define any state as a small struct (or with [macro@DEX_DEFINE_CLOSURE_TYPE]);
 * call [macro@DEX_COROUTINE_BEGIN] at the start;
+* call `DEX_COROUTINE_SUSPEND` when you only need to wait for completion;
 * call `DEX_COROUTINE_SUSPEND_*` for each awaited step;
 * return a future at completion;
 * end with [macro@DEX_COROUTINE_END].
@@ -78,8 +79,13 @@ code unless the future is already done. Coroutine suspend helpers:
 * resume execution only after that future settles;
 * extract the awaited value on resume.
 
+Use [macro@DEX_COROUTINE_SUSPEND] when you only need to wait for a future to
+finish and do not need its result. This is the coroutine-friendly replacement
+for `dex_await (future, NULL)`.
+
 These macros are available for common await types:
 
+* [macro@DEX_COROUTINE_SUSPEND]
 * [macro@DEX_COROUTINE_SUSPEND_BOOLEAN]
 * [macro@DEX_COROUTINE_SUSPEND_INT], [macro@DEX_COROUTINE_SUSPEND_UINT]
 * [macro@DEX_COROUTINE_SUSPEND_INT64], [macro@DEX_COROUTINE_SUSPEND_UINT64]
