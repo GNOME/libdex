@@ -107,7 +107,6 @@ load_with_cache (DexCoroutineContext *context,
 {
   LoadState *state = user_data;
   g_autoptr(GError) error = NULL;
-  gsize size;
 
   DEX_COROUTINE_BEGIN (context);
 
