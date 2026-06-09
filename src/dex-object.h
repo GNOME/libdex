@@ -36,19 +36,17 @@ G_BEGIN_DECLS
 typedef struct _DexObject DexObject;
 
 DEX_AVAILABLE_IN_ALL
-GType    dex_object_get_type (void) G_GNUC_CONST;
-
+GType       dex_object_get_type   (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
 GParamSpec *dex_param_spec_object (const char  *name,
                                    const char  *nick,
                                    const char  *blurb,
                                    GType        object_type,
                                    GParamFlags  flags);
-
 DEX_AVAILABLE_IN_ALL
-gpointer dex_ref             (gpointer  object);
+gpointer    dex_ref               (gpointer     object);
 DEX_AVAILABLE_IN_ALL
-void     dex_unref           (gpointer  object);
+void        dex_unref             (gpointer     object);
 
 #ifndef __GI_SCANNER__
 static inline void
@@ -60,6 +58,41 @@ dex_clear (gpointer data)
   if (obj != NULL)
     dex_unref (obj);
 }
+
+static inline gboolean
+dex_set_object (DexObject **object_ptr,
+                DexObject  *new_object)
+{
+  DexObject *old_object = *object_ptr;
+
+  if (old_object == new_object)
+    return FALSE;
+
+  if (new_object != NULL)
+    dex_ref (new_object);
+
+  *object_ptr = new_object;
+
+  if (old_object != NULL)
+    dex_unref (old_object);
+
+  return TRUE;
+}
+
+#if defined(__GNUC__)
+# define dex_set_object(object_ptr, new_object) \
+  (G_GNUC_EXTENSION ({ \
+    G_STATIC_ASSERT (sizeof *(object_ptr) == sizeof (new_object)); \
+    union { char *in; DexObject **out; } _object_ptr; \
+    _object_ptr.in = (char *) (object_ptr); \
+    (void) (0 ? *(object_ptr) = (new_object), FALSE : FALSE); \
+    (dex_set_object) (_object_ptr.out, (DexObject *) new_object); \
+  }))
+#else
+# define dex_set_object(object_ptr, new_object) \
+  (0 ? *(object_ptr) = (new_object), FALSE : \
+   (dex_set_object) ((DexObject **) (object_ptr), (DexObject *) (new_object)))
+#endif
 #endif
 
 DEX_AVAILABLE_IN_ALL

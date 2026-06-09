@@ -688,6 +688,43 @@ test_object_basic (void)
 }
 
 static void
+test_object_set_object (void)
+{
+  TestObject *object1;
+  TestObject *object2;
+  TestObject *held = NULL;
+
+  finalize_count = 0;
+
+  g_assert_false (dex_set_object (&held, NULL));
+
+  object1 = test_object_new ();
+  object2 = test_object_new ();
+
+  g_assert_true (dex_set_object (&held, object1));
+  g_assert_true (held == object1);
+  g_assert_cmpint (DEX_OBJECT (object1)->ref_count, ==, 2);
+
+  g_assert_false (dex_set_object (&held, object1));
+  g_assert_true (held == object1);
+  g_assert_cmpint (DEX_OBJECT (object1)->ref_count, ==, 2);
+
+  g_assert_true (dex_set_object (&held, object2));
+  g_assert_true (held == object2);
+  g_assert_cmpint (DEX_OBJECT (object1)->ref_count, ==, 1);
+  g_assert_cmpint (DEX_OBJECT (object2)->ref_count, ==, 2);
+
+  g_assert_true (dex_set_object (&held, NULL));
+  g_assert_null (held);
+  g_assert_cmpint (DEX_OBJECT (object2)->ref_count, ==, 1);
+
+  dex_unref (object1);
+  dex_unref (object2);
+
+  g_assert_cmpint (finalize_count, ==, 2);
+}
+
+static void
 test_object_property (void)
 {
   GObject * object = NULL;
@@ -729,6 +766,7 @@ main (int   argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Object/basic", test_object_basic);
+  g_test_add_func ("/Dex/TestSuite/Object/set-object", test_object_set_object);
   g_test_add_func ("/Dex/TestSuite/Object/property", test_object_property);
   g_test_add_func ("/Dex/TestSuite/WeakRef/single-threaded", test_weak_ref_st);
   g_test_add_func ("/Dex/TestSuite/WeakRef/retarget", test_weak_ref_retarget);
