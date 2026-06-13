@@ -25,6 +25,8 @@
 
 #include "test-util.h"
 
+static void test_coroutine_g_weak_ref_clear (GWeakRef *weak_ref);
+
 DEX_DEFINE_CLOSURE_TYPE (TestCoroutineCompleteState, test_coroutine_complete_state,
                          DEX_DEFINE_CLOSURE_POINTER (guint *, ran, g_free))
 
@@ -51,7 +53,14 @@ DEX_DEFINE_CLOSURE_TYPE (TestCoroutineDestroyState,
                          test_coroutine_destroy_state,
                          DEX_DEFINE_CLOSURE_VALUE (gboolean, value))
 
+DEX_DEFINE_CLOSURE_TYPE (TestCoroutineValueWithClearState,
+                         test_coroutine_value_with_clear_state,
+                         DEX_DEFINE_CLOSURE_VALUE_WITH_CLEAR (GWeakRef,
+                                                              object_ref,
+                                                              test_coroutine_g_weak_ref_clear))
+
 static gint test_coroutine_destroy_state_freed = 0;
+static int test_coroutine_value_with_clear_freed = 0;
 
 #define TEST_COROUTINE_TIMEOUT() dex_timeout_new_usec (G_USEC_PER_SEC / 10000)
 
@@ -302,6 +311,21 @@ test_coroutine_destroy_state_destroy_cb (gpointer user_data)
   g_free (user_data);
 }
 
+static void
+test_coroutine_g_weak_ref_clear (GWeakRef *weak_ref)
+{
+  GObject *object = NULL;
+
+  g_assert (weak_ref != NULL);
+
+  object = g_weak_ref_get (weak_ref);
+  g_assert_nonnull (object);
+  g_clear_object (&object);
+
+  g_weak_ref_clear (weak_ref);
+  g_atomic_int_inc (&test_coroutine_value_with_clear_freed);
+}
+
 static DexFuture *
 test_coroutine_destroy_func (DexCoroutineContext *context,
                              gpointer             user_data)
@@ -339,6 +363,24 @@ test_coroutine_destroy_state (void)
   g_assert_cmpint (g_atomic_int_get (&test_coroutine_destroy_state_freed), ==, 1);
 
   dex_clear (&future);
+}
+
+static void
+test_coroutine_value_with_clear (void)
+{
+  TestCoroutineValueWithClearState *state;
+  GObject *object = NULL;
+
+  g_atomic_int_set (&test_coroutine_value_with_clear_freed, 0);
+
+  state = test_coroutine_value_with_clear_state_new ();
+  object = g_object_new (G_TYPE_OBJECT, NULL);
+  g_weak_ref_init (&state->object_ref, object);
+
+  test_coroutine_value_with_clear_state_free (state);
+  g_assert_cmpint (g_atomic_int_get (&test_coroutine_value_with_clear_freed), ==, 1);
+
+  g_clear_object (&object);
 }
 
 typedef struct _TestCoroutineCancelRaceState
@@ -694,6 +736,8 @@ main (int   argc,
   _g_test_add_func ("/Dex/TestSuite/Coroutine/returns-boxed", test_coroutine_returns_boxed);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/returns-pointer", test_coroutine_returns_pointer);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/destroy-state", test_coroutine_destroy_state);
+  _g_test_add_func ("/Dex/TestSuite/Coroutine/value-with-clear",
+                    test_coroutine_value_with_clear);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/task-group-cancel", test_coroutine_task_group_cancel);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/thread-pool-await", test_coroutine_thread_pool_await);
 

@@ -33,78 +33,6 @@
 G_BEGIN_DECLS
 
 /**
- * DEX_CLOSURE_FIELD_VALUE:
- * @type: field type
- * @name: field name
- * @clear: ignored
- *
- * Declaration helper for value fields.
- */
-#define DEX_CLOSURE_FIELD_VALUE(type, name, clear) type name;
-
-/**
- * DEX_CLOSURE_FIELD_POINTER:
- * @type: field type
- * @name: field name
- * @clear: clear callback (compatible with #GDestroyNotify)
- *
- * Declaration helper for pointer-like fields.
- */
-#define DEX_CLOSURE_FIELD_POINTER(type, name, clear) type name;
-
-/**
- * DEX_CLOSURE_FIELD_OBJECT:
- * @type: object type
- * @name: field name
- *
- * Declaration helper for object pointer fields.
- *
- * This is intended for GLib/GObject instance types and uses `g_clear_object()`
- * in the generated `*_free()` function.
- */
-#define DEX_CLOSURE_FIELD_OBJECT(type, name, clear) type *name;
-
-/**
- * DEX_CLOSURE_FIELD_VALUE_CLEAR:
- * @state: struct instance
- * @type: field type
- * @name: field name
- * @clear: ignored
- *
- * Clears value fields when a closure state is freed.
- */
-#define DEX_CLOSURE_FIELD_VALUE_CLEAR(state, type, name, clear) \
-  G_STMT_START { } G_STMT_END
-
-/**
- * DEX_CLOSURE_FIELD_POINTER_CLEAR:
- * @state: struct instance
- * @type: field type
- * @name: field name
- * @clear: clear callback (compatible with #GDestroyNotify)
- *
- * Clears pointer fields when a closure state is freed.
- */
-#define DEX_CLOSURE_FIELD_POINTER_CLEAR(state, type, name, clear) \
-  G_STMT_START {                                                  \
-    if ((clear) != NULL)                                          \
-      g_clear_pointer (&(state)->name, (GDestroyNotify) (clear)); \
-  } G_STMT_END
-
-/**
- * DEX_CLOSURE_FIELD_OBJECT_CLEAR:
- * @state: struct instance
- * @type: field type
- * @name: field name
- *
- * Clears object fields using g_clear_object().
- */
-#define DEX_CLOSURE_FIELD_OBJECT_CLEAR(state, type, name, clear) \
-  G_STMT_START {                                                 \
-    g_clear_object ((GObject **) &((state)->name));              \
-  } G_STMT_END
-
-/**
  * DEX_DEFINE_CLOSURE_VALUE:
  * @type: field type
  * @name: field name
@@ -112,7 +40,20 @@ G_BEGIN_DECLS
  * A value field descriptor for #DEX_DEFINE_CLOSURE_TYPE().
  */
 #define DEX_DEFINE_CLOSURE_VALUE(type, name) \
-  (DEX_CLOSURE_FIELD_VALUE, type, name, NULL)
+  (_DEX_CLOSURE_FIELD_VALUE_DECLARE, _DEX_CLOSURE_FIELD_VALUE_CLEAR, type, name, NULL)
+
+/**
+ * DEX_DEFINE_CLOSURE_VALUE_WITH_CLEAR:
+ * @type: field type
+ * @name: field name
+ * @clear: clear callback taking a pointer to @type
+ *
+ * A value field descriptor for #DEX_DEFINE_CLOSURE_TYPE() which is cleared
+ * by calling @clear with the address of the value.
+ */
+#define DEX_DEFINE_CLOSURE_VALUE_WITH_CLEAR(type, name, clear) \
+  (_DEX_CLOSURE_FIELD_VALUE_DECLARE, _DEX_CLOSURE_FIELD_VALUE_WITH_CLEAR_CLEAR, \
+   type, name, clear)
 
 /**
  * DEX_DEFINE_CLOSURE_POINTER:
@@ -123,7 +64,7 @@ G_BEGIN_DECLS
  * A pointer field descriptor for #DEX_DEFINE_CLOSURE_TYPE().
  */
 #define DEX_DEFINE_CLOSURE_POINTER(type, name, clear) \
-  (DEX_CLOSURE_FIELD_POINTER, type, name, clear)
+  (_DEX_CLOSURE_FIELD_POINTER_DECLARE, _DEX_CLOSURE_FIELD_POINTER_CLEAR, type, name, clear)
 
 /**
  * DEX_DEFINE_CLOSURE_OBJECT:
@@ -133,7 +74,7 @@ G_BEGIN_DECLS
  * An object pointer field descriptor for #DEX_DEFINE_CLOSURE_TYPE().
  */
 #define DEX_DEFINE_CLOSURE_OBJECT(type, name) \
-  (DEX_CLOSURE_FIELD_OBJECT, type, name, NULL)
+  (_DEX_CLOSURE_FIELD_OBJECT_DECLARE, _DEX_CLOSURE_FIELD_OBJECT_CLEAR, type, name, NULL)
 
 /**
  * DEX_DEFINE_CLOSURE_TYPE:
@@ -179,20 +120,36 @@ G_BEGIN_DECLS
 
 #define _DEX_CLOSURE_FIELD_DECLARE(field) \
   _DEX_CLOSURE_FIELD_DECLARE_1 field
-#define _DEX_CLOSURE_FIELD_DECLARE_1(kind, type, name, clear) \
-  kind (type, name, clear)
+#define _DEX_CLOSURE_FIELD_DECLARE_1(declare, clear_func, type, name, clear) \
+  declare (type, name, clear)
+
+#define _DEX_CLOSURE_FIELD_VALUE_DECLARE(type, name, clear) type name;
+#define _DEX_CLOSURE_FIELD_POINTER_DECLARE(type, name, clear) type name;
+#define _DEX_CLOSURE_FIELD_OBJECT_DECLARE(type, name, clear) type *name;
 
 #define _DEX_CLOSURE_FIELD_CLEAR(field) \
   _DEX_CLOSURE_FIELD_CLEAR_1 field
-#define _DEX_CLOSURE_FIELD_CLEAR_1(kind, type, name, clear) \
-  _DEX_CLOSURE_FIELD_CLEAR_ ## kind (state, type, name, clear);
+#define _DEX_CLOSURE_FIELD_CLEAR_1(declare, clear_func, type, name, clear) \
+  clear_func (state, type, name, clear);
 
-#define _DEX_CLOSURE_FIELD_CLEAR_DEX_CLOSURE_FIELD_VALUE(state, type, name, clear) \
-  DEX_CLOSURE_FIELD_VALUE_CLEAR (state, type, name, clear)
-#define _DEX_CLOSURE_FIELD_CLEAR_DEX_CLOSURE_FIELD_POINTER(state, type, name, clear) \
-  DEX_CLOSURE_FIELD_POINTER_CLEAR (state, type, name, clear)
-#define _DEX_CLOSURE_FIELD_CLEAR_DEX_CLOSURE_FIELD_OBJECT(state, type, name, clear) \
-  DEX_CLOSURE_FIELD_OBJECT_CLEAR (state, type, name, clear)
+#define _DEX_CLOSURE_FIELD_VALUE_CLEAR(state, type, name, clear) \
+  G_STMT_START { } G_STMT_END
+
+#define _DEX_CLOSURE_FIELD_VALUE_WITH_CLEAR_CLEAR(state, type, name, clear) \
+  G_STMT_START {                                                            \
+    (clear) (&(state)->name);                                               \
+  } G_STMT_END
+
+#define _DEX_CLOSURE_FIELD_POINTER_CLEAR(state, type, name, clear) \
+  G_STMT_START {                                                   \
+    if ((clear) != NULL)                                           \
+      g_clear_pointer (&(state)->name, (GDestroyNotify) (clear));  \
+  } G_STMT_END
+
+#define _DEX_CLOSURE_FIELD_OBJECT_CLEAR(state, type, name, clear) \
+  G_STMT_START {                                                  \
+    g_clear_object ((GObject **) &((state)->name));               \
+  } G_STMT_END
 
 #define _DEX_CLOSURE_FOR_EACH(macro, ...) \
   _DEX_CLOSURE_CONCAT (_DEX_CLOSURE_FOR_EACH_, _DEX_CLOSURE_NARGS (__VA_ARGS__)) \

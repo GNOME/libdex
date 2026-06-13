@@ -135,6 +135,16 @@ load_with_cache (DexCoroutineContext *context,
 }
 ```
 
+Use `DEX_DEFINE_CLOSURE_VALUE_WITH_CLEAR()` for inline value types that need
+address-based cleanup, such as `GWeakRef`:
+
+```c
+DEX_DEFINE_CLOSURE_TYPE (WatchState, watch_state,
+                         DEX_DEFINE_CLOSURE_VALUE_WITH_CLEAR (GWeakRef,
+                                                              widget_ref,
+                                                              g_weak_ref_clear))
+```
+
 ## Cleanup And Cancellation
 
 Like all `DexFuture` values, coroutines follow normal ownership and cancellation
