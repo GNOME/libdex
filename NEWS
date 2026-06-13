@@ -14,16 +14,41 @@ This is an alpha release for the upcoming GNOME 51.
    filesystem info queries, default handler lookup, enclosing mount lookup,
    display-name changes, read/write open/create/replace variants, string
    content replacement, and symbolic link creation
+ * Additional GIO async wrappers for GAppInfo, GDataInputStream,
+   GOutputStream, GSocketClient, GSocketConnection, GTlsConnection,
+   GDtlsConnection, GResolver, GNetworkMonitor, GProxy, GProxyResolver,
+   GSubprocess, GTlsDatabase, GTlsInteraction, GPermission, and
+   GUnixConnection
+ * New DexCoroutine stackless future type with helpers for suspending on
+   pending futures, plus dex_scheduler_spawn_coroutine()
+ * New DexTaskGroup API for structured concurrency with close, cancel, and
+   cancel-on-error behavior
+ * New DexThreadPool API for bounded threaded work queues
+ * New dex_limiter_run_on_pool(), dex_limiter_run_coroutine(), and
+   dex_limiter_close_after_drain()
+ * New dex_aio_open() and dex_aio_close()
+ * New dex_fiber_yield()
+ * New DEX_DEFINE_CLOSURE_TYPE() helper for closure-like state structs
+ * New dex_set_object() helper and DexObject property support for DexFuture
+   values
+ * New dex_promise_resolve_enum()
+ * Future debug names are now enabled by default when compiling with GCC and
+   fibers emit Sysprof marks for their duration
  * Fix DexObject weak-reference retargeting to avoid a possible lock
    inversion during finalization
  * Fix DexChannel receive_all() to unblock queued senders after draining
    bounded channel capacity
  * Fix DexDelayed chaining so release waits for the wrapped future in the
    correct direction
+ * Make DexSemaphore user-space only
+ * Build system fixes for gio-unix dependency propagation
  * Fix clang testsuite compatibility around atomic addition
- * Documentation additions for limiters and timeout-gated futures
+ * Documentation additions for limiters, timeout-gated futures, coroutines,
+   task groups, thread pools, schedulers, debugging, and GIO wrappers
  * Testsuite additions for limiters, timeout passthrough behavior, delayed
-   futures, channel receive_all(), and weak-reference retargeting
+   futures, channel receive_all(), weak-reference retargeting, GIO wrappers,
+   AIO, coroutines, fibers, task groups, thread pools, DexObject, and
+   DexTest helpers
 
 
 libdex 1.1.0
