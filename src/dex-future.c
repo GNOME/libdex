@@ -1232,6 +1232,32 @@ DexFuture *
 }
 
 /**
+ * dex_future_new_enum: (constructor)
+ * @enum_type: a `GType` of %G_TYPE_ENUM
+ * @enum_value: the enum value for the future
+ *
+ * Creates a new [class@Dex.Future] and resolves it with @enum_value.
+ *
+ * Returns: (transfer full): a resolved [class@Dex.Future]
+ */
+DexFuture *
+(dex_future_new_enum) (GType enum_type,
+                       guint enum_value)
+{
+  GValue gvalue = G_VALUE_INIT;
+  DexFuture *future;
+
+  dex_return_error_if_fail (G_TYPE_IS_ENUM (enum_type));
+
+  g_value_init (&gvalue, enum_type);
+  g_value_set_enum (&gvalue, enum_value);
+  future = (dex_future_new_for_value) (&gvalue);
+  g_value_unset (&gvalue);
+
+  return future;
+}
+
+/**
  * dex_future_new_for_string: (constructor)
  * @string: the resolved value for the future
  *

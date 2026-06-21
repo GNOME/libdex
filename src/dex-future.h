@@ -103,6 +103,10 @@ DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_for_uint    (guint               v_uint)
   G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
+DexFuture       *dex_future_new_enum        (GType               enum_type,
+                                             guint               enum_value)
+  G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_ALL
 DexFuture       *dex_future_new_for_int64   (gint64              v_int64)
   G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
@@ -316,6 +320,7 @@ gpointer         dex_await_object           (DexFuture          *future,
 # define dex_future_new_for_uint64(...) _DEX_FUTURE_NEW(new_for_uint64, __VA_ARGS__)
 # define dex_future_new_for_boolean(...) _DEX_FUTURE_NEW(new_for_boolean, __VA_ARGS__)
 # define dex_future_new_for_double(...) _DEX_FUTURE_NEW(new_for_double, __VA_ARGS__)
+# define dex_future_new_enum(...) _DEX_FUTURE_NEW(new_enum, __VA_ARGS__)
 # define dex_future_new_for_float(...) _DEX_FUTURE_NEW(new_for_float, __VA_ARGS__)
 # define dex_future_new_take_variant(...) _DEX_FUTURE_NEW(new_take_variant, __VA_ARGS__)
 # define dex_future_new_take_boxed(...) _DEX_FUTURE_NEW(new_take_boxed, __VA_ARGS__)
