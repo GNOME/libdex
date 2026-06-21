@@ -57,233 +57,186 @@ typedef DexFuture *(*DexFutureCallback) (DexFuture *future,
                                          gpointer   user_data);
 
 DEX_AVAILABLE_IN_ALL
-GType            dex_future_get_type        (void) G_GNUC_CONST;
+GType            dex_future_get_type             (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_ALL
-DexFutureStatus  dex_future_get_status      (DexFuture          *future);
+DexFutureStatus  dex_future_get_status           (DexFuture           *future);
 DEX_AVAILABLE_IN_ALL
-gboolean         dex_future_is_resolved     (DexFuture          *future);
+gboolean         dex_future_is_resolved          (DexFuture           *future);
 DEX_AVAILABLE_IN_ALL
-gboolean         dex_future_is_rejected     (DexFuture          *future);
+gboolean         dex_future_is_rejected          (DexFuture           *future);
 DEX_AVAILABLE_IN_ALL
-gboolean         dex_future_is_pending      (DexFuture          *future);
+gboolean         dex_future_is_pending           (DexFuture           *future);
 DEX_AVAILABLE_IN_ALL
-const GValue    *dex_future_get_value       (DexFuture          *future,
-                                             GError            **error);
+const GValue    *dex_future_get_value            (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_value   (const GValue       *value)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_value        (const GValue        *value) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_error   (GError             *error)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_error        (GError              *error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_infinite    (void)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_infinite         (void) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_reject      (GQuark              domain,
-                                             int                 error_code,
-                                             const char         *format,
-                                             ...) G_GNUC_PRINTF (3, 4)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_reject           (GQuark               domain,
+                                                  int                  error_code,
+                                                  const char          *format,
+                                                  ...) G_GNUC_PRINTF (3, 4) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_errno   (int                 errno_)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_errno        (int                  errno_) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_string  (const char         *string)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_string       (const char          *string) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_take_string (char               *string)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_take_string      (char                *string) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_fd      (int                 fd)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_fd           (int                  fd) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_int     (int                 v_int)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_int          (int                  v_int) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_uint    (guint               v_uint)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_uint         (guint                v_uint) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_enum        (GType               enum_type,
-                                             guint               enum_value)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_enum             (GType                enum_type,
+                                                  guint                enum_value) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_int64   (gint64              v_int64)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_int64        (gint64               v_int64) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_uint64  (guint64             v_uint64)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_uint64       (guint64              v_uint64) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_boolean (gboolean            v_bool)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_boolean      (gboolean             v_bool) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_double  (double              v_double)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_double       (double               v_double) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_float   (float               v_float)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_float        (float                v_float) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_take_variant(GVariant           *v_variant)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_take_variant     (GVariant            *v_variant) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_take_boxed  (GType               boxed_type,
-                                             gpointer            value)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_take_boxed       (GType                boxed_type,
+                                                  gpointer             value) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_pointer (gpointer            pointer)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_pointer      (gpointer             pointer) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_for_object  (gpointer            value)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_for_object       (gpointer             value) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_new_take_object (gpointer            value)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_new_take_object      (gpointer             value) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_then            (DexFuture          *future,
-                                             DexFutureCallback   callback,
-                                             gpointer            callback_data,
-                                             GDestroyNotify      callback_data_destroy)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_then                 (DexFuture           *future,
+                                                  DexFutureCallback    callback,
+                                                  gpointer             callback_data,
+                                                  GDestroyNotify       callback_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_then_loop       (DexFuture          *future,
-                                             DexFutureCallback   callback,
-                                             gpointer            callback_data,
-                                             GDestroyNotify      callback_data_destroy)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_then_loop            (DexFuture           *future,
+                                                  DexFutureCallback    callback,
+                                                  gpointer             callback_data,
+                                                  GDestroyNotify       callback_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_catch           (DexFuture          *future,
-                                             DexFutureCallback   callback,
-                                             gpointer            callback_data,
-                                             GDestroyNotify      callback_data_destroy)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_catch                (DexFuture           *future,
+                                                  DexFutureCallback    callback,
+                                                  gpointer             callback_data,
+                                                  GDestroyNotify       callback_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_catch_loop      (DexFuture          *future,
-                                             DexFutureCallback   callback,
-                                             gpointer            callback_data,
-                                             GDestroyNotify      callback_data_destroy)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_catch_loop           (DexFuture           *future,
+                                                  DexFutureCallback    callback,
+                                                  gpointer             callback_data,
+                                                  GDestroyNotify       callback_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_finally         (DexFuture          *future,
-                                             DexFutureCallback   callback,
-                                             gpointer            callback_data,
-                                             GDestroyNotify      callback_data_destroy)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_finally              (DexFuture           *future,
+                                                  DexFutureCallback    callback,
+                                                  gpointer             callback_data,
+                                                  GDestroyNotify       callback_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_finally_loop    (DexFuture          *future,
-                                             DexFutureCallback   callback,
-                                             gpointer            callback_data,
-                                             GDestroyNotify      callback_data_destroy)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_finally_loop         (DexFuture           *future,
+                                                  DexFutureCallback    callback,
+                                                  gpointer             callback_data,
+                                                  GDestroyNotify       callback_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_all             (DexFuture          *first_future,
-                                             ...) G_GNUC_NULL_TERMINATED
-G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_all                  (DexFuture           *first_future,
+                                                  ...) G_GNUC_NULL_TERMINATED G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_allv            (DexFuture * const  *futures,
-                                             guint               n_futures)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_allv                 (DexFuture * const   *futures,
+                                                  guint                n_futures) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_all_race        (DexFuture          *first_future,
-                                             ...) G_GNUC_NULL_TERMINATED
-G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_all_race             (DexFuture           *first_future,
+                                                  ...) G_GNUC_NULL_TERMINATED G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_all_racev       (DexFuture * const  *futures,
-                                             guint               n_futures)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_all_racev            (DexFuture * const   *futures,
+                                                  guint                n_futures) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_any             (DexFuture          *first_future,
-                                             ...)
-  G_GNUC_NULL_TERMINATED
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_any                  (DexFuture           *first_future,
+                                                  ...) G_GNUC_NULL_TERMINATED G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_anyv            (DexFuture * const  *futures,
-                                             guint               n_futures)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_anyv                 (DexFuture * const   *futures,
+                                                  guint                n_futures) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_first           (DexFuture          *first_future,
-                                             ...)
-  G_GNUC_NULL_TERMINATED
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_first                (DexFuture           *first_future,
+                                                  ...) G_GNUC_NULL_TERMINATED G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexFuture       *dex_future_firstv          (DexFuture  * const *futures,
-                                             guint               n_futures)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_firstv               (DexFuture  * const  *futures,
+                                                  guint                n_futures) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-DexFuture       *dex_future_with_timeout_seconds
-                                            (DexFuture          *future,
-                                             int                 seconds)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_with_timeout_seconds (DexFuture           *future,
+                                                  int                  seconds) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-DexFuture       *dex_future_with_timeout_msec
-                                            (DexFuture          *future,
-                                             int                 msec)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_with_timeout_msec    (DexFuture           *future,
+                                                  int                  msec) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-DexFuture       *dex_future_with_timeout    (DexFuture          *future,
-                                             gint64              usec)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_with_timeout         (DexFuture           *future,
+                                                  gint64               usec) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-DexFuture       *dex_future_with_deadline   (DexFuture          *future,
-                                             gint64              deadline)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_future_with_deadline        (DexFuture           *future,
+                                                  gint64               deadline) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-const char      *dex_future_get_name        (DexFuture          *future);
+const char      *dex_future_get_name             (DexFuture           *future);
 DEX_AVAILABLE_IN_ALL
-void             dex_future_set_static_name (DexFuture          *future,
-                                             const char         *name);
+void             dex_future_set_static_name      (DexFuture           *future,
+                                                  const char          *name);
 DEX_AVAILABLE_IN_ALL
-void             dex_future_disown          (DexFuture          *future);
+void             dex_future_disown               (DexFuture           *future);
 DEX_AVAILABLE_IN_ALL
-gboolean         dex_await                  (DexFuture          *future,
-                                             GError            **error);
+gboolean         dex_await                       (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-gboolean         dex_await_boolean          (DexFuture          *future,
-                                             GError            **error);
+gboolean         dex_await_boolean               (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-guint            dex_await_enum             (DexFuture          *future,
-                                             GError            **error);
+guint            dex_await_enum                  (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-int              dex_await_fd               (DexFuture          *future,
-                                             GError            **error);
+int              dex_await_fd                    (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-guint            dex_await_flags            (DexFuture          *future,
-                                             GError            **error);
+guint            dex_await_flags                 (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-char            *dex_await_string           (DexFuture          *future,
-                                             GError            **error)
-  G_GNUC_WARN_UNUSED_RESULT;
+char            *dex_await_string                (DexFuture           *future,
+                                                  GError             **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-float            dex_await_float            (DexFuture          *future,
-                                             GError            **error);
+float            dex_await_float                 (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-double           dex_await_double           (DexFuture          *future,
-                                             GError            **error);
+double           dex_await_double                (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-gpointer         dex_await_pointer          (DexFuture          *future,
-                                             GError            **error);
+gpointer         dex_await_pointer               (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-int              dex_await_int              (DexFuture          *future,
-                                             GError            **error);
+int              dex_await_int                   (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-guint            dex_await_uint             (DexFuture          *future,
-                                             GError            **error);
+guint            dex_await_uint                  (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-gint64           dex_await_int64            (DexFuture          *future,
-                                             GError            **error);
+gint64           dex_await_int64                 (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-guint64          dex_await_uint64           (DexFuture          *future,
-                                             GError            **error);
+guint64          dex_await_uint64                (DexFuture           *future,
+                                                  GError             **error);
 DEX_AVAILABLE_IN_ALL
-GVariant        *dex_await_variant          (DexFuture          *future,
-                                             GError            **error)
-  G_GNUC_WARN_UNUSED_RESULT;
+GVariant        *dex_await_variant               (DexFuture           *future,
+                                                  GError             **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-gpointer         dex_await_boxed            (DexFuture          *future,
-                                             GError            **error)
-  G_GNUC_WARN_UNUSED_RESULT;
+gpointer         dex_await_boxed                 (DexFuture           *future,
+                                                  GError             **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-gpointer         dex_await_object           (DexFuture          *future,
-                                             GError            **error)
-  G_GNUC_WARN_UNUSED_RESULT;
+gpointer         dex_await_object                (DexFuture           *future,
+                                                  GError             **error) G_GNUC_WARN_UNUSED_RESULT;
 
 #if G_GNUC_CHECK_VERSION(3,0) && !defined(DEX_DISABLE_STATIC_NAME_MACROS)
 # define _DEX_FUTURE_NEW_(func, counter, ...) \
