@@ -67,7 +67,7 @@ typedef DexFuture *(*DexFiberFunc) (gpointer user_data);
  *
  * If the function returns %NULL to indicate suspension, it must have stashed the
  * currently awaited future in `coroutine` using the
- * [macro@DEX_COROUTINE_SUSPEND_*] helpers.
+ * `DEX_COROUTINE_SUSPEND_*` helpers.
  *
  * Returns: (transfer full) (nullable): a [class@Dex.Future]
  */

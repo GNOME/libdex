@@ -213,7 +213,7 @@ Use [method@Dex.Scheduler.spawn_coroutine] to create a coroutine for work that i
 mostly waiting on other futures.
 
 The coroutine function receives a [struct@Dex.CoroutineContext] and must use
-the [macro@DEX_COROUTINE_BEGIN] / [macro@DEX_COROUTINE_END] pair together with
+the `DEX_COROUTINE_BEGIN` / `DEX_COROUTINE_END` pair together with
 `DEX_COROUTINE_SUSPEND_*` macros to yield and resume across waits.
 
 Coroutines are often useful for lower-overhead state-machine style async code.

@@ -284,7 +284,7 @@ dex_thread_pool_get_n_threads (DexThreadPool *pool)
  * Queues blocking work to run on one of the pool's reusable threads.
  *
  * The provided @thread_name is applied to the returned future using
- * [func@Dex.Future.set_static_name] so that tracing and debugging tools can
+ * `dex_future_set_static_name()` so that tracing and debugging tools can
  * identify the work item. It does not rename the underlying OS worker thread.
  *
  * Returns: (transfer full): a future that resolves when the work completes

@@ -267,7 +267,7 @@ DexFuture *
  * @func with user data.
  *
  * If the function returns %NULL while suspended, it should have set an awaited
- * future in its context using one of the [macro@DEX_COROUTINE_SUSPEND_*] helpers.
+ * future in its context using one of the `DEX_COROUTINE_SUSPEND_*` helpers.
  *
  * Returns: (transfer full): a [class@Dex.Future] that will resolve or reject
  *   when @func finishes or returns an error.

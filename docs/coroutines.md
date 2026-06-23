@@ -59,16 +59,16 @@ Coroutine entrypoints use [type@Dex.CoroutineFunc]:
 
 The recommended pattern is:
 
-* define any state as a small struct (or with [macro@DEX_DEFINE_CLOSURE_TYPE]);
-* call [macro@DEX_COROUTINE_BEGIN] at the start;
+* define any state as a small struct (or with `DEX_DEFINE_CLOSURE_TYPE`);
+* call `DEX_COROUTINE_BEGIN` at the start;
 * call `DEX_COROUTINE_SUSPEND` when you only need to wait for completion;
 * call `DEX_COROUTINE_SUSPEND_*` for each awaited step;
 * return a future at completion;
-* end with [macro@DEX_COROUTINE_END].
+* end with `DEX_COROUTINE_END`.
 
 ## Waiting on Futures Correctly
 
-Use [macro@DEX_COROUTINE_SUSPEND_BOOLEAN] and related macros instead of calling
+Use `DEX_COROUTINE_SUSPEND_BOOLEAN` and related macros instead of calling
 `dex_await_*()` directly.
 
 `dex_await_*()` is a fiber-first API and in practice cannot be used like normal
@@ -79,20 +79,20 @@ code unless the future is already done. Coroutine suspend helpers:
 * resume execution only after that future settles;
 * extract the awaited value on resume.
 
-Use [macro@DEX_COROUTINE_SUSPEND] when you only need to wait for a future to
+Use `DEX_COROUTINE_SUSPEND` when you only need to wait for a future to
 finish and do not need its result. This is the coroutine-friendly replacement
 for `dex_await (future, NULL)`.
 
 These macros are available for common await types:
 
-* [macro@DEX_COROUTINE_SUSPEND]
-* [macro@DEX_COROUTINE_SUSPEND_BOOLEAN]
-* [macro@DEX_COROUTINE_SUSPEND_INT], [macro@DEX_COROUTINE_SUSPEND_UINT]
-* [macro@DEX_COROUTINE_SUSPEND_INT64], [macro@DEX_COROUTINE_SUSPEND_UINT64]
-* [macro@DEX_COROUTINE_SUSPEND_OBJECT], [macro@DEX_COROUTINE_SUSPEND_BOXED]
-* [macro@DEX_COROUTINE_SUSPEND_POINTER]
-* [macro@DEX_COROUTINE_SUSPEND_ENUM], [macro@DEX_COROUTINE_SUSPEND_FLAGS]
-* [macro@DEX_COROUTINE_SUSPEND_DOUBLE], [macro@DEX_COROUTINE_SUSPEND_FLOAT]
+* `DEX_COROUTINE_SUSPEND`
+* `DEX_COROUTINE_SUSPEND_BOOLEAN`
+* `DEX_COROUTINE_SUSPEND_INT`, `DEX_COROUTINE_SUSPEND_UINT`
+* `DEX_COROUTINE_SUSPEND_INT64`, `DEX_COROUTINE_SUSPEND_UINT64`
+* `DEX_COROUTINE_SUSPEND_OBJECT`, `DEX_COROUTINE_SUSPEND_BOXED`
+* `DEX_COROUTINE_SUSPEND_POINTER`
+* `DEX_COROUTINE_SUSPEND_ENUM`, `DEX_COROUTINE_SUSPEND_FLAGS`
+* `DEX_COROUTINE_SUSPEND_DOUBLE`, `DEX_COROUTINE_SUSPEND_FLOAT`
 
 ## Common Correctness Pattern
 

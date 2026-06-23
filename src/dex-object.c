@@ -662,7 +662,7 @@ dex_object_create_instance (GType instance_type)
  * @object_type: a `DEX_TYPE_OBJECT` derived type for this property
  * @flags: flags for the property specified
  *
- * Creates a new [struct@GObject.ParamSpec] instance specifying a
+ * Creates a new [class@GObject.ParamSpec] instance specifying a
  * `DEX_TYPE_OBJECT` derived property.
  *
  * This is similar to [func@GObject.param_spec_object], but for `DexObject`

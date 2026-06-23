@@ -1892,7 +1892,7 @@ dex_file_query_default_handler_cb (GObject      *object,
  * @file: a [iface@Gio.File]
  * @io_priority: priority for the IO operation
  *
- * Wraps [func@Gio.File.query_default_handler_async].
+ * Wraps [method@Gio.File.query_default_handler_async].
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to a
  *   [iface@Gio.AppInfo] or rejects with error.
@@ -3124,7 +3124,7 @@ dex_io_stream_splice_cb (GObject      *object,
  * @flags: splice flags
  * @io_priority: priority for the IO operation
  *
- * Wraps [func@Gio.IOStream.splice_async].
+ * Wraps [method@Gio.IOStream.splice_async].
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to %TRUE
  *   or rejects with error.
@@ -3531,7 +3531,7 @@ dex_resolver_lookup_service_cb (GObject      *object,
  * Wraps [method@Gio.Resolver.lookup_service_async].
  *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to a
- *   [struct@GLib.List] of [class@Gio.SrvTarget] or rejects with error.
+ *   [struct@GLib.List] of [struct@Gio.SrvTarget] or rejects with error.
  *
  * Since: 1.2
  */

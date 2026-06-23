@@ -57,7 +57,7 @@ return a [class@Dex.Future] or suspend by returning `NULL`.
 Stackless coroutines generally have lower memory overhead than fibers when you are
 mainly waiting on futures between steps.
 
-Use [macro@DEX_COROUTINE_BEGIN] and [macro@DEX_COROUTINE_END] when writing
+Use `DEX_COROUTINE_BEGIN` and `DEX_COROUTINE_END` when writing
 coroutines. Suspend with one of the `DEX_COROUTINE_SUSPEND_*` helpers.
 See [Coroutines](coroutines.html) for more guidance.
 
