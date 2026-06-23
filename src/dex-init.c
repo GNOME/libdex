@@ -35,8 +35,6 @@
 # include "dex-uring-future-private.h"
 #endif
 
-#include "gconstructor.h"
-
 static void
 dex_init_once (void)
 {
@@ -98,12 +96,4 @@ dex_init (void)
       dex_init_once ();
       g_once_init_leave (&initialized, TRUE);
     }
-}
-
-G_DEFINE_CONSTRUCTOR (dex_init_ctor)
-
-static void
-dex_init_ctor (void)
-{
-  dex_init ();
 }
