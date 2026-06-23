@@ -28,6 +28,7 @@
 #endif
 
 #include "dex-compat-private.h"
+#include "dex-future-private.h"
 #include "dex-posix-aio-backend-private.h"
 #include "dex-posix-aio-future-private.h"
 
@@ -67,7 +68,11 @@ typedef struct _DexPosixAioContext
 
 DEX_DEFINE_FINAL_TYPE (DexPosixAioBackend, dex_posix_aio_backend, DEX_TYPE_AIO_BACKEND)
 
-static GThreadPool *io_thread_pool;
+static struct {
+  GThreadPool *thread_pool;
+  GError      *error;
+  gsize        initialized;
+} io_thread_pool;
 static DexAioBackend *fallback;
 static G_LOCK_DEFINE (fallback);
 
@@ -87,6 +92,71 @@ dex_posix_aio_context_take (DexPosixAioContext *posix_aio_context,
 
   if (main_context)
     g_main_context_wakeup (main_context);
+}
+
+static void
+dex_posix_aio_backend_worker (gpointer data,
+                              gpointer user_data)
+{
+  DexPosixAioFuture *posix_aio_future = data;
+  DexPosixAioContext *posix_aio_context;
+
+  g_assert (DEX_IS_POSIX_AIO_FUTURE (posix_aio_future));
+
+  posix_aio_context = dex_posix_aio_future_get_aio_context (posix_aio_future);
+  dex_posix_aio_future_run (posix_aio_future);
+  dex_posix_aio_context_take (posix_aio_context, posix_aio_future);
+}
+
+static GThreadPool *
+dex_posix_aio_backend_get_thread_pool (GError **error)
+{
+  if (g_once_init_enter (&io_thread_pool.initialized))
+    {
+      io_thread_pool.thread_pool = g_thread_pool_new (dex_posix_aio_backend_worker,
+                                                      NULL,
+                                                      N_IO_WORKERS,
+                                                      FALSE,
+                                                      &io_thread_pool.error);
+
+      g_once_init_leave (&io_thread_pool.initialized, TRUE);
+    }
+
+  if (io_thread_pool.thread_pool == NULL)
+    {
+      if (io_thread_pool.error != NULL)
+        g_propagate_error (error, g_error_copy (io_thread_pool.error));
+      else
+        g_set_error_literal (error,
+                             G_THREAD_ERROR,
+                             G_THREAD_ERROR_AGAIN,
+                             "Failed to create thread pool");
+    }
+
+  return io_thread_pool.thread_pool;
+}
+
+static DexFuture *
+dex_posix_aio_backend_enqueue (DexPosixAioFuture *posix_aio_future)
+{
+  GThreadPool *thread_pool;
+  GError *error = NULL;
+
+  g_assert (DEX_IS_POSIX_AIO_FUTURE (posix_aio_future));
+
+  if (!(thread_pool = dex_posix_aio_backend_get_thread_pool (&error)))
+    {
+      dex_future_complete (DEX_FUTURE (posix_aio_future), NULL, g_steal_pointer (&error));
+      return DEX_FUTURE (posix_aio_future);
+    }
+
+  if (!g_thread_pool_push (thread_pool, dex_ref (posix_aio_future), &error))
+    {
+      dex_unref (posix_aio_future);
+      dex_future_complete (DEX_FUTURE (posix_aio_future), NULL, g_steal_pointer (&error));
+    }
+
+  return DEX_FUTURE (posix_aio_future);
 }
 
 static inline void
@@ -185,12 +255,7 @@ dex_posix_aio_backend_close (DexAioBackend *aio_backend,
                              DexAioContext *aio_context,
                              int            fd)
 {
-  DexPosixAioFuture *posix_aio_future;
-
-  posix_aio_future = dex_posix_aio_future_new_close ((DexPosixAioContext *)aio_context, fd);
-  g_thread_pool_push (io_thread_pool, dex_ref (posix_aio_future), NULL);
-
-  return DEX_FUTURE (posix_aio_future);
+  return dex_posix_aio_backend_enqueue (dex_posix_aio_future_new_close ((DexPosixAioContext *)aio_context, fd));
 }
 
 static DexFuture *
@@ -200,13 +265,7 @@ dex_posix_aio_backend_open (DexAioBackend *aio_backend,
                             int            flags,
                             int            mode)
 {
-  DexPosixAioFuture *posix_aio_future;
-
-  posix_aio_future = dex_posix_aio_future_new_open ((DexPosixAioContext *)aio_context,
-                                                    path, flags, mode);
-  g_thread_pool_push (io_thread_pool, dex_ref (posix_aio_future), NULL);
-
-  return DEX_FUTURE (posix_aio_future);
+  return dex_posix_aio_backend_enqueue (dex_posix_aio_future_new_open ((DexPosixAioContext *)aio_context, path, flags, mode));
 }
 
 static DexFuture *
@@ -217,12 +276,7 @@ dex_posix_aio_backend_read (DexAioBackend *aio_backend,
                             gsize          count,
                             goffset        offset)
 {
-  DexPosixAioFuture *posix_aio_future;
-
-  posix_aio_future = dex_posix_aio_future_new_read ((DexPosixAioContext *)aio_context, fd, buffer, count, offset);
-  g_thread_pool_push (io_thread_pool, dex_ref (posix_aio_future), NULL);
-
-  return DEX_FUTURE (posix_aio_future);
+  return dex_posix_aio_backend_enqueue (dex_posix_aio_future_new_read ((DexPosixAioContext *)aio_context, fd, buffer, count, offset));
 }
 
 static DexFuture *
@@ -233,48 +287,19 @@ dex_posix_aio_backend_write (DexAioBackend *aio_backend,
                              gsize          count,
                              goffset        offset)
 {
-  DexPosixAioFuture *posix_aio_future;
-
-  posix_aio_future = dex_posix_aio_future_new_write ((DexPosixAioContext *)aio_context, fd, buffer, count, offset);
-  g_thread_pool_push (io_thread_pool, dex_ref (posix_aio_future), NULL);
-
-  return DEX_FUTURE (posix_aio_future);
-}
-
-static void
-dex_posix_aio_backend_worker (gpointer data,
-                              gpointer user_data)
-{
-  DexPosixAioFuture *posix_aio_future = data;
-  DexPosixAioContext *posix_aio_context;
-
-  g_assert (DEX_IS_POSIX_AIO_FUTURE (posix_aio_future));
-
-  posix_aio_context = dex_posix_aio_future_get_aio_context (posix_aio_future);
-  dex_posix_aio_future_run (posix_aio_future);
-  dex_posix_aio_context_take (posix_aio_context, posix_aio_future);
+  return dex_posix_aio_backend_enqueue (dex_posix_aio_future_new_write ((DexPosixAioContext *)aio_context, fd, buffer, count, offset));
 }
 
 static void
 dex_posix_aio_backend_class_init (DexPosixAioBackendClass *posix_aio_backend_class)
 {
   DexAioBackendClass *aio_backend_class = DEX_AIO_BACKEND_CLASS (posix_aio_backend_class);
-  GError *error = NULL;
 
   aio_backend_class->create_context = dex_posix_aio_backend_create_context;
   aio_backend_class->close = dex_posix_aio_backend_close;
   aio_backend_class->open = dex_posix_aio_backend_open;
   aio_backend_class->read = dex_posix_aio_backend_read;
   aio_backend_class->write = dex_posix_aio_backend_write;
-
-  io_thread_pool = g_thread_pool_new (dex_posix_aio_backend_worker,
-                                      NULL,
-                                      N_IO_WORKERS,
-                                      FALSE,
-                                      &error);
-
-  if (io_thread_pool == NULL)
-    g_error ("Failed to create thread pool: %s", error->message);
 
   g_type_ensure (DEX_TYPE_POSIX_AIO_FUTURE);
 }
