@@ -25,9 +25,10 @@
 #include <gobject/gvaluecollector.h>
 
 #include "dex-aio-backend-private.h"
+#include "dex-closure.h"
+#include "dex-coroutine-private.h"
 #include "dex-error.h"
 #include "dex-fiber-private.h"
-#include "dex-coroutine-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-thread-storage-private.h"
 
@@ -295,19 +296,9 @@ DexFuture *
   return DEX_FUTURE (coroutine);
 }
 
-typedef struct _DexSchedulerSpawnTrampoline
-{
-  GCallback callback;
-  GArray *values;
-} DexSchedulerSpawnTrampoline;
-
-static void
-dex_scheduler_spawn_trampoline_free (DexSchedulerSpawnTrampoline *state)
-{
-  state->callback = NULL;
-  g_clear_pointer (&state->values, g_array_unref);
-  g_free (state);
-}
+DEX_DEFINE_CLOSURE_TYPE (DexSchedulerSpawnTrampoline, dex_scheduler_spawn_trampoline,
+                         DEX_DEFINE_CLOSURE_VALUE (GCallback, callback),
+                         DEX_DEFINE_CLOSURE_POINTER (GArray *, values, g_array_unref))
 
 static inline DexFuture *
 dex_scheduler_spawn_trampoline_fiber (gpointer data)
@@ -379,9 +370,9 @@ dex_scheduler_spawnv (DexScheduler *scheduler,
                       guint         n_params,
                       ...)
 {
+  DexSchedulerSpawnTrampoline *state;
   char *errmsg = NULL;
   GArray *values = NULL;
-  DexSchedulerSpawnTrampoline *state;
   DexFuture *future;
   va_list args;
 
@@ -418,19 +409,18 @@ dex_scheduler_spawnv (DexScheduler *scheduler,
     }
   else
     {
-      state = g_new0 (DexSchedulerSpawnTrampoline, 1);
+      state = dex_scheduler_spawn_trampoline_new ();
       state->values = g_steal_pointer (&values);
       state->callback = callback;
 
       future = dex_scheduler_spawn (scheduler, stack_size,
                                     dex_scheduler_spawn_trampoline_fiber,
-                                    state,
+                                    g_steal_pointer (&state),
                                     (GDestroyNotify) dex_scheduler_spawn_trampoline_free);
     }
 
+  g_clear_pointer (&values, g_array_unref);
   g_free (errmsg);
-  if (values)
-    g_array_unref (values);
 
   return future;
 }
