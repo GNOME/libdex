@@ -49,6 +49,7 @@
 # include "dex-platform.h"
 # include "dex-promise.h"
 # include "dex-scheduler.h"
+# include "dex-state-machine.h"
 # include "dex-task-group.h"
 # include "dex-static-future.h"
 # include "dex-test.h"

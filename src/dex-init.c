@@ -27,6 +27,7 @@
 #include "dex-infinite-private.h"
 #include "dex-scheduler-private.h"
 #include "dex-semaphore-private.h"
+#include "dex-state-machine.h"
 #include "dex-task-group.h"
 #include "dex-thread-pool-worker-private.h"
 #include "dex-waiter-private.h"
@@ -80,6 +81,7 @@ dex_init_once (void)
   g_type_ensure (DEX_TYPE_CHANNEL);
   g_type_ensure (DEX_TYPE_LIMITER);
   g_type_ensure (DEX_TYPE_SEMAPHORE);
+  g_type_ensure (DEX_TYPE_STATE_MACHINE);
 
   /* Setup default scheduler for application */
   main_scheduler = dex_main_scheduler_new (NULL);

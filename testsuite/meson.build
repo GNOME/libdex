@@ -40,6 +40,7 @@ testsuite = {
   'test-limiter': {},
   'test-scheduler': {},
   'test-semaphore': {},
+  'test-state-machine': {},
   'test-stream': {},
   'test-task-group': {},
   'test-test': {},

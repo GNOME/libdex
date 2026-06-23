@@ -116,6 +116,16 @@ acquisition.
 
 See [Limiters](limiters.html) for guidance on choosing limits and shutdown.
 
+## State Machines
+
+Use [class@Dex.StateMachine] when an object has a finite set of modes and
+transitions may need asynchronous work. Transition requests are serialized and
+callbacks run from a fiber, so callbacks can use `dex_await()` while preserving
+a declared transition graph.
+
+See [State Machines](state-machines.html) for table setup, landing states, and
+error handling.
+
 ## Deadlines and Timeouts
 
 Use [ctor@Dex.Future.with_timeout], [ctor@Dex.Future.with_timeout_msec],
