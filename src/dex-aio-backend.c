@@ -121,8 +121,13 @@ dex_aio_backend_get_default (void)
       if (backend == NULL)
         backend = dex_posix_aio_backend_new ();
 
+#if defined(HAVE_LIBURING)
+      /* Only log that we're using a fallback when we
+       * expect to be using liburing.
+       */
       g_debug ("Using AIO backend %s",
                DEX_OBJECT_TYPE_NAME (backend));
+#endif
 
       g_once_init_leave (&instance, backend);
     }
