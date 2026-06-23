@@ -59,9 +59,11 @@ G_BEGIN_DECLS
  * DEX_DEFINE_CLOSURE_POINTER:
  * @type: field type
  * @name: field name
- * @clear: clear callback (compatible with #GDestroyNotify)
+ * @clear: clear callback for @type
  *
- * A pointer field descriptor for #DEX_DEFINE_CLOSURE_TYPE().
+ * A pointer field descriptor for #DEX_DEFINE_CLOSURE_TYPE(). @clear is
+ * required; use #DEX_DEFINE_CLOSURE_VALUE() for pointers which do not need
+ * cleanup.
  */
 #define DEX_DEFINE_CLOSURE_POINTER(type, name, clear) \
   (_DEX_CLOSURE_FIELD_POINTER_DECLARE, _DEX_CLOSURE_FIELD_POINTER_CLEAR, type, name, clear)
@@ -142,8 +144,7 @@ G_BEGIN_DECLS
 
 #define _DEX_CLOSURE_FIELD_POINTER_CLEAR(state, type, name, clear) \
   G_STMT_START {                                                   \
-    if ((clear) != NULL)                                           \
-      g_clear_pointer (&(state)->name, (GDestroyNotify) (clear));  \
+    g_clear_pointer (&(state)->name, clear);                       \
   } G_STMT_END
 
 #define _DEX_CLOSURE_FIELD_OBJECT_CLEAR(state, type, name, clear) \
