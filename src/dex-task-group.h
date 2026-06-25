@@ -57,4 +57,6 @@ void          dex_task_group_push_thread_default (DexTaskGroup      *group);
 DEX_AVAILABLE_IN_ALL
 void          dex_task_group_pop_thread_default  (DexTaskGroup      *group);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexTaskGroup, dex_unref)
+
 G_END_DECLS
