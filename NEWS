@@ -3,6 +3,8 @@ libdex 1.2.alpha
 
 This is an alpha release for the upcoming GNOME 51.
 
+ * Dropped the gconstructor for `dex_init()` which means applications must
+   call `dex_init()` at startup themselves from `main()`.
  * New DexLimiter API for bounded concurrency with explicit
    acquire/release, automatic permit management while running fibers, and
    close/reject behavior for queued work
@@ -32,6 +34,8 @@ This is an alpha release for the upcoming GNOME 51.
  * New dex_set_object() helper and DexObject property support for DexFuture
    values
  * New dex_promise_resolve_enum()
+ * New DexStateMachine API to simplify asynchronous state machines with fibers
+   providing a simple API to track state machine transitions.
  * Future debug names are now enabled by default when compiling with GCC and
    fibers emit Sysprof marks for their duration
  * Fix DexObject weak-reference retargeting to avoid a possible lock
@@ -40,6 +44,8 @@ This is an alpha release for the upcoming GNOME 51.
    bounded channel capacity
  * Fix DexDelayed chaining so release waits for the wrapped future in the
    correct direction
+ * DexPosixAioBackend now delays threadpool startup until the first work item
+   is enqueued.
  * Make DexSemaphore user-space only
  * Build system fixes for gio-unix dependency propagation
  * Fix clang testsuite compatibility around atomic addition
