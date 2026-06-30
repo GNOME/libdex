@@ -9,18 +9,18 @@
 
 typedef struct _DexTaskGroup
 {
-  DexFuture     parent_instance;
-  GQueue        futures;
-  DexScheduler *scheduler;
-  GError       *first_error;
-  gpointer      prev_thread_default;
-  DexTaskGroupFlags flags;
-  guint         n_pending;
-  guint         n_resolved;
-  guint         n_rejected;
-  guint         closed : 1;
-  guint         cancelled : 1;
-  guint         pushed : 1;
+  DexFuture          parent_instance;
+  GQueue             futures;
+  DexScheduler      *scheduler;
+  GError            *first_error;
+  gpointer           prev_thread_default;
+  DexTaskGroupFlags  flags;
+  guint              n_pending;
+  guint              n_resolved;
+  guint              n_rejected;
+  guint              closed : 1;
+  guint              cancelled : 1;
+  guint              pushed : 1;
 } DexTaskGroup;
 
 typedef struct _DexTaskGroupClass
@@ -59,12 +59,12 @@ DEX_DEFINE_FINAL_TYPE (DexTaskGroup, dex_task_group, DEX_TYPE_FUTURE)
 #undef DEX_TYPE_TASK_GROUP
 #define DEX_TYPE_TASK_GROUP dex_task_group_type
 
-static void       dex_task_group_cancel_child       (DexTaskGroup *group,
-                                                     DexFuture    *future);
-static void       dex_task_group_complete_cancelled (DexTaskGroup *group,
-                                                     const GError *no_copy,
-                                                     GError       *copied);
-static void       dex_task_group_discard            (DexFuture    *future);
+static void dex_task_group_cancel_child       (DexTaskGroup *group,
+                                               DexFuture    *future);
+static void dex_task_group_complete_cancelled (DexTaskGroup *group,
+                                               const GError *no_copy,
+                                               GError       *copied);
+static void dex_task_group_discard            (DexFuture    *future);
 
 static const GError *static_cancelled;
 
