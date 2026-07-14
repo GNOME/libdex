@@ -43,6 +43,23 @@
  * appearing as synchronous functions.
  */
 
+/**
+ * DexStateTransitionContext:
+ *
+ * `DexStateTransitionContext` is an opaque per-callback structure with
+ * information and state access for a [struct@Dex.StateTransition] callback.
+ *
+ * It is only valid for the duration of the callback and must not be stored.
+ *
+ * [method@Dex.StateTransitionContext.get_from] and
+ * [method@Dex.StateTransitionContext.get_to] return the declared edge that
+ * caused the callback to run. [method@Dex.StateTransitionContext.get_state]
+ * and [method@Dex.StateTransitionContext.set_state] access the real state in
+ * the [class@Dex.StateMachine].
+ *
+ * Since: 1.2
+ */
+
 struct _DexStateMachine
 {
   DexObject           parent_instance;
@@ -55,6 +72,14 @@ struct _DexStateMachine
   guint               state;
   gpointer            user_data;
   GDestroyNotify      user_data_destroy;
+};
+
+struct _DexStateTransitionContext
+{
+  DexStateMachine *state_machine;
+  guint            from;
+  guint            to;
+  guint            state_set : 1;
 };
 
 typedef struct _DexStateMachineClass
@@ -177,13 +202,30 @@ dex_state_machine_invalid_transition (DexStateMachine *state_machine,
                                 from_name, to_name);
 }
 
+static gboolean
+dex_state_machine_set_state (DexStateMachine *state_machine,
+                             guint            state)
+{
+  g_assert (DEX_IS_STATE_MACHINE (state_machine));
+
+  g_return_val_if_fail (dex_state_machine_is_valid_state (state_machine, state), FALSE);
+
+  dex_object_lock (state_machine);
+  state_machine->state = state;
+  dex_object_unlock (state_machine);
+
+  return TRUE;
+}
+
 static DexFuture *
 dex_state_machine_transition_fiber (gpointer user_data)
 {
   DexStateMachineRun *run = user_data;
   DexStateMachine *state_machine = run->state_machine;
+  DexStateTransitionContext context = {0};
   GError *error = NULL;
   guint current;
+  guint final;
   guint target;
   const DexStateTransition *transition;
 
@@ -201,17 +243,19 @@ dex_state_machine_transition_fiber (gpointer user_data)
   if (!(transition = dex_state_machine_lookup (state_machine, current, target)))
     return dex_state_machine_invalid_transition (state_machine, current, target);
 
-  if (!transition->func (current, &target, state_machine->user_data, &error))
+  context.state_machine = state_machine;
+  context.from = current;
+  context.to = target;
+
+  if (!transition->func (&context, state_machine->user_data, &error))
     return dex_future_new_for_error (g_steal_pointer (&error));
 
-  if (!dex_state_machine_is_valid_state (state_machine, target))
-    return dex_state_machine_invalid_transition (state_machine, current, target);
+  if (!context.state_set)
+    dex_state_machine_set_state (state_machine, target);
 
-  dex_object_lock (state_machine);
-  state_machine->state = target;
-  dex_object_unlock (state_machine);
+  final = dex_state_machine_get_state (state_machine);
 
-  return dex_future_new_enum (state_machine->state_enum_type, target);
+  return dex_future_new_enum (state_machine->state_enum_type, final);
 }
 
 static void
@@ -241,6 +285,90 @@ static void
 dex_state_machine_init (DexStateMachine *state_machine)
 {
   state_machine->limiter = dex_limiter_new (1);
+}
+
+/**
+ * dex_state_transition_context_get_from:
+ * @context: a [struct@Dex.StateTransitionContext]
+ *
+ * Gets the source state for the transition edge being executed.
+ *
+ * This value is fixed for the lifetime of @context and does not change if
+ * [method@Dex.StateTransitionContext.set_state] is called.
+ *
+ * Returns: the source state for the transition edge
+ *
+ * Since: 1.2
+ */
+guint
+dex_state_transition_context_get_from (DexStateTransitionContext *context)
+{
+  g_return_val_if_fail (context != NULL, 0);
+
+  return context->from;
+}
+
+/**
+ * dex_state_transition_context_get_to:
+ * @context: a [struct@Dex.StateTransitionContext]
+ *
+ * Gets the target state for the transition edge being executed.
+ *
+ * This value is fixed for the lifetime of @context and does not change if
+ * [method@Dex.StateTransitionContext.set_state] is called.
+ *
+ * Returns: the target state for the transition edge
+ *
+ * Since: 1.2
+ */
+guint
+dex_state_transition_context_get_to (DexStateTransitionContext *context)
+{
+  g_return_val_if_fail (context != NULL, 0);
+
+  return context->to;
+}
+
+/**
+ * dex_state_transition_context_get_state:
+ * @context: a [struct@Dex.StateTransitionContext]
+ *
+ * Gets the real current state from the [class@Dex.StateMachine].
+ *
+ * Returns: the current state
+ *
+ * Since: 1.2
+ */
+guint
+dex_state_transition_context_get_state (DexStateTransitionContext *context)
+{
+  g_return_val_if_fail (context != NULL, 0);
+
+  return dex_state_machine_get_state (context->state_machine);
+}
+
+/**
+ * dex_state_transition_context_set_state:
+ * @context: a [struct@Dex.StateTransitionContext]
+ * @state: the new state
+ *
+ * Sets the real current state in the [class@Dex.StateMachine].
+ *
+ * This may be used by transition callbacks to expose intermediate states while
+ * doing asynchronous work. @state must be a valid value in the state machine's
+ * enum type. This method may only be used while the transition callback is
+ * active.
+ *
+ * Since: 1.2
+ */
+void
+dex_state_transition_context_set_state (DexStateTransitionContext  *context,
+                                        guint                       state)
+{
+  g_return_if_fail (context != NULL);
+
+  if (dex_state_machine_set_state (context->state_machine, state))
+    context->state_set = TRUE;
 }
 
 /**
@@ -308,8 +436,10 @@ dex_state_machine_new (GType                     state_enum_type,
  *
  * Transition requests are serialized. The matching callback is run from a
  * fiber and may use `dex_await()` to wait for asynchronous work. If the
- * callback succeeds, the state machine commits the possibly modified inout
- * `to` argument and the returned future resolves to that enum value.
+ * callback succeeds without calling
+ * [method@Dex.StateTransitionContext.set_state], the state machine commits
+ * @target. If the callback updates the state directly, the returned future
+ * resolves to the current state after the callback returns.
  *
  * Returns: (transfer full): a future resolving to the final enum state
  */

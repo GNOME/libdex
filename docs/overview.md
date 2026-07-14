@@ -123,7 +123,7 @@ transitions may need asynchronous work. Transition requests are serialized and
 callbacks run from a fiber, so callbacks can use `dex_await()` while preserving
 a declared transition graph.
 
-See [State Machines](state-machines.html) for table setup, landing states, and
+See [State Machines](state-machines.html) for table setup, state updates, and
 error handling.
 
 ## Deadlines and Timeouts

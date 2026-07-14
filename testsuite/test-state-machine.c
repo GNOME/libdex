@@ -70,64 +70,89 @@ transition_data_new (void)
 }
 
 static gboolean
-transition_basic (guint      from,
-                  guint     *to,
-                  gpointer   user_data,
-                  GError   **error)
+transition_basic (DexStateTransitionContext  *context,
+                  gpointer                    user_data,
+                  GError                    **error)
 {
   TransitionData *data = user_data;
+  guint from;
+  guint to;
+
+  g_assert_nonnull (context);
+
+  from = dex_state_transition_context_get_from (context);
+  to = dex_state_transition_context_get_to (context);
+
+  g_assert_cmpuint (dex_state_transition_context_get_state (context), ==, from);
 
   g_array_append_val (data->visited, from);
-  g_array_append_val (data->visited, *to);
+  g_array_append_val (data->visited, to);
 
   return TRUE;
 }
 
 static gboolean
-transition_prepare (guint      from,
-                    guint     *to,
-                    gpointer   user_data,
-                    GError   **error)
+transition_prepare (DexStateTransitionContext  *context,
+                    gpointer                    user_data,
+                    GError                    **error)
 {
   TransitionData *data = user_data;
+  guint from;
+  guint to;
+
+  from = dex_state_transition_context_get_from (context);
+  to = dex_state_transition_context_get_to (context);
 
   g_assert_cmpuint (from, ==, TEST_STATE_INITIAL);
-  g_assert_cmpuint (*to, ==, TEST_STATE_PREPARE);
+  g_assert_cmpuint (to, ==, TEST_STATE_PREPARE);
+  g_assert_cmpuint (dex_state_transition_context_get_state (context), ==, TEST_STATE_INITIAL);
 
   g_array_append_val (data->visited, from);
-  g_array_append_val (data->visited, *to);
+  g_array_append_val (data->visited, to);
+
+  dex_state_transition_context_set_state (context, TEST_STATE_PREPARE);
+
+  g_assert_cmpuint (dex_state_transition_context_get_state (context), ==, TEST_STATE_PREPARE);
 
   dex_await (dex_timeout_new_msec (1), NULL);
 
-  *to = TEST_STATE_READY;
+  dex_state_transition_context_set_state (context, TEST_STATE_READY);
 
   return TRUE;
 }
 
 static gboolean
-transition_prepare_back (guint      from,
-                         guint     *to,
-                         gpointer   user_data,
-                         GError   **error)
+transition_prepare_back (DexStateTransitionContext  *context,
+                         gpointer                    user_data,
+                         GError                    **error)
 {
   TransitionData *data = user_data;
+  guint from;
+  guint to;
+
+  from = dex_state_transition_context_get_from (context);
+  to = dex_state_transition_context_get_to (context);
 
   g_assert_cmpuint (from, ==, TEST_STATE_INITIAL);
-  g_assert_cmpuint (*to, ==, TEST_STATE_PREPARE);
+  g_assert_cmpuint (to, ==, TEST_STATE_PREPARE);
+  g_assert_cmpuint (dex_state_transition_context_get_state (context), ==, TEST_STATE_INITIAL);
 
   g_array_append_val (data->visited, from);
-  g_array_append_val (data->visited, *to);
+  g_array_append_val (data->visited, to);
 
-  *to = TEST_STATE_INITIAL;
+  dex_state_transition_context_set_state (context, TEST_STATE_PREPARE);
+
+  g_assert_cmpuint (dex_state_transition_context_get_state (context), ==, TEST_STATE_PREPARE);
+
+  dex_state_transition_context_set_state (context, TEST_STATE_INITIAL);
 
   return TRUE;
 }
 
 static gboolean
-transition_fail (guint      from,
-                 guint     *to,
-                 gpointer   user_data,
-                 GError   **error)
+transition_fail (DexStateTransitionContext  *context,
+                 gpointer                    user_data,
+                 GError                    **error)
 {
   g_set_error (error,
                G_IO_ERROR,
@@ -138,21 +163,9 @@ transition_fail (guint      from,
 }
 
 static gboolean
-transition_invalid_landing (guint      from,
-                            guint     *to,
-                            gpointer   user_data,
-                            GError   **error)
-{
-  *to = G_MAXUINT;
-
-  return TRUE;
-}
-
-static gboolean
-transition_scheduler (guint      from,
-                      guint     *to,
-                      gpointer   user_data,
-                      GError   **error)
+transition_scheduler (DexStateTransitionContext  *context,
+                      gpointer                    user_data,
+                      GError                    **error)
 {
   SchedulerData *data = user_data;
   DexScheduler *thread_default;
@@ -334,35 +347,6 @@ test_state_machine_invalid (void)
 }
 
 static void
-test_state_machine_invalid_landing (void)
-{
-  static const DexStateTransition transitions[] = {
-    { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_invalid_landing },
-  };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
-  TransitionData *data;
-  guint state;
-
-  data = transition_data_new ();
-  state_machine = dex_state_machine_new (TEST_TYPE_STATE,
-                                         TEST_STATE_INITIAL,
-                                         transitions,
-                                         G_N_ELEMENTS (transitions),
-                                         NULL,
-                                         0,
-                                         data,
-                                         (GDestroyNotify)transition_data_free);
-
-  state = dex_await_enum (dex_state_machine_transition (state_machine, TEST_STATE_PREPARE), &error);
-
-  g_assert_error (error, DEX_ERROR, DEX_ERROR_INVALID_TRANSITION);
-  g_assert_cmpuint (state, ==, 0);
-  g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_INITIAL);
-  g_clear_error (&error);
-}
-
-static void
 test_state_machine_failure (void)
 {
   static const DexStateTransition transitions[] = {
@@ -455,7 +439,6 @@ main (int   argc,
   _g_test_add_func ("/Dex/StateMachine/reverse", test_state_machine_reverse);
   _g_test_add_func ("/Dex/StateMachine/landing-reverse", test_state_machine_landing_reverse);
   _g_test_add_func ("/Dex/StateMachine/invalid", test_state_machine_invalid);
-  _g_test_add_func ("/Dex/StateMachine/invalid-landing", test_state_machine_invalid_landing);
   _g_test_add_func ("/Dex/StateMachine/failure", test_state_machine_failure);
   _g_test_add_func ("/Dex/StateMachine/scheduler", test_state_machine_scheduler);
   _g_test_add_func ("/Dex/StateMachine/duplicate", test_state_machine_duplicate);

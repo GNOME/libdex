@@ -77,16 +77,19 @@ Transition callbacks use [callback@Dex.StateTransitionFunc].
 
 ```c
 static gboolean
-enter_prepare (guint     from,
-               guint    *to,
-               gpointer  user_data,
-               GError  **error)
+enter_prepare (DexStateTransitionContext *context,
+               gpointer                   user_data,
+               GError                   **error)
 {
   PasswordDaemon *daemon = user_data;
   g_autoptr(GSocket) control = NULL;
 
-  g_assert_cmpuint (from, ==, PASSWORD_DAEMON_INITIAL);
-  g_assert_cmpuint (*to, ==, PASSWORD_DAEMON_PREPARE);
+  g_assert_cmpuint (dex_state_transition_context_get_from (context),
+                    ==,
+                    PASSWORD_DAEMON_INITIAL);
+  g_assert_cmpuint (dex_state_transition_context_get_to (context),
+                    ==,
+                    PASSWORD_DAEMON_PREPARE);
 
   control = dex_await_object (create_control_socket (daemon), error);
   if (control == NULL)
@@ -102,8 +105,10 @@ Callbacks are run from a fiber, so they may call `dex_await()` and
 `dex_await_*()` directly. They should return %TRUE on success or %FALSE with
 @error set on failure.
 
-The state machine commits the target state only after the callback succeeds. If
-the callback fails, the state remains unchanged.
+If a callback succeeds without calling
+[method@Dex.StateTransitionContext.set_state], the state machine commits the
+target state from [method@Dex.StateTransitionContext.get_to]. If the callback
+fails before setting state, the state remains unchanged.
 
 ## Requesting Transitions
 
@@ -124,39 +129,44 @@ Unsupported transitions reject with
 from `PASSWORD_DAEMON_INITIAL` to `PASSWORD_DAEMON_UNLOCKED` will fail unless
 that edge exists in the transition table.
 
-## Choosing the Landing State
+## Updating State During a Transition
 
-The @to argument to [callback@Dex.StateTransitionFunc] is inout. On entry it
-contains the target state for the current edge. If the callback leaves it
-unchanged, the transition ends at that state.
+[struct@Dex.StateTransitionContext] gives callbacks access to both the declared
+transition edge and the real current state. The context is only valid for the
+duration of the transition callback and must not be stored.
 
-If the callback changes @to, the state machine commits the changed state
-instead. This does not execute another transition edge. The changed state must
-be a valid value in the state enum.
+[method@Dex.StateTransitionContext.get_from] and
+[method@Dex.StateTransitionContext.get_to] are fixed for the callback. They
+describe the transition table edge being executed. They do not change if the
+callback updates the state.
 
-This is useful for transient states such as `PREPARE` that should usually land
-in another state such as `READY`.
+[method@Dex.StateTransitionContext.get_state] reads the real current state
+from the state machine. [method@Dex.StateTransitionContext.set_state] updates
+that real state immediately. This is useful for quiescent transitions that need
+to expose progress through intermediate states in one pass. `set_state()` may
+only be used while the transition callback is active.
 
 ```c
 static gboolean
-enter_prepare (guint     from,
-               guint    *to,
-               gpointer  user_data,
-               GError  **error)
+enter_prepare (DexStateTransitionContext *context,
+               gpointer                   user_data,
+               GError                   **error)
 {
   PasswordDaemon *daemon = user_data;
+
+  dex_state_transition_context_set_state (context, PASSWORD_DAEMON_PREPARE);
 
   if (!dex_await (password_daemon_prepare (daemon), error))
     return FALSE;
 
-  *to = PASSWORD_DAEMON_READY;
+  dex_state_transition_context_set_state (context, PASSWORD_DAEMON_READY);
 
   return TRUE;
 }
 ```
 
 With this table, requesting `INITIAL -> PREPARE` runs `enter_prepare()` and
-commits `READY` when the callback succeeds.
+resolves with `READY` when the callback succeeds.
 
 ```c
 static const DexStateTransition password_daemon_transitions[] = {
@@ -164,9 +174,10 @@ static const DexStateTransition password_daemon_transitions[] = {
 };
 ```
 
-Changing @to may move forward or backward. It is a way for a transition to
-choose its final landing state, not a way to request another state-machine
-transition.
+If a callback calls [method@Dex.StateTransitionContext.set_state], those
+updates are not rolled back automatically if the callback later fails. They are
+real state changes. Set an explicit failure state before returning %FALSE when
+that is the state machine behavior you want.
 
 ## Circular State Machines
 
@@ -192,9 +203,9 @@ There are three common failure cases:
   declared edge exists.
 * Transition callbacks may fail with their own error.
 
-Callback failures leave the state unchanged. If a callback succeeds but changes
-@to to an invalid enum value, the transition rejects and the state remains
-unchanged.
+Callback failures leave the state unchanged only if the callback has not
+already called [method@Dex.StateTransitionContext.set_state]. Invalid explicit
+state updates are programmer errors.
 
 ## Related Pages
 
