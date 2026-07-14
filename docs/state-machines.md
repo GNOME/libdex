@@ -183,6 +183,178 @@ updates are not rolled back automatically if the callback later fails. They are
 real state changes. Set an explicit failure state before returning %FALSE when
 that is the state machine behavior you want.
 
+## GObject State Properties
+
+[class@Dex.StateMachine] is a `DexObject`, not a `GObject`, so it does not have
+`GObject` properties and does not emit `notify::state`. When a `GObject` owns a
+state machine, keep the state machine private and expose state from the owning
+object.
+
+Install a readable enum property on the owner. Transition callbacks will emit
+`notify::state` explicitly when observable state changes.
+
+```c
+enum {
+  PROP_0,
+  PROP_STATE,
+  N_PROPS
+};
+
+static GParamSpec *properties[N_PROPS];
+
+static PasswordDaemonState
+password_daemon_get_state (PasswordDaemon *daemon)
+{
+  return dex_state_machine_get_state (daemon->state_machine);
+}
+
+static void
+password_daemon_get_property (GObject    *object,
+                              guint       prop_id,
+                              GValue     *value,
+                              GParamSpec *pspec)
+{
+  PasswordDaemon *daemon = PASSWORD_DAEMON (object);
+
+  switch (prop_id)
+    {
+    case PROP_STATE:
+      g_value_set_enum (value, password_daemon_get_state (daemon));
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
+}
+
+static void
+password_daemon_class_init (PasswordDaemonClass *daemon_class)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (daemon_class);
+
+  object_class->get_property = password_daemon_get_property;
+
+  properties[PROP_STATE] =
+    g_param_spec_enum ("state", NULL, NULL,
+                       PASSWORD_DAEMON_TYPE_STATE,
+                       PASSWORD_DAEMON_INITIAL,
+                       (G_PARAM_READABLE |
+                        G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_properties (object_class, N_PROPS, properties);
+}
+```
+
+If the owner stores a strong reference to the state machine, do not also pass a
+strong reference to the owner as transition user data. That creates a reference
+cycle:
+
+```c
+daemon -> state_machine -> daemon
+```
+
+Use a small weak-reference holder instead.
+
+```c
+typedef struct
+{
+  GWeakRef daemon;
+} PasswordDaemonTransitionData;
+
+static PasswordDaemonTransitionData *
+password_daemon_transition_data_new (PasswordDaemon *daemon)
+{
+  PasswordDaemonTransitionData *data;
+
+  data = g_new0 (PasswordDaemonTransitionData, 1);
+  g_weak_ref_init (&data->daemon, daemon);
+
+  return data;
+}
+
+static void
+password_daemon_transition_data_free (PasswordDaemonTransitionData *data)
+{
+  g_weak_ref_clear (&data->daemon);
+  g_free (data);
+}
+
+daemon->state_machine =
+  dex_state_machine_new (PASSWORD_DAEMON_TYPE_STATE,
+                         PASSWORD_DAEMON_INITIAL,
+                         password_daemon_transitions,
+                         G_N_ELEMENTS (password_daemon_transitions),
+                         NULL,
+                         0,
+                         password_daemon_transition_data_new (daemon),
+                         (GDestroyNotify)password_daemon_transition_data_free);
+```
+
+When transition callbacks update the state machine state directly, notify the
+owner at the same time. A helper keeps this consistent.
+
+```c
+static void
+password_daemon_set_state (PasswordDaemon            *daemon,
+                           DexStateTransitionContext *context,
+                           PasswordDaemonState        state)
+{
+  if (dex_state_transition_context_get_state (context) == state)
+    return;
+
+  dex_state_transition_context_set_state (context, state);
+  g_object_notify_by_pspec (G_OBJECT (daemon), properties[PROP_STATE]);
+}
+```
+
+Then transition callbacks can acquire the owner from the weak reference and use
+the helper for every state change that should be visible through `:state`.
+
+```c
+static gboolean
+enter_prepare (DexStateTransitionContext  *context,
+               gpointer                    user_data,
+               GError                    **error)
+{
+  PasswordDaemonTransitionData *data = user_data;
+  g_autoptr(PasswordDaemon) daemon = NULL;
+
+  daemon = g_weak_ref_get (&data->daemon);
+  if (daemon == NULL)
+    {
+      g_set_error_literal (error,
+                           G_IO_ERROR,
+                           G_IO_ERROR_CANCELLED,
+                           "PasswordDaemon was disposed");
+      return FALSE;
+    }
+
+  password_daemon_set_state (daemon, context, PASSWORD_DAEMON_PREPARE);
+
+  if (!dex_await (password_daemon_prepare (daemon), error))
+    return FALSE;
+
+  password_daemon_set_state (daemon, context, PASSWORD_DAEMON_READY);
+
+  return TRUE;
+}
+```
+
+If `:state` notifications matter, do not rely on the state machine's automatic
+target commit for those states. The automatic commit happens after the
+transition callback returns, where the owner has no callback-local opportunity
+to emit `notify::state`. Call [method@Dex.StateTransitionContext.set_state]
+through your notification helper instead.
+
+The same rule applies when using [method@Dex.StateTransitionContext.continue_to].
+If the current edge target should be observable, set and notify it before
+calling `continue_to()`. The continued edge callback should notify its own
+observable state changes.
+
+Notifications are emitted from the transition fiber. If signal handlers for
+the owner must run on a specific main context or thread, create and use the
+state machine with a scheduler that runs there.
+
 ## Continuing Through Edges
 
 [method@Dex.StateTransitionContext.continue_to] lets a transition callback run
@@ -193,9 +365,9 @@ requests wait until the continuation chain finishes.
 
 ```c
 static gboolean
-enter_prepare (DexStateTransitionContext *context,
-               gpointer                   user_data,
-               GError                   **error)
+enter_prepare (DexStateTransitionContext  *context,
+               gpointer                    user_data,
+               GError                    **error)
 {
   PasswordDaemon *daemon = user_data;
 
