@@ -72,6 +72,7 @@ struct _DexStateMachine
   guint               n_transitions;
   gsize               stack_size;
   guint               state;
+  guint               requested_state;
   gpointer            user_data;
   GDestroyNotify      user_data_destroy;
 };
@@ -219,6 +220,22 @@ dex_state_machine_set_state (DexStateMachine *state_machine,
 
   dex_object_lock (state_machine);
   state_machine->state = state;
+  dex_object_unlock (state_machine);
+
+  return TRUE;
+}
+
+static gboolean
+dex_state_machine_set_requested_state (DexStateMachine *state_machine,
+                                       guint            state)
+{
+  g_assert (DEX_IS_STATE_MACHINE (state_machine));
+
+  if (!dex_state_machine_is_valid_state (state_machine, state))
+    return FALSE;
+
+  dex_object_lock (state_machine);
+  state_machine->requested_state = state;
   dex_object_unlock (state_machine);
 
   return TRUE;
@@ -499,6 +516,7 @@ dex_state_machine_new (GType                     state_enum_type,
   state_machine = (DexStateMachine *)dex_object_create_instance (dex_state_machine_type);
   state_machine->state_enum_type = state_enum_type;
   state_machine->state = initial_state;
+  state_machine->requested_state = initial_state;
   state_machine->n_transitions = n_transitions;
   state_machine->scheduler = scheduler ? dex_ref (scheduler) : NULL;
   state_machine->stack_size = stack_size;
@@ -518,6 +536,12 @@ dex_state_machine_new (GType                     state_enum_type,
  *
  * Requests a transition to @target.
  *
+ * If @target is a valid value for the state machine's enum type, it becomes
+ * the requested state immediately and can be read with
+ * [method@Dex.StateMachine.get_requested_state]. The requested state is the
+ * most recent valid target passed to this method. It may differ from the
+ * current state and does not imply that the transition will succeed.
+ *
  * Transition requests are serialized. The matching callback is run from a
  * fiber and may use `dex_await()` to wait for asynchronous work. If the
  * callback succeeds without calling
@@ -535,6 +559,8 @@ dex_state_machine_transition (DexStateMachine *state_machine,
 
   dex_return_error_if_fail (DEX_IS_STATE_MACHINE (state_machine));
 
+  dex_state_machine_set_requested_state (state_machine, target);
+
   run = dex_state_machine_run_new ();
   run->state_machine = dex_ref (state_machine);
   run->target = target;
@@ -545,6 +571,38 @@ dex_state_machine_transition (DexStateMachine *state_machine,
                           dex_state_machine_transition_fiber,
                           run,
                           (GDestroyNotify)dex_state_machine_run_free);
+}
+
+/**
+ * dex_state_machine_get_requested_state:
+ * @state_machine: a [class@Dex.StateMachine]
+ *
+ * Gets the most recent valid state requested with
+ * [method@Dex.StateMachine.transition].
+ *
+ * The requested state is initialized to the initial state passed to
+ * [ctor@Dex.StateMachine.new]. It is updated immediately when
+ * [method@Dex.StateMachine.transition] is called with a valid target state,
+ * before that transition is run. It is not a guarantee that the transition
+ * will run or succeed, and it may differ from the current state returned by
+ * [method@Dex.StateMachine.get_state].
+ *
+ * Returns: the most recent valid requested state
+ *
+ * Since: 1.2
+ */
+guint
+dex_state_machine_get_requested_state (DexStateMachine *state_machine)
+{
+  guint ret;
+
+  g_return_val_if_fail (DEX_IS_STATE_MACHINE (state_machine), 0);
+
+  dex_object_lock (state_machine);
+  ret = state_machine->requested_state;
+  dex_object_unlock (state_machine);
+
+  return ret;
 }
 
 /**

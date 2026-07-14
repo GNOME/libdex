@@ -128,6 +128,13 @@ DexFuture *future =
 Requests are serialized. If multiple callers request transitions at once, only
 one transition fiber runs at a time.
 
+Use [method@Dex.StateMachine.get_requested_state] to read the most recent
+valid target passed to [method@Dex.StateMachine.transition]. This is useful
+when an owner wants to expose requested state separately from current state.
+It is updated when the request is made, before the transition runs. It does
+not mean that the requested transition will succeed, and it may differ from
+the current state after a rejected transition.
+
 Unsupported transitions reject with
 [error@Dex.Error.INVALID_TRANSITION]. For example, a request to go directly
 from `PASSWORD_DAEMON_INITIAL` to `PASSWORD_DAEMON_UNLOCKED` will fail unless
@@ -185,10 +192,8 @@ that is the state machine behavior you want.
 
 ## GObject State Properties
 
-[class@Dex.StateMachine] is a `DexObject`, not a `GObject`, so it does not have
-`GObject` properties and does not emit `notify::state`. When a `GObject` owns a
-state machine, keep the state machine private and expose state from the owning
-object.
+[class@Dex.StateMachine] is not a `GObject`. When a `GObject` owns a state
+machine, keep the state machine private and expose state from the owning object.
 
 Install a readable enum property on the owner. Transition callbacks will emit
 `notify::state` explicitly when observable state changes.
@@ -354,6 +359,12 @@ observable state changes.
 Notifications are emitted from the transition fiber. If signal handlers for
 the owner must run on a specific main context or thread, create and use the
 state machine with a scheduler that runs there.
+
+If callers need to observe both intent and progress, expose a separate
+`:requested-state` property on the owner and read it from
+[method@Dex.StateMachine.get_requested_state]. Notify that property from the
+owner method that calls [method@Dex.StateMachine.transition], because
+[class@Dex.StateMachine] is not a `GObject`.
 
 ## Continuing Through Edges
 
