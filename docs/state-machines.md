@@ -110,6 +110,10 @@ If a callback succeeds without calling
 target state from [method@Dex.StateTransitionContext.get_to]. If the callback
 fails before setting state, the state remains unchanged.
 
+Callbacks may also call [method@Dex.StateTransitionContext.continue_to] to
+continue through another declared edge before queued transition requests are
+processed.
+
 ## Requesting Transitions
 
 Call [method@Dex.StateMachine.transition] to request a transition. The returned
@@ -178,6 +182,54 @@ If a callback calls [method@Dex.StateTransitionContext.set_state], those
 updates are not rolled back automatically if the callback later fails. They are
 real state changes. Set an explicit failure state before returning %FALSE when
 that is the state machine behavior you want.
+
+## Continuing Through Edges
+
+[method@Dex.StateTransitionContext.continue_to] lets a transition callback run
+another declared edge immediately while the state machine still owns its
+serialization slot. It is synchronous composition: the next transition
+callback is called before `continue_to()` returns, and queued transition
+requests wait until the continuation chain finishes.
+
+```c
+static gboolean
+enter_prepare (DexStateTransitionContext *context,
+               gpointer                   user_data,
+               GError                   **error)
+{
+  PasswordDaemon *daemon = user_data;
+
+  if (!dex_await (password_daemon_prepare (daemon), error))
+    return FALSE;
+
+  return dex_state_transition_context_continue_to (context,
+                                                   PASSWORD_DAEMON_READY,
+                                                   error);
+}
+```
+
+With this table, a request for `INITIAL -> PREPARE` runs `enter_prepare()`,
+commits `PREPARE`, then immediately runs `enter_ready()` before any queued
+transition request can run.
+
+```c
+static const DexStateTransition password_daemon_transitions[] = {
+  { PASSWORD_DAEMON_INITIAL, PASSWORD_DAEMON_PREPARE, enter_prepare },
+  { PASSWORD_DAEMON_PREPARE, PASSWORD_DAEMON_READY,   enter_ready   },
+};
+```
+
+If the callback has not called [method@Dex.StateTransitionContext.set_state],
+`continue_to()` validates the next edge before committing the current edge. An
+unsupported continuation returns %FALSE with
+[error@Dex.Error.INVALID_TRANSITION]. If the next callback fails after the
+current edge has been committed, that state change is not rolled back.
+
+If a continued transition callback uses `dex_await()`, the same transition
+fiber suspends and later resumes; the main context is not blocked, but the
+state machine queue is still held. Chained continuations use ordinary C calls,
+so this API is intended for short, bounded handoffs between edges rather than
+unbounded graph traversal.
 
 ## Circular State Machines
 

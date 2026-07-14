@@ -55,7 +55,9 @@
  * [method@Dex.StateTransitionContext.get_to] return the declared edge that
  * caused the callback to run. [method@Dex.StateTransitionContext.get_state]
  * and [method@Dex.StateTransitionContext.set_state] access the real state in
- * the [class@Dex.StateMachine].
+ * the [class@Dex.StateMachine]. Use
+ * [method@Dex.StateTransitionContext.continue_to] to follow another declared
+ * edge before queued transition requests are processed.
  *
  * Since: 1.2
  */
@@ -183,10 +185,11 @@ dex_state_machine_lookup (DexStateMachine *state_machine,
   return NULL;
 }
 
-static DexFuture *
-dex_state_machine_invalid_transition (DexStateMachine *state_machine,
-                                      guint            from,
-                                      guint            to)
+static gboolean
+dex_state_machine_set_invalid_transition_error (DexStateMachine  *state_machine,
+                                                guint             from,
+                                                guint             to,
+                                                GError          **error)
 {
   g_autofree char *from_name = NULL;
   g_autofree char *to_name = NULL;
@@ -196,10 +199,14 @@ dex_state_machine_invalid_transition (DexStateMachine *state_machine,
   from_name = dex_state_machine_dup_state_name (state_machine, from);
   to_name = dex_state_machine_dup_state_name (state_machine, to);
 
-  return dex_future_new_reject (DEX_ERROR,
-                                DEX_ERROR_INVALID_TRANSITION,
-                                "Invalid transition from `%s` to `%s`",
-                                from_name, to_name);
+  g_set_error (error,
+               DEX_ERROR,
+               DEX_ERROR_INVALID_TRANSITION,
+               "Invalid transition from `%s` to `%s`",
+               from_name,
+               to_name);
+
+  return FALSE;
 }
 
 static gboolean
@@ -217,17 +224,45 @@ dex_state_machine_set_state (DexStateMachine *state_machine,
   return TRUE;
 }
 
+static gboolean
+dex_state_machine_transition_to (DexStateMachine  *state_machine,
+                                 guint             from,
+                                 guint             target,
+                                 GError          **error)
+{
+  DexStateTransitionContext context = {0};
+  const DexStateTransition *transition;
+
+  g_assert (DEX_IS_STATE_MACHINE (state_machine));
+
+  if (!dex_state_machine_is_valid_state (state_machine, target))
+    return dex_state_machine_set_invalid_transition_error (state_machine, from, target, error);
+
+  if (!(transition = dex_state_machine_lookup (state_machine, from, target)))
+    return dex_state_machine_set_invalid_transition_error (state_machine, from, target, error);
+
+  context.state_machine = state_machine;
+  context.from = from;
+  context.to = target;
+
+  if (!transition->func (&context, state_machine->user_data, error))
+    return FALSE;
+
+  if (!context.state_set)
+    dex_state_machine_set_state (state_machine, target);
+
+  return TRUE;
+}
+
 static DexFuture *
 dex_state_machine_transition_fiber (gpointer user_data)
 {
   DexStateMachineRun *run = user_data;
   DexStateMachine *state_machine = run->state_machine;
-  DexStateTransitionContext context = {0};
   GError *error = NULL;
   guint current;
   guint final;
   guint target;
-  const DexStateTransition *transition;
 
   g_assert (DEX_IS_STATE_MACHINE (state_machine));
 
@@ -237,21 +272,8 @@ dex_state_machine_transition_fiber (gpointer user_data)
 
   target = run->target;
 
-  if (!dex_state_machine_is_valid_state (state_machine, target))
-    return dex_state_machine_invalid_transition (state_machine, current, target);
-
-  if (!(transition = dex_state_machine_lookup (state_machine, current, target)))
-    return dex_state_machine_invalid_transition (state_machine, current, target);
-
-  context.state_machine = state_machine;
-  context.from = current;
-  context.to = target;
-
-  if (!transition->func (&context, state_machine->user_data, &error))
+  if (!dex_state_machine_transition_to (state_machine, current, target, &error))
     return dex_future_new_for_error (g_steal_pointer (&error));
-
-  if (!context.state_set)
-    dex_state_machine_set_state (state_machine, target);
 
   final = dex_state_machine_get_state (state_machine);
 
@@ -369,6 +391,68 @@ dex_state_transition_context_set_state (DexStateTransitionContext  *context,
 
   if (dex_state_machine_set_state (context->state_machine, state))
     context->state_set = TRUE;
+}
+
+/**
+ * dex_state_transition_context_continue_to:
+ * @context: a [struct@Dex.StateTransitionContext]
+ * @target: the target state for the next edge
+ * @error: a location for a `GError`, or %NULL
+ *
+ * Attempts to continue from the current transition to @target immediately.
+ *
+ * The continuation runs while the state machine still holds its internal
+ * serialization slot, so queued [method@Dex.StateMachine.transition] requests
+ * are not processed first. If @context has not explicitly set the state with
+ * [method@Dex.StateTransitionContext.set_state], the current edge target is
+ * committed before the next edge is executed.
+ *
+ * The next transition callback is called before this function returns. If that
+ * callback uses `dex_await()`, the same transition fiber suspends and resumes,
+ * while the state machine still holds the serialization slot. Chained
+ * continuations therefore use the normal C call stack and should be reserved
+ * for short, bounded chains rather than unbounded graph traversal.
+ *
+ * The next edge is looked up from the real current state to @target. If no
+ * such edge exists, %FALSE is returned and @error is set to
+ * [error@Dex.Error.INVALID_TRANSITION]. If the next edge callback fails, its
+ * error is propagated.
+ *
+ * Returns: %TRUE if the continuation succeeded; otherwise %FALSE
+ *
+ * Since: 1.2
+ */
+gboolean
+dex_state_transition_context_continue_to (DexStateTransitionContext  *context,
+                                          guint                       target,
+                                          GError                    **error)
+{
+  DexStateMachine *state_machine;
+  guint from;
+
+  g_return_val_if_fail (context != NULL, FALSE);
+
+  state_machine = context->state_machine;
+
+  g_return_val_if_fail (DEX_IS_STATE_MACHINE (state_machine), FALSE);
+
+  from = context->state_set ? dex_state_machine_get_state (state_machine) : context->to;
+
+  if (!dex_state_machine_is_valid_state (state_machine, target))
+    return dex_state_machine_set_invalid_transition_error (state_machine, from, target, error);
+
+  if (dex_state_machine_lookup (state_machine, from, target) == NULL)
+    return dex_state_machine_set_invalid_transition_error (state_machine, from, target, error);
+
+  if (!context->state_set)
+    {
+      if (!dex_state_machine_set_state (state_machine, context->to))
+        return FALSE;
+
+      context->state_set = TRUE;
+    }
+
+  return dex_state_machine_transition_to (state_machine, from, target, error);
 }
 
 /**

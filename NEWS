@@ -35,7 +35,8 @@ This is an alpha release for the upcoming GNOME 51.
    values
  * New dex_promise_resolve_enum()
  * New DexStateMachine API to simplify asynchronous state machines with fibers
-   providing a simple API to track state machine transitions.
+   providing a simple API to track state machine transitions, including
+   in-fiber transition continuations with DexStateTransitionContext.
  * Future debug names are now enabled by default when compiling with GCC and
    fibers emit Sysprof marks for their duration
  * Fix DexObject weak-reference retargeting to avoid a possible lock

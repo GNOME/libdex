@@ -150,6 +150,50 @@ transition_prepare_back (DexStateTransitionContext  *context,
 }
 
 static gboolean
+transition_continue_to_ready (DexStateTransitionContext  *context,
+                              gpointer                    user_data,
+                              GError                    **error)
+{
+  TransitionData *data = user_data;
+  guint from;
+  guint to;
+
+  from = dex_state_transition_context_get_from (context);
+  to = dex_state_transition_context_get_to (context);
+
+  g_assert_cmpuint (from, ==, TEST_STATE_INITIAL);
+  g_assert_cmpuint (to, ==, TEST_STATE_PREPARE);
+  g_assert_cmpuint (dex_state_transition_context_get_state (context), ==, TEST_STATE_INITIAL);
+
+  g_array_append_val (data->visited, from);
+  g_array_append_val (data->visited, to);
+
+  return dex_state_transition_context_continue_to (context, TEST_STATE_READY, error);
+}
+
+static gboolean
+transition_continue_to_failed (DexStateTransitionContext  *context,
+                               gpointer                    user_data,
+                               GError                    **error)
+{
+  TransitionData *data = user_data;
+  guint from;
+  guint to;
+
+  from = dex_state_transition_context_get_from (context);
+  to = dex_state_transition_context_get_to (context);
+
+  g_assert_cmpuint (from, ==, TEST_STATE_INITIAL);
+  g_assert_cmpuint (to, ==, TEST_STATE_PREPARE);
+  g_assert_cmpuint (dex_state_transition_context_get_state (context), ==, TEST_STATE_INITIAL);
+
+  g_array_append_val (data->visited, from);
+  g_array_append_val (data->visited, to);
+
+  return dex_state_transition_context_continue_to (context, TEST_STATE_FAILED, error);
+}
+
+static gboolean
 transition_fail (DexStateTransitionContext  *context,
                  gpointer                    user_data,
                  GError                    **error)
@@ -376,6 +420,147 @@ test_state_machine_failure (void)
 }
 
 static void
+test_state_machine_continue_to (void)
+{
+  static const DexStateTransition transitions[] = {
+    { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_continue_to_ready },
+    { TEST_STATE_PREPARE, TEST_STATE_READY, transition_basic },
+  };
+  g_autoptr(DexStateMachine) state_machine = NULL;
+  g_autoptr(GError) error = NULL;
+  TransitionData *data;
+  guint state;
+
+  data = transition_data_new ();
+  state_machine = dex_state_machine_new (TEST_TYPE_STATE,
+                                         TEST_STATE_INITIAL,
+                                         transitions,
+                                         G_N_ELEMENTS (transitions),
+                                         NULL,
+                                         0,
+                                         data,
+                                         (GDestroyNotify)transition_data_free);
+
+  state = dex_await_enum (dex_state_machine_transition (state_machine, TEST_STATE_PREPARE), &error);
+
+  g_assert_no_error (error);
+  g_assert_cmpuint (state, ==, TEST_STATE_READY);
+  g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_READY);
+  g_assert_cmpuint (data->visited->len, ==, 4);
+  g_assert_cmpuint (g_array_index (data->visited, guint, 0), ==, TEST_STATE_INITIAL);
+  g_assert_cmpuint (g_array_index (data->visited, guint, 1), ==, TEST_STATE_PREPARE);
+  g_assert_cmpuint (g_array_index (data->visited, guint, 2), ==, TEST_STATE_PREPARE);
+  g_assert_cmpuint (g_array_index (data->visited, guint, 3), ==, TEST_STATE_READY);
+}
+
+static void
+test_state_machine_continue_to_before_queued (void)
+{
+  static const DexStateTransition transitions[] = {
+    { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_continue_to_ready },
+    { TEST_STATE_PREPARE, TEST_STATE_READY, transition_basic },
+  };
+  g_autoptr(DexStateMachine) state_machine = NULL;
+  g_autoptr(DexFuture) first = NULL;
+  g_autoptr(DexFuture) second = NULL;
+  g_autoptr(GError) error = NULL;
+  TransitionData *data;
+  guint state;
+
+  data = transition_data_new ();
+  state_machine = dex_state_machine_new (TEST_TYPE_STATE,
+                                         TEST_STATE_INITIAL,
+                                         transitions,
+                                         G_N_ELEMENTS (transitions),
+                                         NULL,
+                                         0,
+                                         data,
+                                         (GDestroyNotify)transition_data_free);
+
+  first = dex_state_machine_transition (state_machine, TEST_STATE_PREPARE);
+  second = dex_state_machine_transition (state_machine, TEST_STATE_READY);
+
+  state = dex_await_enum (dex_ref (first), &error);
+
+  g_assert_no_error (error);
+  g_assert_cmpuint (state, ==, TEST_STATE_READY);
+  g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_READY);
+
+  state = dex_await_enum (dex_ref (second), &error);
+
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_INVALID_TRANSITION);
+  g_assert_cmpuint (state, ==, 0);
+  g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_READY);
+  g_assert_cmpuint (data->visited->len, ==, 4);
+  g_clear_error (&error);
+}
+
+static void
+test_state_machine_continue_to_invalid (void)
+{
+  static const DexStateTransition transitions[] = {
+    { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_continue_to_failed },
+  };
+  g_autoptr(DexStateMachine) state_machine = NULL;
+  g_autoptr(GError) error = NULL;
+  TransitionData *data;
+  guint state;
+
+  data = transition_data_new ();
+  state_machine = dex_state_machine_new (TEST_TYPE_STATE,
+                                         TEST_STATE_INITIAL,
+                                         transitions,
+                                         G_N_ELEMENTS (transitions),
+                                         NULL,
+                                         0,
+                                         data,
+                                         (GDestroyNotify)transition_data_free);
+
+  state = dex_await_enum (dex_state_machine_transition (state_machine, TEST_STATE_PREPARE), &error);
+
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_INVALID_TRANSITION);
+  g_assert_cmpuint (state, ==, 0);
+  g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_INITIAL);
+  g_assert_cmpuint (data->visited->len, ==, 2);
+  g_assert_cmpuint (g_array_index (data->visited, guint, 0), ==, TEST_STATE_INITIAL);
+  g_assert_cmpuint (g_array_index (data->visited, guint, 1), ==, TEST_STATE_PREPARE);
+  g_clear_error (&error);
+}
+
+static void
+test_state_machine_continue_to_failure (void)
+{
+  static const DexStateTransition transitions[] = {
+    { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_continue_to_failed },
+    { TEST_STATE_PREPARE, TEST_STATE_FAILED, transition_fail },
+  };
+  g_autoptr(DexStateMachine) state_machine = NULL;
+  g_autoptr(GError) error = NULL;
+  TransitionData *data;
+  guint state;
+
+  data = transition_data_new ();
+  state_machine = dex_state_machine_new (TEST_TYPE_STATE,
+                                         TEST_STATE_INITIAL,
+                                         transitions,
+                                         G_N_ELEMENTS (transitions),
+                                         NULL,
+                                         0,
+                                         data,
+                                         (GDestroyNotify)transition_data_free);
+
+  state = dex_await_enum (dex_state_machine_transition (state_machine, TEST_STATE_PREPARE), &error);
+
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_assert_cmpuint (state, ==, 0);
+  g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_PREPARE);
+  g_assert_cmpuint (data->visited->len, ==, 2);
+  g_assert_cmpuint (g_array_index (data->visited, guint, 0), ==, TEST_STATE_INITIAL);
+  g_assert_cmpuint (g_array_index (data->visited, guint, 1), ==, TEST_STATE_PREPARE);
+  g_clear_error (&error);
+}
+
+static void
 test_state_machine_scheduler (void)
 {
   static const DexStateTransition transitions[] = {
@@ -440,6 +625,13 @@ main (int   argc,
   _g_test_add_func ("/Dex/StateMachine/landing-reverse", test_state_machine_landing_reverse);
   _g_test_add_func ("/Dex/StateMachine/invalid", test_state_machine_invalid);
   _g_test_add_func ("/Dex/StateMachine/failure", test_state_machine_failure);
+  _g_test_add_func ("/Dex/StateMachine/continue-to", test_state_machine_continue_to);
+  _g_test_add_func ("/Dex/StateMachine/continue-to-before-queued",
+                    test_state_machine_continue_to_before_queued);
+  _g_test_add_func ("/Dex/StateMachine/continue-to-invalid",
+                    test_state_machine_continue_to_invalid);
+  _g_test_add_func ("/Dex/StateMachine/continue-to-failure",
+                    test_state_machine_continue_to_failure);
   _g_test_add_func ("/Dex/StateMachine/scheduler", test_state_machine_scheduler);
   _g_test_add_func ("/Dex/StateMachine/duplicate", test_state_machine_duplicate);
 
