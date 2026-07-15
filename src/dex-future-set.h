@@ -32,7 +32,7 @@ G_BEGIN_DECLS
 typedef struct _DexFutureSet DexFutureSet;
 
 DEX_AVAILABLE_IN_ALL
-GType         dex_future_set_get_type      (void) G_GNUC_CONST;
+GType         dex_future_set_get_type      (void);
 DEX_AVAILABLE_IN_ALL
 guint         dex_future_set_get_size      (DexFutureSet  *future_set);
 DEX_AVAILABLE_IN_ALL

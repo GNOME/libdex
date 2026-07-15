@@ -31,6 +31,6 @@ G_BEGIN_DECLS
 typedef struct _DexStaticFuture DexStaticFuture;
 
 DEX_AVAILABLE_IN_ALL
-GType dex_static_future_get_type (void) G_GNUC_CONST;
+GType dex_static_future_get_type (void);
 
 G_END_DECLS

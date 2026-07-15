@@ -51,7 +51,7 @@ typedef struct _DexChannelReceiverClass
 
 #define DEX_IS_CHANNEL_RECEIVER(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, dex_channel_receiver_type))
 
-GType dex_channel_receiver_get_type (void) G_GNUC_CONST;
+GType dex_channel_receiver_get_type (void);
 
 DEX_DEFINE_FINAL_TYPE (DexChannelReceiver, dex_channel_receiver, DEX_TYPE_FUTURE)
 

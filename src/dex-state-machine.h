@@ -94,7 +94,7 @@ gboolean         dex_state_transition_context_continue_to        (DexStateTransi
                                                                   guint                       target,
                                                                   GError                    **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-GType            dex_state_machine_get_type                      (void) G_GNUC_CONST;
+GType            dex_state_machine_get_type                      (void);
 DEX_AVAILABLE_IN_1_2
 DexStateMachine *dex_state_machine_new                           (GType                       state_enum_type,
                                                                   guint                       initial_state,

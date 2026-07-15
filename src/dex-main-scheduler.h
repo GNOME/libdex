@@ -32,7 +32,7 @@ G_BEGIN_DECLS
 typedef struct _DexMainScheduler DexMainScheduler;
 
 DEX_AVAILABLE_IN_ALL
-GType dex_main_scheduler_get_type (void) G_GNUC_CONST;
+GType dex_main_scheduler_get_type (void);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexMainScheduler, dex_unref)
 

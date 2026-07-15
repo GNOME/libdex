@@ -38,13 +38,11 @@ G_BEGIN_DECLS
 typedef struct _DexPromise DexPromise;
 
 DEX_AVAILABLE_IN_ALL
-GType         dex_promise_get_type        (void) G_GNUC_CONST;
+GType         dex_promise_get_type        (void);
 DEX_AVAILABLE_IN_ALL
-DexPromise   *dex_promise_new             (void)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexPromise   *dex_promise_new             (void) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
-DexPromise   *dex_promise_new_cancellable (void)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexPromise   *dex_promise_new_cancellable (void) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 GCancellable *dex_promise_get_cancellable (DexPromise   *promise);
 DEX_AVAILABLE_IN_ALL
@@ -94,9 +92,9 @@ DEX_AVAILABLE_IN_ALL
 void          dex_promise_resolve_variant (DexPromise   *promise,
                                            GVariant     *variant);
 DEX_AVAILABLE_IN_ALL
-void          dex_promise_resolve_boxed  (DexPromise *promise,
-                                          GType       boxed_type,
-                                          gpointer    instance);
+void          dex_promise_resolve_boxed   (DexPromise   *promise,
+                                           GType         boxed_type,
+                                           gpointer      instance);
 DEX_AVAILABLE_IN_ALL
 void          dex_promise_reject          (DexPromise   *promise,
                                            GError       *error);

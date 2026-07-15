@@ -29,7 +29,7 @@ G_BEGIN_DECLS
 #define DEX_INFINITE(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_INFINITE, DexInfinite))
 #define DEX_IS_INFINITE(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_INFINITE))
 
-GType      dex_infinite_get_type (void) G_GNUC_CONST;
+GType      dex_infinite_get_type (void);
 DexFuture *dex_infinite_new      (void);
 
 G_END_DECLS

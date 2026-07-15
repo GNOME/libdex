@@ -38,7 +38,7 @@ G_BEGIN_DECLS
 typedef struct _DexLimiter DexLimiter;
 
 DEX_AVAILABLE_IN_1_2
-GType       dex_limiter_get_type            (void) G_GNUC_CONST;
+GType       dex_limiter_get_type            (void);
 DEX_AVAILABLE_IN_1_2
 DexLimiter *dex_limiter_new                 (guint             max_concurrency);
 DEX_AVAILABLE_IN_1_2

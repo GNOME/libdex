@@ -31,10 +31,10 @@ G_BEGIN_DECLS
 #define DEX_THREAD_POOL_WORKER(obj)    (G_TYPE_CHECK_INSTANCE_CAST(obj, DEX_TYPE_THREAD_POOL_WORKER, DexThreadPoolWorker))
 #define DEX_IS_THREAD_POOL_WORKER(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_THREAD_POOL_WORKER))
 
-typedef struct _DexThreadPoolWorker DexThreadPoolWorker;
+typedef struct _DexThreadPoolWorker    DexThreadPoolWorker;
 typedef struct _DexThreadPoolWorkerSet DexThreadPoolWorkerSet;
 
-GType                   dex_thread_pool_worker_get_type  (void) G_GNUC_CONST;
+GType                   dex_thread_pool_worker_get_type  (void);
 DexThreadPoolWorker    *dex_thread_pool_worker_new       (DexWorkQueue           *work_queue,
                                                           DexThreadPoolWorkerSet *set,
                                                           gboolean                force_create);

@@ -59,7 +59,7 @@ typedef struct _DexSemaphoreWaiterClass
   DexFutureClass parent_class;
 } DexSemaphoreWaiterClass;
 
-static GType dex_semaphore_waiter_get_type (void) G_GNUC_CONST;
+static GType dex_semaphore_waiter_get_type (void);
 
 DEX_DEFINE_FINAL_TYPE (DexSemaphoreWaiter, dex_semaphore_waiter, DEX_TYPE_FUTURE)
 

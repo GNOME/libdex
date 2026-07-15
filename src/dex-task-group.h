@@ -37,12 +37,12 @@ typedef struct _DexTaskGroup DexTaskGroup;
 
 typedef enum _DexTaskGroupFlags
 {
-  DEX_TASK_GROUP_FLAGS_NONE = 0,
+  DEX_TASK_GROUP_FLAGS_NONE            = 0,
   DEX_TASK_GROUP_FLAGS_CANCEL_ON_ERROR = 1 << 0,
 } DexTaskGroupFlags;
 
 DEX_AVAILABLE_IN_ALL
-GType         dex_task_group_get_type            (void) G_GNUC_CONST;
+GType         dex_task_group_get_type            (void);
 DEX_AVAILABLE_IN_ALL
 DexTaskGroup *dex_task_group_new                 (DexTaskGroupFlags  flags);
 DEX_AVAILABLE_IN_ALL

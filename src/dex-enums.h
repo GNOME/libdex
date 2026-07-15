@@ -41,6 +41,6 @@ typedef enum _DexFutureStatus
 } DexFutureStatus;
 
 DEX_AVAILABLE_IN_ALL
-GType dex_future_status_get_type (void) G_GNUC_CONST;
+GType dex_future_status_get_type (void);
 
 G_END_DECLS

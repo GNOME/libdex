@@ -32,11 +32,11 @@ G_BEGIN_DECLS
 typedef struct _DexThreadPoolScheduler DexThreadPoolScheduler;
 
 DEX_AVAILABLE_IN_ALL
-GType         dex_thread_pool_scheduler_get_type    (void) G_GNUC_CONST;
+GType         dex_thread_pool_scheduler_get_type    (void);
 DEX_AVAILABLE_IN_ALL
 DexScheduler *dex_thread_pool_scheduler_new         (void);
 DEX_AVAILABLE_IN_ALL
-DexScheduler *dex_thread_pool_scheduler_get_default (void) G_GNUC_CONST;
+DexScheduler *dex_thread_pool_scheduler_get_default (void);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexThreadPoolScheduler, dex_unref)
 

@@ -45,9 +45,9 @@ typedef enum _DexBlockKind
 typedef struct _DexBlock DexBlock;
 
 DEX_AVAILABLE_IN_ALL
-GType         dex_block_kind_get_type (void) G_GNUC_CONST;
+GType         dex_block_kind_get_type (void);
 DEX_AVAILABLE_IN_ALL
-GType         dex_block_get_type      (void) G_GNUC_CONST;
+GType         dex_block_get_type      (void);
 DEX_AVAILABLE_IN_ALL
 DexBlockKind  dex_block_get_kind      (DexBlock *block);
 DEX_AVAILABLE_IN_ALL

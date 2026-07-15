@@ -31,7 +31,7 @@ G_BEGIN_DECLS
 typedef struct _DexUringAioBackend      DexUringAioBackend;
 typedef struct _DexUringAioBackendClass DexUringAioBackendClass;
 
-GType          dex_uring_aio_backend_get_type (void) G_GNUC_CONST;
+GType          dex_uring_aio_backend_get_type (void);
 DexAioBackend *dex_uring_aio_backend_new      (void);
 
 G_END_DECLS

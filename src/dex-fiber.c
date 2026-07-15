@@ -73,7 +73,7 @@ typedef struct _DexYieldClass
   DexFutureClass parent_class;
 } DexYieldClass;
 
-GType dex_yield_get_type (void) G_GNUC_CONST;
+GType dex_yield_get_type (void);
 DEX_DEFINE_FINAL_TYPE (DexYield, dex_yield, DEX_TYPE_FUTURE)
 
 #undef DEX_TYPE_YIELD

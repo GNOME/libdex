@@ -44,9 +44,9 @@ typedef struct _DexVariantList DexVariantList;
 #define DEX_TYPE_TLS_CERTIFICATE_LIST (dex_tls_certificate_list_get_type())
 #define DEX_TYPE_VARIANT_LIST (dex_variant_list_get_type())
 
-GType dex_srv_target_list_get_type (void) G_GNUC_CONST;
-GType dex_tls_certificate_list_get_type (void) G_GNUC_CONST;
-GType dex_variant_list_get_type (void) G_GNUC_CONST;
+GType dex_srv_target_list_get_type (void);
+GType dex_tls_certificate_list_get_type (void);
+GType dex_variant_list_get_type (void);
 
 static DexFileInfoList *
 dex_file_info_list_copy (DexFileInfoList *list)

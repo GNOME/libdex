@@ -32,7 +32,7 @@ G_BEGIN_DECLS
 
 typedef struct _DexUringFuture DexUringFuture;
 
-GType           dex_uring_future_get_type  (void) G_GNUC_CONST;
+GType           dex_uring_future_get_type  (void);
 DexUringFuture *dex_uring_future_new_close (int                  fd);
 DexUringFuture *dex_uring_future_new_open  (const char          *path,
                                             int                  flags,

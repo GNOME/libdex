@@ -74,7 +74,7 @@ struct _DexAioContext
   /*< private >*/
 };
 
-GType          dex_aio_backend_get_type       (void) G_GNUC_CONST;
+GType          dex_aio_backend_get_type       (void);
 DexAioBackend *dex_aio_backend_get_default    (void);
 DexAioContext *dex_aio_backend_create_context (DexAioBackend *aio_backend);
 DexFuture     *dex_aio_backend_close          (DexAioBackend *aio_backend,

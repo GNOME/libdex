@@ -43,7 +43,7 @@ typedef enum
 } DexThreadPoolShutdownMode;
 
 DEX_AVAILABLE_IN_1_2
-GType          dex_thread_pool_get_type      (void) G_GNUC_CONST;
+GType          dex_thread_pool_get_type      (void);
 DEX_AVAILABLE_IN_1_2
 DexThreadPool *dex_thread_pool_new           (guint                      n_threads);
 DEX_AVAILABLE_IN_1_2

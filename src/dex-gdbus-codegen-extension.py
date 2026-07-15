@@ -64,7 +64,7 @@ class HeaderCodeGenerator:
             if self.symbol_decorator is not None:
                 self.outfile.write("%s\n" % self.symbol_decorator)
             self.outfile.write(
-                "GType %s_get_type (void) G_GNUC_CONST;\n" % function_prefix
+                "GType %s_get_type (void);\n" % function_prefix
             )
 
             self.outfile.write("\n")
@@ -141,7 +141,7 @@ class HeaderCodeGenerator:
             if self.symbol_decorator is not None:
                 self.outfile.write("%s\n" % self.symbol_decorator)
             self.outfile.write(
-                "GType %s_get_type (void) G_GNUC_CONST;\n" % function_prefix
+                "GType %s_get_type (void);\n" % function_prefix
             )
 
             self.outfile.write("\n")

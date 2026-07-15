@@ -25,8 +25,8 @@
 G_BEGIN_DECLS
 
 DEX_AVAILABLE_IN_ALL
-gsize dex_get_page_size      (void) G_GNUC_CONST;
+gsize dex_get_page_size      (void);
 DEX_AVAILABLE_IN_ALL
-gsize dex_get_min_stack_size (void) G_GNUC_CONST;
+gsize dex_get_min_stack_size (void);
 
 G_END_DECLS

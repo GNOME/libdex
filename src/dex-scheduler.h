@@ -75,12 +75,11 @@ typedef DexFuture *(*DexCoroutineFunc) (DexCoroutineContext *context,
                                         gpointer             user_data);
 
 DEX_AVAILABLE_IN_ALL
-GType         dex_scheduler_get_type           (void) G_GNUC_CONST;
+GType         dex_scheduler_get_type           (void);
 DEX_AVAILABLE_IN_ALL
 DexScheduler *dex_scheduler_get_thread_default (void);
 DEX_AVAILABLE_IN_ALL
-DexScheduler *dex_scheduler_ref_thread_default (void)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexScheduler *dex_scheduler_ref_thread_default (void) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexScheduler *dex_scheduler_get_default        (void);
 DEX_AVAILABLE_IN_ALL
@@ -94,21 +93,18 @@ DexFuture    *dex_scheduler_spawn              (DexScheduler     *scheduler,
                                                 gsize             stack_size,
                                                 DexFiberFunc      func,
                                                 gpointer          func_data,
-                                                GDestroyNotify    func_data_destroy)
-  G_GNUC_WARN_UNUSED_RESULT;
+                                                GDestroyNotify    func_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture    *dex_scheduler_spawn_coroutine    (DexScheduler     *scheduler,
                                                 DexCoroutineFunc  func,
                                                 gpointer          user_data,
-                                                GDestroyNotify    user_data_destroy)
-  G_GNUC_WARN_UNUSED_RESULT;
+                                                GDestroyNotify    user_data_destroy) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-DexFuture    *dex_scheduler_spawnv             (DexScheduler *scheduler,
-                                                gsize         stack_size,
-                                                GCallback     callback,
-                                                guint         n_params,
-                                                ...)
-  G_GNUC_WARN_UNUSED_RESULT;
+DexFuture    *dex_scheduler_spawnv             (DexScheduler     *scheduler,
+                                                gsize             stack_size,
+                                                GCallback         callback,
+                                                guint             n_params,
+                                                ...) G_GNUC_WARN_UNUSED_RESULT;
 
 #if !defined(DEX_DISABLE_STATIC_NAME_MACROS)
 # define _DEX_FIBER_NEW_(counter, scheduler, stack_size, func, func_data, func_data_destroy) \

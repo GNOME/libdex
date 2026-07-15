@@ -31,7 +31,7 @@ G_BEGIN_DECLS
 
 typedef struct _DexWorkQueue DexWorkQueue;
 
-GType         dex_work_queue_get_type (void) G_GNUC_CONST;
+GType         dex_work_queue_get_type (void);
 DexWorkQueue *dex_work_queue_new      (void);
 void          dex_work_queue_push     (DexWorkQueue *work_queue,
                                        DexWorkItem   work_item);

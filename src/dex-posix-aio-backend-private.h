@@ -33,7 +33,7 @@ typedef struct _DexPosixAioContext      DexPosixAioContext;
 typedef struct _DexPosixAioFuture       DexPosixAioFuture;
 typedef struct _DexPosixAioBackendClass DexPosixAioBackendClass;
 
-GType          dex_posix_aio_backend_get_type     (void) G_GNUC_CONST;
+GType          dex_posix_aio_backend_get_type     (void);
 DexAioBackend *dex_posix_aio_backend_new          (void);
 DexAioBackend *dex_posix_aio_backend_get_fallback (void);
 void           dex_posix_aio_context_enqueue      (DexPosixAioContext *posix_aio_context,

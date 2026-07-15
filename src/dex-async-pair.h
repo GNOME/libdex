@@ -35,9 +35,9 @@ typedef struct _DexAsyncPair DexAsyncPair;
 
 typedef struct _DexAsyncPairInfo
 {
-  gpointer  async;
-  gpointer  finish;
-  GType     return_type;
+  gpointer async;
+  gpointer finish;
+  GType    return_type;
 
   /*< private >*/
   gpointer _reserved[13];
@@ -85,11 +85,10 @@ G_STATIC_ASSERT (sizeof (DexAsyncPairInfo) == (GLIB_SIZEOF_VOID_P * 16));
   DEX_ASYNC_PAIR_INFO (Async, Finish, Type)
 
 DEX_AVAILABLE_IN_ALL
-GType         dex_async_pair_get_type              (void) G_GNUC_CONST;
+GType         dex_async_pair_get_type              (void);
 DEX_AVAILABLE_IN_ALL
 DexFuture    *dex_async_pair_new                   (gpointer                instance,
-                                                    const DexAsyncPairInfo *info)
-  G_GNUC_WARN_UNUSED_RESULT;
+                                                    const DexAsyncPairInfo *info) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 GCancellable *dex_async_pair_get_cancellable       (DexAsyncPair           *async_pair);
 DEX_AVAILABLE_IN_ALL

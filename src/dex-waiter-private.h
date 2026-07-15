@@ -31,7 +31,7 @@ G_BEGIN_DECLS
 
 typedef struct _DexWaiter DexWaiter;
 
-GType      dex_waiter_get_type (void) G_GNUC_CONST;
+GType      dex_waiter_get_type (void);
 DexWaiter *dex_waiter_new      (DexFuture *future);
 void       dex_waiter_wait     (DexWaiter *self);
 

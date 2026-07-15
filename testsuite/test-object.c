@@ -32,7 +32,7 @@ static guint finalize_count;
 #define TEST_IS_OBJECT(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, TEST_TYPE_OBJECT))
 #define TEST_OBJECT(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, TEST_TYPE_OBJECT, TestObject))
 
-GType test_object_get_type (void) G_GNUC_CONST;
+GType test_object_get_type (void);
 
 typedef struct _TestObject
 {
@@ -80,7 +80,7 @@ test_object_new (void)
 #define TEST_PROPERTY_OBJECT(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST(obj, TEST_TYPE_PROPERTY_OBJECT, TestPropertyObject))
 
-GType test_property_object_get_type (void) G_GNUC_CONST;
+GType test_property_object_get_type (void);
 
 typedef struct _TestPropertyObject
 {

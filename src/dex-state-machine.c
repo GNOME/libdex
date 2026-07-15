@@ -111,7 +111,7 @@ typedef struct _DexStateMachineWaiterClass
   DexFutureClass parent_class;
 } DexStateMachineWaiterClass;
 
-GType dex_state_machine_waiter_get_type (void) G_GNUC_CONST;
+GType dex_state_machine_waiter_get_type (void);
 
 DEX_DEFINE_FINAL_TYPE (DexStateMachine, dex_state_machine, DEX_TYPE_OBJECT)
 DEX_DEFINE_FINAL_TYPE (DexStateMachineWaiter, dex_state_machine_waiter, DEX_TYPE_FUTURE)

@@ -31,7 +31,7 @@
 
 G_BEGIN_DECLS
 
-typedef struct _DexCoroutine DexCoroutine;
+typedef struct _DexCoroutine      DexCoroutine;
 typedef struct _DexCoroutineClass DexCoroutineClass;
 
 #define DEX_TYPE_COROUTINE    (dex_coroutine_get_type())
@@ -39,7 +39,7 @@ typedef struct _DexCoroutineClass DexCoroutineClass;
 #define DEX_IS_COROUTINE(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), DEX_TYPE_COROUTINE))
 
 DEX_AVAILABLE_IN_ALL
-GType dex_coroutine_get_type (void) G_GNUC_CONST;
+GType dex_coroutine_get_type        (void);
 DEX_AVAILABLE_IN_ALL
 void  dex_coroutine_context_suspend (DexCoroutineContext  *context,
                                      guint                 pc,

@@ -34,7 +34,7 @@ G_BEGIN_DECLS
 
 typedef struct _DexWatch DexWatch;
 
-GType      dex_watch_get_type (void) G_GNUC_CONST;
+GType      dex_watch_get_type (void);
 DexFuture *dex_watch_new      (int fd,
                                int events);
 

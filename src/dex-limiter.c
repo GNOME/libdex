@@ -105,7 +105,7 @@ typedef struct _DexLimiterRunOnPool
 #define DEX_TYPE_LIMITER_ACQUIRE    (dex_limiter_acquire_get_type())
 #define DEX_IS_LIMITER_ACQUIRE(obj) (G_TYPE_CHECK_INSTANCE_TYPE(obj, DEX_TYPE_LIMITER_ACQUIRE))
 
-static GType dex_limiter_acquire_get_type    (void) G_GNUC_CONST;
+static GType dex_limiter_acquire_get_type    (void);
 static void  dex_limiter_maybe_resolve_drain (DexLimiter *limiter);
 
 DEX_DEFINE_FINAL_TYPE (DexLimiter, dex_limiter, DEX_TYPE_OBJECT)

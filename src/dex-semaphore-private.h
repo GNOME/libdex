@@ -31,12 +31,12 @@ G_BEGIN_DECLS
 
 typedef struct _DexSemaphore DexSemaphore;
 
-GType         dex_semaphore_get_type   (void) G_GNUC_CONST;
-DexSemaphore *dex_semaphore_new        (void);
-void          dex_semaphore_post       (DexSemaphore *semaphore);
-void          dex_semaphore_post_many  (DexSemaphore *semaphore,
-                                        guint         count);
-DexFuture    *dex_semaphore_wait       (DexSemaphore *semaphore);
-void          dex_semaphore_close      (DexSemaphore *semaphore);
+GType         dex_semaphore_get_type  (void);
+DexSemaphore *dex_semaphore_new       (void);
+void          dex_semaphore_post      (DexSemaphore *semaphore);
+void          dex_semaphore_post_many (DexSemaphore *semaphore,
+                                       guint         count);
+DexFuture    *dex_semaphore_wait      (DexSemaphore *semaphore);
+void          dex_semaphore_close     (DexSemaphore *semaphore);
 
 G_END_DECLS

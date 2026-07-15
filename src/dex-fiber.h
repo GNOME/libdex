@@ -31,7 +31,7 @@ G_BEGIN_DECLS
 typedef struct _DexFiber DexFiber;
 
 DEX_AVAILABLE_IN_ALL
-GType    dex_fiber_get_type (void) G_GNUC_CONST;
+GType    dex_fiber_get_type (void);
 DEX_AVAILABLE_IN_ALL
 gboolean dex_fiber_yield    (GError **error) G_GNUC_WARN_UNUSED_RESULT;
 

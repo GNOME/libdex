@@ -44,6 +44,6 @@ typedef enum _DexError
 } DexError;
 
 DEX_AVAILABLE_IN_ALL
-GQuark dex_error_quark (void) G_GNUC_CONST;
+GQuark dex_error_quark (void);
 
 G_END_DECLS

@@ -28,7 +28,7 @@ G_BEGIN_DECLS
 
 typedef struct _DexFD DexFD;
 
-GType  dex_fd_get_type (void) G_GNUC_CONST;
+GType  dex_fd_get_type (void);
 int    dex_fd_peek     (const DexFD *fd);
 int    dex_fd_steal    (DexFD       *fd);
 DexFD *dex_fd_dup      (const DexFD *fd);

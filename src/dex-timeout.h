@@ -36,7 +36,7 @@ G_BEGIN_DECLS
 typedef struct _DexTimeout DexTimeout;
 
 DEX_AVAILABLE_IN_ALL
-GType      dex_timeout_get_type       (void) G_GNUC_CONST;
+GType      dex_timeout_get_type       (void);
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_timeout_new_deadline   (gint64      deadline);
 DEX_AVAILABLE_IN_ALL

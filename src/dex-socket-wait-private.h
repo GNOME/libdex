@@ -37,7 +37,7 @@ G_BEGIN_DECLS
 
 typedef struct _DexSocketWait DexSocketWait;
 
-GType      dex_socket_wait_get_type (void) G_GNUC_CONST;
+GType      dex_socket_wait_get_type (void);
 DexFuture *dex_socket_wait_new      (GSocket      *socket,
                                      GIOCondition  condition);
 
