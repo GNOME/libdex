@@ -26,6 +26,7 @@
 #include "dex-closure.h"
 #include "dex-error.h"
 #include "dex-future.h"
+#include "dex-future-private.h"
 #include "dex-limiter.h"
 #include "dex-object-private.h"
 #include "dex-state-machine.h"
@@ -69,6 +70,7 @@ struct _DexStateMachine
   DexLimiter         *limiter;
   DexScheduler       *scheduler;
   DexStateTransition *transitions;
+  GQueue              waiters;
   guint               n_transitions;
   gsize               stack_size;
   guint               state;
@@ -90,13 +92,118 @@ typedef struct _DexStateMachineClass
   DexObjectClass parent_class;
 } DexStateMachineClass;
 
+typedef struct _DexStateMachineWaiter
+{
+  DexFuture  parent_instance;
+  GList      link;
+  DexWeakRef state_machine_wr;
+  guint      state;
+  guint      queued : 1;
+} DexStateMachineWaiter;
+
+typedef struct _DexStateMachineWaiterClass
+{
+  DexFutureClass parent_class;
+} DexStateMachineWaiterClass;
+
+GType dex_state_machine_waiter_get_type (void) G_GNUC_CONST;
+
 DEX_DEFINE_FINAL_TYPE (DexStateMachine, dex_state_machine, DEX_TYPE_OBJECT)
+DEX_DEFINE_FINAL_TYPE (DexStateMachineWaiter, dex_state_machine_waiter, DEX_TYPE_FUTURE)
 DEX_DEFINE_CLOSURE_TYPE (DexStateMachineRun, dex_state_machine_run,
                          DEX_DEFINE_CLOSURE_POINTER (DexStateMachine *, state_machine, dex_unref),
                          DEX_DEFINE_CLOSURE_VALUE (guint, target))
 
 #undef DEX_TYPE_STATE_MACHINE
 #define DEX_TYPE_STATE_MACHINE dex_state_machine_type
+
+static void
+dex_state_machine_waiter_complete (DexStateMachineWaiter *waiter,
+                                   GType                  state_enum_type,
+                                   guint                  state)
+{
+  GValue value = G_VALUE_INIT;
+
+  g_assert (waiter != NULL);
+  g_assert (!waiter->queued);
+  g_assert (G_TYPE_IS_ENUM (state_enum_type));
+
+  g_value_init (&value, state_enum_type);
+  g_value_set_enum (&value, state);
+  dex_future_complete (DEX_FUTURE (waiter), &value, NULL);
+  g_value_unset (&value);
+}
+
+static void
+dex_state_machine_waiter_discard (DexFuture *future)
+{
+  DexStateMachineWaiter *waiter = (DexStateMachineWaiter *)future;
+  DexStateMachine *state_machine;
+  gboolean unref = FALSE;
+
+  g_assert (waiter != NULL);
+
+  if (!(state_machine = dex_weak_ref_get (&waiter->state_machine_wr)))
+    return;
+
+  dex_object_lock (state_machine);
+  if (waiter->queued)
+    {
+      g_queue_unlink (&state_machine->waiters, &waiter->link);
+      waiter->queued = FALSE;
+      unref = TRUE;
+    }
+  dex_object_unlock (state_machine);
+
+  if (unref)
+    dex_unref (waiter);
+
+  dex_unref (state_machine);
+}
+
+static void
+dex_state_machine_waiter_finalize (DexObject *object)
+{
+  DexStateMachineWaiter *waiter = (DexStateMachineWaiter *)object;
+
+  g_assert (!waiter->queued);
+
+  dex_weak_ref_clear (&waiter->state_machine_wr);
+
+  DEX_OBJECT_CLASS (dex_state_machine_waiter_parent_class)->finalize (object);
+}
+
+static void
+dex_state_machine_waiter_class_init (DexStateMachineWaiterClass *waiter_class)
+{
+  DexObjectClass *object_class = DEX_OBJECT_CLASS (waiter_class);
+  DexFutureClass *future_class = DEX_FUTURE_CLASS (waiter_class);
+
+  object_class->finalize = dex_state_machine_waiter_finalize;
+
+  future_class->discard = dex_state_machine_waiter_discard;
+}
+
+static void
+dex_state_machine_waiter_init (DexStateMachineWaiter *waiter)
+{
+  waiter->link.data = waiter;
+}
+
+static DexStateMachineWaiter *
+dex_state_machine_waiter_new (DexStateMachine *state_machine,
+                              guint            state)
+{
+  DexStateMachineWaiter *waiter;
+
+  g_assert (DEX_IS_STATE_MACHINE (state_machine));
+
+  waiter = (DexStateMachineWaiter *)dex_object_create_instance (dex_state_machine_waiter_type);
+  waiter->state = state;
+  dex_weak_ref_init (&waiter->state_machine_wr, state_machine);
+
+  return waiter;
+}
 
 static gboolean
 dex_state_machine_is_valid_state (DexStateMachine *state_machine,
@@ -214,13 +321,36 @@ static gboolean
 dex_state_machine_set_state (DexStateMachine *state_machine,
                              guint            state)
 {
+  GQueue waiters = G_QUEUE_INIT;
+
   g_assert (DEX_IS_STATE_MACHINE (state_machine));
 
   g_return_val_if_fail (dex_state_machine_is_valid_state (state_machine, state), FALSE);
 
   dex_object_lock (state_machine);
   state_machine->state = state;
+  for (const GList *iter = state_machine->waiters.head; iter; )
+    {
+      DexStateMachineWaiter *waiter = iter->data;
+
+      iter = iter->next;
+
+      if (waiter->state == state)
+        {
+          g_queue_unlink (&state_machine->waiters, &waiter->link);
+          g_queue_push_tail_link (&waiters, &waiter->link);
+          waiter->queued = FALSE;
+        }
+    }
   dex_object_unlock (state_machine);
+
+  while (waiters.head != NULL)
+    {
+      DexStateMachineWaiter *waiter = g_queue_pop_head_link (&waiters)->data;
+
+      dex_state_machine_waiter_complete (waiter, state_machine->state_enum_type, state);
+      dex_unref (waiter);
+    }
 
   return TRUE;
 }
@@ -302,6 +432,19 @@ dex_state_machine_finalize (DexObject *object)
 {
   DexStateMachine *state_machine = DEX_STATE_MACHINE (object);
 
+  while (state_machine->waiters.head != NULL)
+    {
+      DexStateMachineWaiter *waiter = g_queue_pop_head_link (&state_machine->waiters)->data;
+
+      waiter->queued = FALSE;
+      dex_future_complete (DEX_FUTURE (waiter),
+                           NULL,
+                           g_error_new_literal (G_IO_ERROR,
+                                                G_IO_ERROR_CANCELLED,
+                                                "State machine was finalized"));
+      dex_unref (waiter);
+    }
+
   dex_clear (&state_machine->limiter);
   dex_clear (&state_machine->scheduler);
   g_clear_pointer (&state_machine->transitions, g_free);
@@ -318,6 +461,8 @@ dex_state_machine_class_init (DexStateMachineClass *state_machine_class)
   DexObjectClass *object_class = DEX_OBJECT_CLASS (state_machine_class);
 
   object_class->finalize = dex_state_machine_finalize;
+
+  g_type_ensure (dex_state_machine_waiter_get_type ());
 }
 
 static void
@@ -571,6 +716,49 @@ dex_state_machine_transition (DexStateMachine *state_machine,
                           dex_state_machine_transition_fiber,
                           run,
                           (GDestroyNotify)dex_state_machine_run_free);
+}
+
+/**
+ * dex_state_machine_wait_for_state:
+ * @state_machine: a [class@Dex.StateMachine]
+ * @state: the state to wait for
+ *
+ * Waits until @state_machine enters @state.
+ *
+ * If @state_machine is already in @state, the returned future is already
+ * resolved. Otherwise, the future resolves the next time the current state is
+ * set to @state. This does not request a transition; use
+ * [method@Dex.StateMachine.transition] to move the state machine.
+ *
+ * Returns: (transfer full): a future resolving to @state
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_state_machine_wait_for_state (DexStateMachine *state_machine,
+                                  guint            state)
+{
+  DexStateMachineWaiter *waiter;
+
+  dex_return_error_if_fail (DEX_IS_STATE_MACHINE (state_machine));
+  dex_return_error_if_fail (dex_state_machine_is_valid_state (state_machine, state));
+
+  waiter = dex_state_machine_waiter_new (state_machine, state);
+
+  dex_object_lock (state_machine);
+  if (state_machine->state == state)
+    {
+      dex_object_unlock (state_machine);
+      dex_unref (waiter);
+      return dex_future_new_enum (state_machine->state_enum_type, state);
+    }
+
+  dex_ref (waiter);
+  waiter->queued = TRUE;
+  g_queue_push_tail_link (&state_machine->waiters, &waiter->link);
+  dex_object_unlock (state_machine);
+
+  return DEX_FUTURE (waiter);
 }
 
 /**

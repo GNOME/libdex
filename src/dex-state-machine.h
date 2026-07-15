@@ -106,6 +106,9 @@ DEX_AVAILABLE_IN_1_2
 DexFuture       *dex_state_machine_transition             (DexStateMachine            *state_machine,
                                                            guint                       target) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
+DexFuture       *dex_state_machine_wait_for_state         (DexStateMachine            *state_machine,
+                                                           guint                       state) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_2
 guint            dex_state_machine_get_requested_state    (DexStateMachine            *state_machine);
 DEX_AVAILABLE_IN_1_2
 guint            dex_state_machine_get_state              (DexStateMachine            *state_machine);

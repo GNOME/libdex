@@ -140,6 +140,26 @@ Unsupported transitions reject with
 from `PASSWORD_DAEMON_INITIAL` to `PASSWORD_DAEMON_UNLOCKED` will fail unless
 that edge exists in the transition table.
 
+## Waiting for State
+
+Call [method@Dex.StateMachine.wait_for_state] when code outside the transition
+callback needs to wait until the current state reaches a specific value.
+
+```c
+DexFuture *future =
+  dex_state_machine_wait_for_state (daemon->state_machine,
+                                    PASSWORD_DAEMON_READY);
+```
+
+The returned future resolves immediately if the state machine is already in
+that state. Otherwise it resolves the next time the state is set to that value,
+including intermediate states exposed by
+[method@Dex.StateTransitionContext.set_state].
+
+Waiting does not request a transition. Pair it with
+[method@Dex.StateMachine.transition] when the caller also needs to initiate the
+state change.
+
 ## Updating State During a Transition
 
 [struct@Dex.StateTransitionContext] gives callbacks access to both the declared
