@@ -160,6 +160,44 @@ Waiting does not request a transition. Pair it with
 [method@Dex.StateMachine.transition] when the caller also needs to initiate the
 state change.
 
+## Interrupting Active Transitions
+
+Long-running transition callbacks can opt in to cooperative interruption with
+[method@Dex.StateTransitionContext.wait_for_interrupt]. The returned future
+resolves when another caller calls [method@Dex.StateMachine.interrupt].
+
+```c
+static gboolean
+enter_unlocked (DexStateTransitionContext  *context,
+                gpointer                    user_data,
+                GError                    **error)
+{
+  PasswordDaemon *daemon = user_data;
+
+  if (!dex_await (dex_future_first (
+                    dex_state_transition_context_wait_for_interrupt (context),
+                    password_daemon_read_loop (daemon),
+                    NULL),
+                  error))
+    return FALSE;
+
+  return dex_state_transition_context_continue_to (context,
+                                                   PASSWORD_DAEMON_LOCKED,
+                                                   error);
+}
+```
+
+Interrupting does not request a transition, change state, or skip the
+transition callback. It only resolves the active context's interrupt future.
+The callback decides whether to continue to another state, return successfully,
+or fail with an error.
+
+If [method@Dex.StateMachine.interrupt] is called before the active callback
+requests the interrupt future, the interrupt is remembered and
+[method@Dex.StateTransitionContext.wait_for_interrupt] returns an already
+resolved future. If the callback completes before interruption, the interrupt
+future rejects with %G_IO_ERROR_CANCELLED.
+
 ## Updating State During a Transition
 
 [struct@Dex.StateTransitionContext] gives callbacks access to both the declared

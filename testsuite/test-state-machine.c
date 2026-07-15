@@ -32,7 +32,8 @@ typedef enum _TestState
 
 typedef struct _TransitionData
 {
-  GArray *visited;
+  GArray    *visited;
+  DexFuture *interrupt;
 } TransitionData;
 
 typedef struct _SchedulerData
@@ -54,6 +55,7 @@ G_DEFINE_ENUM_TYPE (TestState, test_state,
 static void
 transition_data_free (TransitionData *data)
 {
+  dex_clear (&data->interrupt);
   g_array_unref (data->visited);
   g_free (data);
 }
@@ -221,6 +223,78 @@ transition_scheduler (DexStateTransitionContext  *context,
                  dex_scheduler_get_main_context (data->scheduler));
 
   data->used_scheduler = TRUE;
+
+  return TRUE;
+}
+
+static gboolean
+transition_interrupt (DexStateTransitionContext  *context,
+                      gpointer                    user_data,
+                      GError                    **error)
+{
+  TransitionData *data = user_data;
+  guint from;
+  guint to;
+
+  from = dex_state_transition_context_get_from (context);
+  to = dex_state_transition_context_get_to (context);
+
+  g_assert_cmpuint (from, ==, TEST_STATE_INITIAL);
+  g_assert_cmpuint (to, ==, TEST_STATE_READY);
+
+  g_array_append_val (data->visited, from);
+  g_array_append_val (data->visited, to);
+
+  dex_state_transition_context_set_state (context, TEST_STATE_PREPARE);
+
+  if (!dex_await (dex_state_transition_context_wait_for_interrupt (context), error))
+    return FALSE;
+
+  dex_state_transition_context_set_state (context, TEST_STATE_READY);
+
+  return TRUE;
+}
+
+static gboolean
+transition_interrupt_late_wait (DexStateTransitionContext  *context,
+                                gpointer                    user_data,
+                                GError                    **error)
+{
+  TransitionData *data = user_data;
+  guint from;
+  guint to;
+
+  from = dex_state_transition_context_get_from (context);
+  to = dex_state_transition_context_get_to (context);
+
+  g_assert_cmpuint (from, ==, TEST_STATE_INITIAL);
+  g_assert_cmpuint (to, ==, TEST_STATE_READY);
+
+  g_array_append_val (data->visited, from);
+  g_array_append_val (data->visited, to);
+
+  dex_state_transition_context_set_state (context, TEST_STATE_PREPARE);
+
+  dex_await (dex_timeout_new_msec (10), NULL);
+
+  if (!dex_await (dex_state_transition_context_wait_for_interrupt (context), error))
+    return FALSE;
+
+  dex_state_transition_context_set_state (context, TEST_STATE_READY);
+
+  return TRUE;
+}
+
+static gboolean
+transition_interrupt_not_taken (DexStateTransitionContext  *context,
+                                gpointer                    user_data,
+                                GError                    **error)
+{
+  TransitionData *data = user_data;
+
+  g_assert_null (data->interrupt);
+
+  data->interrupt = dex_state_transition_context_wait_for_interrupt (context);
 
   return TRUE;
 }
@@ -648,6 +722,137 @@ test_state_machine_wait_for_state_finalized (void)
 }
 
 static void
+test_state_machine_interrupt_none (void)
+{
+  g_autoptr(DexStateMachine) state_machine = NULL;
+
+  state_machine = dex_state_machine_new (TEST_TYPE_STATE,
+                                         TEST_STATE_INITIAL,
+                                         NULL,
+                                         0,
+                                         NULL,
+                                         0,
+                                         NULL,
+                                         NULL);
+
+  g_assert_false (dex_state_machine_interrupt (state_machine));
+}
+
+static void
+test_state_machine_interrupt (void)
+{
+  static const DexStateTransition transitions[] = {
+    { TEST_STATE_INITIAL, TEST_STATE_READY, transition_interrupt },
+  };
+  g_autoptr(DexStateMachine) state_machine = NULL;
+  g_autoptr(DexFuture) wait = NULL;
+  g_autoptr(DexFuture) transition = NULL;
+  g_autoptr(GError) error = NULL;
+  TransitionData *data;
+  guint state;
+
+  data = transition_data_new ();
+  state_machine = dex_state_machine_new (TEST_TYPE_STATE,
+                                         TEST_STATE_INITIAL,
+                                         transitions,
+                                         G_N_ELEMENTS (transitions),
+                                         NULL,
+                                         0,
+                                         data,
+                                         (GDestroyNotify)transition_data_free);
+
+  wait = dex_state_machine_wait_for_state (state_machine, TEST_STATE_PREPARE);
+  transition = dex_state_machine_transition (state_machine, TEST_STATE_READY);
+
+  state = dex_await_enum (dex_ref (wait), &error);
+
+  g_assert_no_error (error);
+  g_assert_cmpuint (state, ==, TEST_STATE_PREPARE);
+  g_assert_true (dex_future_is_pending (transition));
+
+  g_assert_true (dex_state_machine_interrupt (state_machine));
+
+  state = dex_await_enum (dex_ref (transition), &error);
+
+  g_assert_no_error (error);
+  g_assert_cmpuint (state, ==, TEST_STATE_READY);
+  g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_READY);
+}
+
+static void
+test_state_machine_interrupt_latched (void)
+{
+  static const DexStateTransition transitions[] = {
+    { TEST_STATE_INITIAL, TEST_STATE_READY, transition_interrupt_late_wait },
+  };
+  g_autoptr(DexStateMachine) state_machine = NULL;
+  g_autoptr(DexFuture) wait = NULL;
+  g_autoptr(DexFuture) transition = NULL;
+  g_autoptr(GError) error = NULL;
+  TransitionData *data;
+  guint state;
+
+  data = transition_data_new ();
+  state_machine = dex_state_machine_new (TEST_TYPE_STATE,
+                                         TEST_STATE_INITIAL,
+                                         transitions,
+                                         G_N_ELEMENTS (transitions),
+                                         NULL,
+                                         0,
+                                         data,
+                                         (GDestroyNotify)transition_data_free);
+
+  wait = dex_state_machine_wait_for_state (state_machine, TEST_STATE_PREPARE);
+  transition = dex_state_machine_transition (state_machine, TEST_STATE_READY);
+
+  state = dex_await_enum (dex_ref (wait), &error);
+
+  g_assert_no_error (error);
+  g_assert_cmpuint (state, ==, TEST_STATE_PREPARE);
+
+  g_assert_true (dex_state_machine_interrupt (state_machine));
+
+  state = dex_await_enum (dex_ref (transition), &error);
+
+  g_assert_no_error (error);
+  g_assert_cmpuint (state, ==, TEST_STATE_READY);
+  g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_READY);
+}
+
+static void
+test_state_machine_interrupt_context_completed (void)
+{
+  static const DexStateTransition transitions[] = {
+    { TEST_STATE_INITIAL, TEST_STATE_READY, transition_interrupt_not_taken },
+  };
+  g_autoptr(DexStateMachine) state_machine = NULL;
+  g_autoptr(GError) error = NULL;
+  TransitionData *data;
+  guint state;
+
+  data = transition_data_new ();
+  state_machine = dex_state_machine_new (TEST_TYPE_STATE,
+                                         TEST_STATE_INITIAL,
+                                         transitions,
+                                         G_N_ELEMENTS (transitions),
+                                         NULL,
+                                         0,
+                                         data,
+                                         (GDestroyNotify)transition_data_free);
+
+  state = dex_await_enum (dex_state_machine_transition (state_machine, TEST_STATE_READY), &error);
+
+  g_assert_no_error (error);
+  g_assert_cmpuint (state, ==, TEST_STATE_READY);
+  g_assert_nonnull (data->interrupt);
+
+  g_assert_false (dex_await (dex_ref (data->interrupt), &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+  g_clear_error (&error);
+  g_assert_false (dex_state_machine_interrupt (state_machine));
+}
+
+static void
 test_state_machine_continue_to (void)
 {
   static const DexStateTransition transitions[] = {
@@ -864,6 +1069,12 @@ main (int   argc,
                     test_state_machine_wait_for_state_invalid);
   _g_test_add_func ("/Dex/StateMachine/wait-for-state-finalized",
                     test_state_machine_wait_for_state_finalized);
+  _g_test_add_func ("/Dex/StateMachine/interrupt-none", test_state_machine_interrupt_none);
+  _g_test_add_func ("/Dex/StateMachine/interrupt", test_state_machine_interrupt);
+  _g_test_add_func ("/Dex/StateMachine/interrupt-latched",
+                    test_state_machine_interrupt_latched);
+  _g_test_add_func ("/Dex/StateMachine/interrupt-context-completed",
+                    test_state_machine_interrupt_context_completed);
   _g_test_add_func ("/Dex/StateMachine/continue-to", test_state_machine_continue_to);
   _g_test_add_func ("/Dex/StateMachine/continue-to-before-queued",
                     test_state_machine_continue_to_before_queued);

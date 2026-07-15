@@ -79,39 +79,43 @@ typedef struct _DexStateTransition
 } DexStateTransition;
 
 DEX_AVAILABLE_IN_1_2
-guint            dex_state_transition_context_get_from    (DexStateTransitionContext  *context);
+guint            dex_state_transition_context_get_from           (DexStateTransitionContext  *context);
 DEX_AVAILABLE_IN_1_2
-guint            dex_state_transition_context_get_to      (DexStateTransitionContext  *context);
+guint            dex_state_transition_context_get_to             (DexStateTransitionContext  *context);
 DEX_AVAILABLE_IN_1_2
-guint            dex_state_transition_context_get_state   (DexStateTransitionContext  *context);
+guint            dex_state_transition_context_get_state          (DexStateTransitionContext  *context);
 DEX_AVAILABLE_IN_1_2
-void             dex_state_transition_context_set_state   (DexStateTransitionContext  *context,
-                                                           guint                       state);
+void             dex_state_transition_context_set_state          (DexStateTransitionContext  *context,
+                                                                  guint                       state);
 DEX_AVAILABLE_IN_1_2
-gboolean         dex_state_transition_context_continue_to (DexStateTransitionContext  *context,
-                                                           guint                       target,
-                                                           GError                    **error) G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_state_transition_context_wait_for_interrupt (DexStateTransitionContext  *context) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-GType            dex_state_machine_get_type               (void) G_GNUC_CONST;
+gboolean         dex_state_transition_context_continue_to        (DexStateTransitionContext  *context,
+                                                                  guint                       target,
+                                                                  GError                    **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-DexStateMachine *dex_state_machine_new                    (GType                       state_enum_type,
-                                                           guint                       initial_state,
-                                                           const DexStateTransition   *transitions,
-                                                           guint                       n_transitions,
-                                                           DexScheduler               *scheduler,
-                                                           gsize                       stack_size,
-                                                           gpointer                    user_data,
-                                                           GDestroyNotify              user_data_destroy);
+GType            dex_state_machine_get_type                      (void) G_GNUC_CONST;
 DEX_AVAILABLE_IN_1_2
-DexFuture       *dex_state_machine_transition             (DexStateMachine            *state_machine,
-                                                           guint                       target) G_GNUC_WARN_UNUSED_RESULT;
+DexStateMachine *dex_state_machine_new                           (GType                       state_enum_type,
+                                                                  guint                       initial_state,
+                                                                  const DexStateTransition   *transitions,
+                                                                  guint                       n_transitions,
+                                                                  DexScheduler               *scheduler,
+                                                                  gsize                       stack_size,
+                                                                  gpointer                    user_data,
+                                                                  GDestroyNotify              user_data_destroy);
 DEX_AVAILABLE_IN_1_2
-DexFuture       *dex_state_machine_wait_for_state         (DexStateMachine            *state_machine,
-                                                           guint                       state) G_GNUC_WARN_UNUSED_RESULT;
+DexFuture       *dex_state_machine_transition                    (DexStateMachine            *state_machine,
+                                                                  guint                       target) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-guint            dex_state_machine_get_requested_state    (DexStateMachine            *state_machine);
+DexFuture       *dex_state_machine_wait_for_state                (DexStateMachine            *state_machine,
+                                                                  guint                       state) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
-guint            dex_state_machine_get_state              (DexStateMachine            *state_machine);
+gboolean         dex_state_machine_interrupt                     (DexStateMachine            *state_machine);
+DEX_AVAILABLE_IN_1_2
+guint            dex_state_machine_get_requested_state           (DexStateMachine            *state_machine);
+DEX_AVAILABLE_IN_1_2
+guint            dex_state_machine_get_state                     (DexStateMachine            *state_machine);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexStateMachine, dex_unref)
 

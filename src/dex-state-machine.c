@@ -29,6 +29,7 @@
 #include "dex-future-private.h"
 #include "dex-limiter.h"
 #include "dex-object-private.h"
+#include "dex-promise.h"
 #include "dex-state-machine.h"
 
 /**
@@ -65,26 +66,30 @@
 
 struct _DexStateMachine
 {
-  DexObject           parent_instance;
-  GType               state_enum_type;
-  DexLimiter         *limiter;
-  DexScheduler       *scheduler;
-  DexStateTransition *transitions;
-  GQueue              waiters;
-  guint               n_transitions;
-  gsize               stack_size;
-  guint               state;
-  guint               requested_state;
-  gpointer            user_data;
-  GDestroyNotify      user_data_destroy;
+  DexObject                  parent_instance;
+  GType                      state_enum_type;
+  DexLimiter                *limiter;
+  DexScheduler              *scheduler;
+  DexStateTransition        *transitions;
+  DexStateTransitionContext *active_context;
+  GQueue                     waiters;
+  guint                      n_transitions;
+  gsize                      stack_size;
+  guint                      state;
+  guint                      requested_state;
+  gpointer                   user_data;
+  GDestroyNotify             user_data_destroy;
 };
 
 struct _DexStateTransitionContext
 {
-  DexStateMachine *state_machine;
-  guint            from;
-  guint            to;
-  guint            state_set : 1;
+  DexStateMachine           *state_machine;
+  DexStateTransitionContext *previous_context;
+  DexPromise                *interrupt;
+  guint                      from;
+  guint                      to;
+  guint                      state_set : 1;
+  guint                      interrupted : 1;
 };
 
 typedef struct _DexStateMachineClass
@@ -371,6 +376,44 @@ dex_state_machine_set_requested_state (DexStateMachine *state_machine,
   return TRUE;
 }
 
+/* continue_to() synchronously enters another transition while the outer
+ * callback is still on the stack. Keep active_context stacked so interrupt()
+ * targets the innermost/current callback, then restores the outer interrupt
+ * scope when the continuation returns.
+ */
+static void
+dex_state_machine_push_context (DexStateMachine           *state_machine,
+                                DexStateTransitionContext *context)
+{
+  g_assert (DEX_IS_STATE_MACHINE (state_machine));
+  g_assert (context != NULL);
+  g_assert (context->state_machine == state_machine);
+
+  dex_object_lock (state_machine);
+  context->previous_context = state_machine->active_context;
+  state_machine->active_context = context;
+  dex_object_unlock (state_machine);
+}
+
+static DexPromise *
+dex_state_machine_pop_context (DexStateMachine           *state_machine,
+                               DexStateTransitionContext *context)
+{
+  DexPromise *interrupt;
+
+  g_assert (DEX_IS_STATE_MACHINE (state_machine));
+  g_assert (context != NULL);
+  g_assert (context->state_machine == state_machine);
+
+  dex_object_lock (state_machine);
+  g_assert (state_machine->active_context == context);
+  state_machine->active_context = context->previous_context;
+  interrupt = g_steal_pointer (&context->interrupt);
+  dex_object_unlock (state_machine);
+
+  return interrupt;
+}
+
 static gboolean
 dex_state_machine_transition_to (DexStateMachine  *state_machine,
                                  guint             from,
@@ -378,7 +421,9 @@ dex_state_machine_transition_to (DexStateMachine  *state_machine,
                                  GError          **error)
 {
   DexStateTransitionContext context = {0};
+  g_autoptr(DexPromise) interrupt = NULL;
   const DexStateTransition *transition;
+  gboolean succeeded;
 
   g_assert (DEX_IS_STATE_MACHINE (state_machine));
 
@@ -392,7 +437,18 @@ dex_state_machine_transition_to (DexStateMachine  *state_machine,
   context.from = from;
   context.to = target;
 
-  if (!transition->func (&context, state_machine->user_data, error))
+  dex_state_machine_push_context (state_machine, &context);
+
+  succeeded = transition->func (&context, state_machine->user_data, error);
+  interrupt = dex_state_machine_pop_context (state_machine, &context);
+
+  if (interrupt != NULL)
+    dex_promise_reject (interrupt,
+                        g_error_new_literal (G_IO_ERROR,
+                                             G_IO_ERROR_CANCELLED,
+                                             "State transition context completed"));
+
+  if (!succeeded)
     return FALSE;
 
   if (!context.state_set)
@@ -553,6 +609,53 @@ dex_state_transition_context_set_state (DexStateTransitionContext  *context,
 
   if (dex_state_machine_set_state (context->state_machine, state))
     context->state_set = TRUE;
+}
+
+/**
+ * dex_state_transition_context_wait_for_interrupt:
+ * @context: a [struct@Dex.StateTransitionContext]
+ *
+ * Creates a future that resolves when the active transition context is
+ * interrupted.
+ *
+ * This is a cooperative mechanism for long-running transition callbacks. The
+ * returned future resolves to %TRUE when [method@Dex.StateMachine.interrupt]
+ * is called while @context is active. If the context was already interrupted
+ * before this function is called, the returned future is already resolved.
+ *
+ * If @context completes before it is interrupted, the returned future is
+ * rejected with %G_IO_ERROR_CANCELLED.
+ *
+ * Returns: (transfer full): a future resolving to %TRUE when interrupted
+ *
+ * Since: 1.2
+ */
+DexFuture *
+dex_state_transition_context_wait_for_interrupt (DexStateTransitionContext *context)
+{
+  DexStateMachine *state_machine;
+  DexPromise *interrupt;
+
+  dex_return_error_if_fail (context != NULL);
+
+  state_machine = context->state_machine;
+
+  dex_return_error_if_fail (DEX_IS_STATE_MACHINE (state_machine));
+
+  dex_object_lock (state_machine);
+  if (context->interrupted)
+    {
+      dex_object_unlock (state_machine);
+      return dex_future_new_true ();
+    }
+
+  if (context->interrupt == NULL)
+    context->interrupt = dex_promise_new ();
+
+  interrupt = dex_ref (context->interrupt);
+  dex_object_unlock (state_machine);
+
+  return DEX_FUTURE (interrupt);
 }
 
 /**
@@ -759,6 +862,50 @@ dex_state_machine_wait_for_state (DexStateMachine *state_machine,
   dex_object_unlock (state_machine);
 
   return DEX_FUTURE (waiter);
+}
+
+/**
+ * dex_state_machine_interrupt:
+ * @state_machine: a [class@Dex.StateMachine]
+ *
+ * Cooperatively interrupts the active transition callback.
+ *
+ * If a transition callback is currently active, its interrupt future returned
+ * by [method@Dex.StateTransitionContext.wait_for_interrupt] is resolved. This
+ * does not request a transition or change the current state; the active
+ * callback decides how to handle the interrupt.
+ *
+ * Returns: %TRUE if an active transition context was marked interrupted;
+ *   otherwise %FALSE
+ *
+ * Since: 1.2
+ */
+gboolean
+dex_state_machine_interrupt (DexStateMachine *state_machine)
+{
+  DexStateTransitionContext *context;
+  DexPromise *interrupt = NULL;
+  gboolean ret = FALSE;
+
+  g_return_val_if_fail (DEX_IS_STATE_MACHINE (state_machine), FALSE);
+
+  dex_object_lock (state_machine);
+  if ((context = state_machine->active_context))
+    {
+      context->interrupted = TRUE;
+      if (context->interrupt != NULL)
+        interrupt = dex_ref (context->interrupt);
+      ret = TRUE;
+    }
+  dex_object_unlock (state_machine);
+
+  if (interrupt != NULL)
+    {
+      dex_promise_resolve_boolean (interrupt, TRUE);
+      dex_unref (interrupt);
+    }
+
+  return ret;
 }
 
 /**
