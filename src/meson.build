@@ -92,10 +92,12 @@ features_conf = configuration_data()
 features_conf.set10('HAVE_GDBUS_CODEGEN', have_gdbus_codegen)
 
 pkgconfig_vars = []
+libdex_dep_variables = {}
 
 if have_gdbus_codegen
   codegen_path = '@0@/libdex-@1@/dex-gdbus-codegen-extension.py'.format(get_option('libexecdir'), api_version)
   pkgconfig_vars += ['gdbus_codegen_extension=${prefix}/@0@'.format(codegen_path)]
+  libdex_dep_variables += {'gdbus_codegen_extension': meson.current_source_dir() / 'dex-gdbus-codegen-extension.py'}
 
   install_data(
           sources: 'dex-gdbus-codegen-extension.py',
@@ -320,6 +322,7 @@ libdex_dep = declare_dependency(
   include_directories: include_directories('.'),
          dependencies: libdex_deps,
               sources: [libdex_dep_sources],
+            variables: libdex_dep_variables,
 )
 
 meson.override_dependency('libdex-' + api_version, libdex_dep)
