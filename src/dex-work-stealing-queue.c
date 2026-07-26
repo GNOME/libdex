@@ -31,6 +31,9 @@ dex_work_stealing_queue_new (gint64 capacity)
 {
   DexWorkStealingQueue *work_stealing_queue;
 
+  g_return_val_if_fail (capacity > 0, NULL);
+  g_return_val_if_fail ((capacity & (capacity - 1)) == 0, NULL);
+
   work_stealing_queue = g_aligned_alloc0 (1,
                                           sizeof (DexWorkStealingQueue),
                                           G_ALIGNOF (DexWorkStealingQueue));

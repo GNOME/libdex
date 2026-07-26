@@ -24,7 +24,7 @@
 #include <stdatomic.h>
 
 #include "dex-scheduler-private.h"
-#include "dex-thread-pool-scheduler.h"
+#include "dex-thread-pool-scheduler-private.h"
 #include "dex-thread-pool-worker-private.h"
 #include "dex-thread-storage-private.h"
 #include "dex-work-queue-private.h"
@@ -157,12 +157,11 @@ dex_thread_pool_scheduler_finalize (DexObject *object)
       return;
     }
 
-  dex_clear (&thread_pool_scheduler->global_work_queue);
-
-  g_clear_pointer (&thread_pool_scheduler->set, dex_thread_pool_worker_set_unref);
-
   for (guint i = 0; i < thread_pool_scheduler->n_workers; i++)
     dex_clear (&thread_pool_scheduler->workers[i]);
+
+  dex_clear (&thread_pool_scheduler->global_work_queue);
+  g_clear_pointer (&thread_pool_scheduler->set, dex_thread_pool_worker_set_unref);
 
   DEX_OBJECT_CLASS (dex_thread_pool_scheduler_parent_class)->finalize (object);
 }
@@ -187,6 +186,18 @@ dex_thread_pool_scheduler_init (DexThreadPoolScheduler *thread_pool_scheduler)
 {
   thread_pool_scheduler->global_work_queue = dex_work_queue_new ();
   thread_pool_scheduler->set = dex_thread_pool_worker_set_new ();
+}
+
+guint
+_dex_thread_pool_scheduler_get_n_workers (DexScheduler *scheduler)
+{
+  DexThreadPoolScheduler *thread_pool_scheduler;
+
+  g_return_val_if_fail (DEX_IS_THREAD_POOL_SCHEDULER (scheduler), 0);
+
+  thread_pool_scheduler = DEX_THREAD_POOL_SCHEDULER (scheduler);
+
+  return thread_pool_scheduler->n_workers;
 }
 
 /**

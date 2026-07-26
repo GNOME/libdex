@@ -29,6 +29,14 @@ If you need to interact with long-blocking API calls it is better to use [func@D
 Thread pool workers use a work-stealing wait-free queue which allows the worker to push work items onto one side of the queue quickly.
 Doing so also helps improve cacheline effectiveness.
 
+Workers sleep in their main context when they have no work. When a worker
+publishes enough local work for another worker to help, it sends a directed
+request to one peer. Requests to a peer are coalesced, and a successful steal
+may wake one additional peer while useful backlog remains. This allows the pool
+to increase parallelism gradually without waking every worker for one item.
+An already-busy peer may retain a request until it drains its own local work,
+and a thief continues while any victim observed later in its scan has backlog.
+
 # Fibers
 
 Fibers are a type of stackful co-routine.

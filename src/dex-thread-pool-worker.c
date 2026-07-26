@@ -62,6 +62,9 @@ struct _DexThreadPoolWorker
   GMutex                     setup_mutex;
   GCond                      setup_cond;
 
+  _Atomic int                steal_requested;
+  guint                      steal_cursor;
+
   DexThreadPoolWorkerStatus  status : 2;
   guint                      force_create : 1;
 };
@@ -76,12 +79,14 @@ DEX_DEFINE_FINAL_TYPE (DexThreadPoolWorker, dex_thread_pool_worker, DEX_TYPE_SCH
 #undef DEX_TYPE_THREAD_POOL_WORKER
 #define DEX_TYPE_THREAD_POOL_WORKER dex_thread_pool_worker_type
 
-static void     dex_thread_pool_worker_set_add           (DexThreadPoolWorkerSet *set,
-                                                          DexThreadPoolWorker    *thread_pool_worker);
-static void     dex_thread_pool_worker_set_remove        (DexThreadPoolWorkerSet *set,
-                                                          DexThreadPoolWorker    *thread_pool_worker);
-static GSource *dex_thread_pool_worker_set_create_source (DexThreadPoolWorkerSet *set,
-                                                          DexThreadPoolWorker    *thread_pool_worker);
+static void      dex_thread_pool_worker_set_add           (DexThreadPoolWorkerSet *set,
+                                                           DexThreadPoolWorker    *thread_pool_worker);
+static void      dex_thread_pool_worker_set_remove        (DexThreadPoolWorkerSet *set,
+                                                           DexThreadPoolWorker    *thread_pool_worker);
+static gboolean  dex_thread_pool_worker_set_request_one   (DexThreadPoolWorkerSet *set,
+                                                           DexThreadPoolWorker    *producer);
+static GSource  *dex_thread_pool_worker_set_create_source (DexThreadPoolWorkerSet *set,
+                                                           DexThreadPoolWorker    *thread_pool_worker);
 
 static gboolean
 dex_thread_pool_worker_work_item_cb (gpointer user_data)
@@ -101,7 +106,12 @@ dex_thread_pool_worker_push (DexScheduler *scheduler,
 
   if G_LIKELY (g_thread_self () == thread_pool_worker->thread &&
                thread_pool_worker->status == DEX_THREAD_POOL_WORKER_RUNNING)
-    dex_work_stealing_queue_push (thread_pool_worker->work_stealing_queue, work_item);
+    {
+      dex_work_stealing_queue_push (thread_pool_worker->work_stealing_queue, work_item);
+
+      if (dex_work_stealing_queue_size (thread_pool_worker->work_stealing_queue) > 1)
+        dex_thread_pool_worker_set_request_one (thread_pool_worker->set, thread_pool_worker);
+    }
   else
     {
       GSource *source;
@@ -178,7 +188,7 @@ dex_thread_pool_worker_finalize (DexObject *object)
   atomic_thread_fence (memory_order_seq_cst);
 
   g_assert (thread_pool_worker->status == DEX_THREAD_POOL_WORKER_FINISHED);
-  g_assert (dex_work_stealing_queue_empty (thread_pool_worker->queue));
+  g_assert (dex_work_stealing_queue_empty (thread_pool_worker->work_stealing_queue));
 #endif
 
   /* These are all destroyed during thread shutdown */
@@ -193,6 +203,7 @@ dex_thread_pool_worker_finalize (DexObject *object)
   g_clear_pointer (&thread_pool_worker->work_stealing_queue, dex_work_stealing_queue_unref);
 
   dex_clear (&thread_pool_worker->global_work_queue);
+  g_clear_pointer (&thread_pool_worker->set, dex_thread_pool_worker_set_unref);
 
   g_assert (thread_pool_worker->set_link.prev == NULL);
   g_assert (thread_pool_worker->set_link.next == NULL);
@@ -385,28 +396,11 @@ dex_thread_pool_worker_thread_func (gpointer data)
   return NULL;
 }
 
-static gboolean
-dex_thread_pool_worker_maybe_steal (DexThreadPoolWorker *thread_pool_worker,
-                                    DexThreadPoolWorker *neighbor)
-{
-  DexWorkItem work_item;
-
-  g_assert (DEX_IS_THREAD_POOL_WORKER (thread_pool_worker));
-  g_assert (DEX_IS_THREAD_POOL_WORKER (neighbor));
-
-  if (dex_work_stealing_queue_steal (neighbor->work_stealing_queue, &work_item))
-    {
-      dex_work_item_invoke (&work_item);
-      return TRUE;
-    }
-
-  return FALSE;
-}
-
 typedef struct _DexThreadPoolWorkerSet
 {
-  GQueue  queue;
-  GRWLock rwlock;
+  GQueue         queue;
+  GRWLock        rwlock;
+  _Atomic guint  wake_cursor;
 } DexThreadPoolWorkerSet;
 
 DexThreadPoolWorkerSet *
@@ -458,8 +452,7 @@ dex_thread_pool_worker_set_finalize (gpointer data)
 {
   DexThreadPoolWorkerSet *set = data;
 
-  while (set->queue.length > 0)
-    dex_thread_pool_worker_set_remove (set, g_queue_peek_head (&set->queue));
+  g_assert (set->queue.length == 0);
 
   g_rw_lock_clear (&set->rwlock);
 }
@@ -470,26 +463,138 @@ dex_thread_pool_worker_set_unref (DexThreadPoolWorkerSet *set)
   g_atomic_rc_box_release_full (set, dex_thread_pool_worker_set_finalize);
 }
 
-static inline void
-dex_thread_pool_worker_set_foreach (DexThreadPoolWorkerSet *set,
-                                    DexThreadPoolWorker    *head)
+static gboolean
+dex_thread_pool_worker_set_request_one (DexThreadPoolWorkerSet *set,
+                                        DexThreadPoolWorker    *producer)
 {
+  GMainContext *context = NULL;
+  DexThreadPoolWorker *fallback = NULL;
+  const GList *iter;
+  guint start;
+  guint length;
+
+  g_assert (set != NULL);
+  g_assert (DEX_IS_THREAD_POOL_WORKER (producer));
+
   g_rw_lock_reader_lock (&set->rwlock);
 
-  for (const GList *iter = head->set_link.next; iter; iter = iter->next)
+  length = set->queue.length;
+
+  if (length < 2)
+    goto unlock;
+
+  start = atomic_fetch_add_explicit (&set->wake_cursor, 1, memory_order_relaxed) % length;
+  iter = g_queue_peek_nth_link (&set->queue, start);
+
+  for (guint i = 0; i < length; i++)
     {
-      if (dex_thread_pool_worker_maybe_steal (head, iter->data))
-        goto unlock;
+      DexThreadPoolWorker *candidate = iter->data;
+      int expected = FALSE;
+
+      iter = iter->next != NULL ? iter->next : set->queue.head;
+
+      if (candidate == producer)
+        continue;
+
+      if (!dex_work_stealing_queue_empty (candidate->work_stealing_queue))
+        {
+          if (fallback == NULL &&
+              !atomic_load_explicit (&candidate->steal_requested,
+                                     memory_order_relaxed))
+            fallback = candidate;
+
+          continue;
+        }
+
+      if (atomic_compare_exchange_strong_explicit (&candidate->steal_requested,
+                                                   &expected,
+                                                   TRUE,
+                                                   memory_order_release,
+                                                   memory_order_relaxed))
+        {
+          context = g_main_context_ref (candidate->main_context);
+          break;
+        }
     }
 
-  for (const GList *iter = set->queue.head; iter->data != head; iter = iter->next)
+  if (context == NULL && fallback != NULL)
     {
-      if (dex_thread_pool_worker_maybe_steal (head, iter->data))
-        goto unlock;
+      int expected = FALSE;
+
+      if (atomic_compare_exchange_strong_explicit (&fallback->steal_requested,
+                                                   &expected,
+                                                   TRUE,
+                                                   memory_order_release,
+                                                   memory_order_relaxed))
+        context = g_main_context_ref (fallback->main_context);
     }
 
 unlock:
   g_rw_lock_reader_unlock (&set->rwlock);
+
+  if (context != NULL)
+    {
+      g_main_context_wakeup (context);
+      g_main_context_unref (context);
+      return TRUE;
+    }
+
+  return FALSE;
+}
+
+static gboolean
+dex_thread_pool_worker_set_try_steal (DexThreadPoolWorkerSet *set,
+                                      DexThreadPoolWorker    *thief,
+                                      DexWorkItem            *out_work_item,
+                                      gboolean               *out_more_work)
+{
+  const GList *iter;
+  gboolean stolen = FALSE;
+  guint start;
+  guint length;
+
+  g_assert (set != NULL);
+  g_assert (DEX_IS_THREAD_POOL_WORKER (thief));
+  g_assert (out_work_item != NULL);
+  g_assert (out_more_work != NULL);
+
+  *out_more_work = FALSE;
+
+  g_rw_lock_reader_lock (&set->rwlock);
+
+  length = set->queue.length;
+
+  if (length < 2)
+    goto unlock;
+
+  start = thief->steal_cursor % length;
+  iter = g_queue_peek_nth_link (&set->queue, start);
+
+  for (guint i = 0; i < length; i++)
+    {
+      DexThreadPoolWorker *victim = iter->data;
+
+      iter = iter->next != NULL ? iter->next : set->queue.head;
+
+      if (victim == thief)
+        continue;
+
+      if (!stolen &&
+          dex_work_stealing_queue_steal (victim->work_stealing_queue, out_work_item))
+        {
+          thief->steal_cursor = (start + i + 1) % length;
+          stolen = TRUE;
+        }
+
+      if (stolen &&
+          !dex_work_stealing_queue_empty (victim->work_stealing_queue))
+        *out_more_work = TRUE;
+    }
+
+unlock:
+  g_rw_lock_reader_unlock (&set->rwlock);
+
+  return stolen;
 }
 
 typedef struct _DexThreadPoolWorkerSetSource
@@ -500,10 +605,24 @@ typedef struct _DexThreadPoolWorkerSetSource
 } DexThreadPoolWorkerSetSource;
 
 static gboolean
+dex_thread_pool_worker_set_source_prepare (GSource *source,
+                                           int     *timeout)
+{
+  DexThreadPoolWorkerSetSource *real_source = (DexThreadPoolWorkerSetSource *)source;
+
+  *timeout = -1;
+
+  return atomic_load_explicit (&real_source->thread_pool_worker->steal_requested,
+                               memory_order_acquire);
+}
+
+static gboolean
 dex_thread_pool_worker_set_source_check (GSource *source)
 {
-  /* We always check the peers for work */
-  return TRUE;
+  DexThreadPoolWorkerSetSource *real_source = (DexThreadPoolWorkerSetSource *)source;
+
+  return atomic_load_explicit (&real_source->thread_pool_worker->steal_requested,
+                               memory_order_acquire);
 }
 
 static gboolean
@@ -512,11 +631,43 @@ dex_thread_pool_worker_set_source_dispatch (GSource     *source,
                                             gpointer     callback_data)
 {
   DexThreadPoolWorkerSetSource *real_source = (DexThreadPoolWorkerSetSource *)source;
-  dex_thread_pool_worker_set_foreach (real_source->set, real_source->thread_pool_worker);
+  DexThreadPoolWorker *thread_pool_worker = real_source->thread_pool_worker;
+  DexWorkItem work_item;
+  gboolean more_work = FALSE;
+
+  if (!atomic_exchange_explicit (&thread_pool_worker->steal_requested,
+                                 FALSE,
+                                 memory_order_acq_rel))
+    return G_SOURCE_CONTINUE;
+
+  if (thread_pool_worker->status != DEX_THREAD_POOL_WORKER_RUNNING)
+    return G_SOURCE_CONTINUE;
+
+  if (dex_thread_pool_worker_set_try_steal (real_source->set,
+                                            thread_pool_worker,
+                                            &work_item,
+                                            &more_work))
+    {
+      dex_work_item_invoke (&work_item);
+
+      if (more_work)
+        {
+          int expected = FALSE;
+
+          atomic_compare_exchange_strong_explicit (&thread_pool_worker->steal_requested,
+                                                   &expected,
+                                                   TRUE,
+                                                   memory_order_release,
+                                                   memory_order_relaxed);
+          dex_thread_pool_worker_set_request_one (real_source->set, thread_pool_worker);
+        }
+    }
+
   return G_SOURCE_CONTINUE;
 }
 
 static GSourceFuncs dex_thread_pool_worker_set_source_funcs = {
+  .prepare = dex_thread_pool_worker_set_source_prepare,
   .check = dex_thread_pool_worker_set_source_check,
   .dispatch = dex_thread_pool_worker_set_source_dispatch,
 };
@@ -554,8 +705,8 @@ dex_thread_pool_worker_new (DexWorkQueue           *work_queue,
   thread_pool_worker->main_context = g_main_context_new ();
   thread_pool_worker->main_loop = g_main_loop_new (thread_pool_worker->main_context, FALSE);
   thread_pool_worker->global_work_queue = dex_ref (work_queue);
-  thread_pool_worker->work_stealing_queue = dex_work_stealing_queue_new (255);
-  thread_pool_worker->set = set;
+  thread_pool_worker->work_stealing_queue = dex_work_stealing_queue_new (256);
+  thread_pool_worker->set = dex_thread_pool_worker_set_ref (set);
   thread_pool_worker->force_create = !!force_create;
 
   /* Now spawn our thread to process events via GSource */

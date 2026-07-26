@@ -20,6 +20,68 @@
 
 #include <libdex.h>
 
+#include "dex-thread-pool-scheduler-private.h"
+
+typedef struct _DirectedSteal DirectedSteal;
+
+typedef struct _DirectedStealItem
+{
+  DirectedSteal *state;
+  gboolean       completed;
+} DirectedStealItem;
+
+struct _DirectedSteal
+{
+  GMutex             mutex;
+  GCond              cond;
+  DexScheduler      *scheduler;
+  GThread           *producer_thread;
+  DirectedStealItem *items;
+  guint              n_items;
+  guint              n_completed;
+  guint              n_completed_by_peer;
+  gboolean           producer_finished;
+  gboolean           peer_timed_out;
+};
+
+typedef struct _MixedLocalSteal MixedLocalSteal;
+
+typedef struct _MixedLocalStealItem
+{
+  MixedLocalSteal *state;
+  gboolean         completed;
+} MixedLocalStealItem;
+
+typedef struct _MixedLocalStealWorker
+{
+  MixedLocalSteal *state;
+  guint            index;
+} MixedLocalStealWorker;
+
+struct _MixedLocalSteal
+{
+  GMutex                 mutex;
+  GCond                  cond;
+  DexScheduler          *scheduler;
+  GThread               *producer_thread;
+  GThread               *thief_thread;
+  GPtrArray             *fibers;
+  MixedLocalStealItem   *items;
+  MixedLocalStealWorker *workers;
+  guint                  n_workers;
+  guint                  n_ready;
+  guint                  n_finished;
+  guint                  n_local_completed;
+  guint                  n_batch_items;
+  guint                  n_batch_completed;
+  guint                  n_batch_completed_by_peer;
+  guint                  n_sentinel_completed_by_thief;
+  gboolean               producer_go;
+  gboolean               producer_published;
+  gboolean               thief_go;
+  gboolean               release_all;
+};
+
 static DexScheduler *thread_pool;
 static GMainLoop *main_loop;
 
@@ -181,6 +243,309 @@ test_thread_pool_scheduler_push (void)
   g_cond_clear (&syncobj.cond);
 }
 
+static void
+test_thread_pool_scheduler_directed_steal_item (gpointer data)
+{
+  DirectedStealItem *item = data;
+  DirectedSteal *state = item->state;
+
+  g_mutex_lock (&state->mutex);
+
+  g_assert_false (item->completed);
+  item->completed = TRUE;
+  state->n_completed++;
+
+  if (g_thread_self () != state->producer_thread)
+    state->n_completed_by_peer++;
+
+  g_cond_broadcast (&state->cond);
+  g_mutex_unlock (&state->mutex);
+}
+
+static void
+test_thread_pool_scheduler_directed_steal_producer (gpointer data)
+{
+  DirectedSteal *state = data;
+  gint64 deadline;
+
+  g_mutex_lock (&state->mutex);
+  state->producer_thread = g_thread_self ();
+  g_mutex_unlock (&state->mutex);
+
+  for (guint i = 0; i < state->n_items; i++)
+    {
+      state->items[i].state = state;
+      dex_scheduler_push (state->scheduler,
+                          test_thread_pool_scheduler_directed_steal_item,
+                          &state->items[i]);
+    }
+
+  deadline = g_get_monotonic_time () + (5 * G_TIME_SPAN_SECOND);
+
+  g_mutex_lock (&state->mutex);
+
+  while (state->n_completed_by_peer == 0)
+    {
+      if (!g_cond_wait_until (&state->cond, &state->mutex, deadline))
+        {
+          state->peer_timed_out = TRUE;
+          break;
+        }
+    }
+
+  state->producer_finished = TRUE;
+  g_cond_broadcast (&state->cond);
+  g_mutex_unlock (&state->mutex);
+}
+
+static void
+test_thread_pool_scheduler_directed_steal (void)
+{
+  DirectedSteal state;
+  gint64 deadline;
+
+  state = (DirectedSteal) {
+    .scheduler = dex_thread_pool_scheduler_new (),
+    .n_items = 128,
+  };
+
+  if (_dex_thread_pool_scheduler_get_n_workers (state.scheduler) < 2)
+    {
+      g_test_skip ("At least two thread-pool workers are required");
+      dex_clear (&state.scheduler);
+      return;
+    }
+
+  g_mutex_init (&state.mutex);
+  g_cond_init (&state.cond);
+  state.items = g_new0 (DirectedStealItem, state.n_items);
+
+  dex_scheduler_push (state.scheduler,
+                      test_thread_pool_scheduler_directed_steal_producer,
+                      &state);
+
+  deadline = g_get_monotonic_time () + (10 * G_TIME_SPAN_SECOND);
+
+  g_mutex_lock (&state.mutex);
+
+  while (!state.producer_finished || state.n_completed < state.n_items)
+    {
+      if (!g_cond_wait_until (&state.cond, &state.mutex, deadline))
+        g_error ("Timed out waiting for directed thread-pool work");
+    }
+
+  g_mutex_unlock (&state.mutex);
+
+  g_assert_false (state.peer_timed_out);
+  g_assert_cmpuint (state.n_completed_by_peer, >, 0);
+  g_assert_cmpuint (state.n_completed, ==, state.n_items);
+
+  dex_clear (&state.scheduler);
+  g_clear_pointer (&state.items, g_free);
+  g_mutex_clear (&state.mutex);
+  g_cond_clear (&state.cond);
+}
+
+static void
+test_thread_pool_scheduler_mixed_local_item (gpointer data)
+{
+  MixedLocalStealWorker *worker = data;
+  MixedLocalSteal *state = worker->state;
+
+  g_mutex_lock (&state->mutex);
+  state->n_local_completed++;
+
+  if (worker->index == 0 && g_thread_self () == state->thief_thread)
+    state->n_sentinel_completed_by_thief++;
+
+  g_cond_broadcast (&state->cond);
+  g_mutex_unlock (&state->mutex);
+}
+
+static void
+test_thread_pool_scheduler_mixed_batch_item (gpointer data)
+{
+  MixedLocalStealItem *item = data;
+  MixedLocalSteal *state = item->state;
+
+  g_mutex_lock (&state->mutex);
+
+  g_assert_false (item->completed);
+  item->completed = TRUE;
+  state->n_batch_completed++;
+
+  if (g_thread_self () != state->producer_thread)
+    state->n_batch_completed_by_peer++;
+
+  g_cond_broadcast (&state->cond);
+  g_mutex_unlock (&state->mutex);
+}
+
+static DexFuture *
+test_thread_pool_scheduler_mixed_worker (gpointer data)
+{
+  MixedLocalStealWorker *worker = data;
+  MixedLocalSteal *state = worker->state;
+
+  g_mutex_lock (&state->mutex);
+
+  if (worker->index == 1)
+    state->producer_thread = g_thread_self ();
+  else if (worker->index == state->n_workers - 1)
+    state->thief_thread = g_thread_self ();
+
+  g_mutex_unlock (&state->mutex);
+
+  dex_scheduler_push (state->scheduler,
+                      test_thread_pool_scheduler_mixed_local_item,
+                      worker);
+
+  g_mutex_lock (&state->mutex);
+  state->n_ready++;
+  g_cond_broadcast (&state->cond);
+
+  if (worker->index == 1)
+    {
+      while (!state->producer_go)
+        g_cond_wait (&state->cond, &state->mutex);
+
+      g_mutex_unlock (&state->mutex);
+
+      for (guint i = 0; i < state->n_batch_items; i++)
+        {
+          state->items[i].state = state;
+          dex_scheduler_push (state->scheduler,
+                              test_thread_pool_scheduler_mixed_batch_item,
+                              &state->items[i]);
+        }
+
+      g_mutex_lock (&state->mutex);
+      state->producer_published = TRUE;
+      g_cond_broadcast (&state->cond);
+    }
+  else if (worker->index == state->n_workers - 1)
+    {
+      while (!state->thief_go)
+        g_cond_wait (&state->cond, &state->mutex);
+    }
+
+  if (worker->index != state->n_workers - 1)
+    {
+      while (!state->release_all)
+        g_cond_wait (&state->cond, &state->mutex);
+    }
+
+  state->n_finished++;
+  g_cond_broadcast (&state->cond);
+  g_mutex_unlock (&state->mutex);
+
+  return dex_future_new_for_boolean (TRUE);
+}
+
+static void
+test_thread_pool_scheduler_mixed_local_steal (void)
+{
+  MixedLocalSteal state;
+  gint64 deadline;
+  gboolean peer_timed_out = FALSE;
+
+  state = (MixedLocalSteal) {
+    .scheduler = dex_thread_pool_scheduler_new (),
+  };
+  state.n_workers = _dex_thread_pool_scheduler_get_n_workers (state.scheduler);
+
+  if (state.n_workers < 3)
+    {
+      g_test_skip ("At least three thread-pool workers are required");
+      dex_clear (&state.scheduler);
+      return;
+    }
+
+  state.n_batch_items = MAX (128, state.n_workers * 2);
+  state.fibers = g_ptr_array_new_with_free_func (dex_unref);
+  state.items = g_new0 (MixedLocalStealItem, state.n_batch_items);
+  state.workers = g_new0 (MixedLocalStealWorker, state.n_workers);
+  g_mutex_init (&state.mutex);
+  g_cond_init (&state.cond);
+
+  for (guint i = 0; i < state.n_workers; i++)
+    {
+      state.workers[i].state = &state;
+      state.workers[i].index = i;
+      g_ptr_array_add (state.fibers,
+                       dex_scheduler_spawn (state.scheduler,
+                                            dex_get_min_stack_size (),
+                                            test_thread_pool_scheduler_mixed_worker,
+                                            &state.workers[i],
+                                            NULL));
+    }
+
+  deadline = g_get_monotonic_time () + (10 * G_TIME_SPAN_SECOND);
+
+  g_mutex_lock (&state.mutex);
+
+  while (state.n_ready < state.n_workers)
+    {
+      if (!g_cond_wait_until (&state.cond, &state.mutex, deadline))
+        g_error ("Timed out preparing mixed local thread-pool work");
+    }
+
+  state.producer_go = TRUE;
+  g_cond_broadcast (&state.cond);
+
+  while (!state.producer_published)
+    {
+      if (!g_cond_wait_until (&state.cond, &state.mutex, deadline))
+        g_error ("Timed out publishing mixed local thread-pool work");
+    }
+
+  state.thief_go = TRUE;
+  g_cond_broadcast (&state.cond);
+
+  while (state.n_batch_completed_by_peer == 0)
+    {
+      if (!g_cond_wait_until (&state.cond, &state.mutex, deadline))
+        {
+          peer_timed_out = TRUE;
+          break;
+        }
+    }
+
+  state.release_all = TRUE;
+  g_cond_broadcast (&state.cond);
+
+  deadline = g_get_monotonic_time () + (10 * G_TIME_SPAN_SECOND);
+
+  while (state.n_finished < state.n_workers ||
+         state.n_local_completed < state.n_workers ||
+         state.n_batch_completed < state.n_batch_items)
+    {
+      if (!g_cond_wait_until (&state.cond, &state.mutex, deadline))
+        g_error ("Timed out draining mixed local thread-pool work");
+    }
+
+  g_test_message ("Mixed local steal: workers=%u local=%u batch=%u peer=%u sentinel=%u",
+                  state.n_workers,
+                  state.n_local_completed,
+                  state.n_batch_completed,
+                  state.n_batch_completed_by_peer,
+                  state.n_sentinel_completed_by_thief);
+
+  g_assert_false (peer_timed_out);
+  g_assert_cmpuint (state.n_sentinel_completed_by_thief, ==, 1);
+  g_assert_cmpuint (state.n_batch_completed_by_peer, >, 0);
+  g_assert_cmpuint (state.n_batch_completed, ==, state.n_batch_items);
+
+  g_mutex_unlock (&state.mutex);
+
+  g_clear_pointer (&state.fibers, g_ptr_array_unref);
+  dex_clear (&state.scheduler);
+  g_clear_pointer (&state.items, g_free);
+  g_clear_pointer (&state.workers, g_free);
+  g_mutex_clear (&state.mutex);
+  g_cond_clear (&state.cond);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -191,5 +556,9 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Scheduler/spawn_static_name", test_scheduler_spawn_static_name);
   g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/10_000_fibers", test_thread_pool_scheduler_spawn);
   g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/push", test_thread_pool_scheduler_push);
+  g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/directed_steal",
+                   test_thread_pool_scheduler_directed_steal);
+  g_test_add_func ("/Dex/TestSuite/ThreadPoolScheduler/mixed_local_steal",
+                   test_thread_pool_scheduler_mixed_local_steal);
   return g_test_run ();
 }
