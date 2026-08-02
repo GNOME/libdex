@@ -1,3 +1,23 @@
+libdex 1.2.beta
+===============
+
+This is a beta release for the upcoming GNOME 51.
+
+ * DexStateMachine transition callbacks now use
+   DexStateTransitionContext, allowing callbacks to inspect transition edges,
+   publish intermediate states, and continue directly through another edge
+ * Add dex_state_machine_wait_for_state(),
+   dex_state_machine_get_requested_state(), and cooperative transition
+   interruption with dex_state_machine_interrupt() and
+   dex_state_transition_context_wait_for_interrupt()
+ * Rework thread-pool work stealing so idle workers can sleep instead of
+   continuously scanning their peers, while improving work distribution and
+   fixing queue sizing and worker-set lifetime issues
+ * Fix using libdex as a Meson subproject with GDBus code generation enabled
+ * Remove incorrect G_GNUC_CONST annotations for compatibility with newer GCC
+ * Expand state-machine, scheduler, and thread-pool documentation and tests
+
+
 libdex 1.2.alpha
 ================
 
