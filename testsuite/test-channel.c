@@ -261,6 +261,71 @@ test_channel_receive_with_cancellation (void)
   ASSERT_CMPINT (completed, ==, 42);
 }
 
+static void
+channel_cancelled_cb (GCancellable   *cancellable,
+                      DexCancellable *closed)
+{
+  dex_cancellable_cancel (closed);
+  ASSERT_STATUS (closed, DEX_FUTURE_STATUS_REJECTED);
+}
+
+static gboolean
+channel_cancel_idle_cb (gpointer user_data)
+{
+  g_cancellable_cancel (user_data);
+
+  return G_SOURCE_REMOVE;
+}
+
+static void
+test_channel_await_cancellation_from_signal (void)
+{
+  for (guint paired = 0; paired < 2; paired++)
+    {
+      g_autoptr(DexChannel) channel = NULL;
+      g_autoptr(DexCancellable) closed = NULL;
+      g_autoptr(DexPromise) payload = NULL;
+      g_autoptr(DexFuture) send = NULL;
+      g_autoptr(DexFuture) race = NULL;
+      g_autoptr(GCancellable) cancellable = NULL;
+      g_autoptr(GSource) source = NULL;
+      g_autoptr(GBytes) message = NULL;
+      g_autoptr(GError) error = NULL;
+      gulong handler;
+
+      channel = dex_channel_new (0);
+      closed = dex_cancellable_new ();
+      payload = dex_promise_new ();
+      cancellable = g_cancellable_new ();
+      source = g_idle_source_new ();
+
+      if (paired)
+        send = dex_channel_send (channel, dex_ref (payload));
+
+      race = dex_future_first (dex_channel_receive (channel), dex_ref (closed), NULL);
+      ASSERT_STATUS (race, DEX_FUTURE_STATUS_PENDING);
+
+      /* The idle emits a signal only after this fiber suspends in await. */
+      handler = g_signal_connect (cancellable, "cancelled", G_CALLBACK (channel_cancelled_cb), closed);
+      g_source_set_callback (source, channel_cancel_idle_cb, cancellable, NULL);
+      g_source_attach (source, g_main_context_get_thread_default ());
+
+      message = dex_await_boxed (dex_ref (race), &error);
+      g_assert_null (message);
+      g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+      ASSERT_STATUS (race, DEX_FUTURE_STATUS_REJECTED);
+      ASSERT_STATUS (payload, DEX_FUTURE_STATUS_PENDING);
+
+      /* Cancellation must wake the fiber without help from channel closure. */
+      g_assert_true (dex_channel_can_receive (channel));
+      g_clear_signal_handler (&handler, cancellable);
+      g_source_destroy (source);
+      dex_channel_close_receive (channel);
+      dex_promise_resolve_boxed (payload, G_TYPE_BYTES, g_bytes_new_static ("message", 7));
+      ASSERT_STATUS (race, DEX_FUTURE_STATUS_REJECTED);
+    }
+}
+
 int
 main (int argc,
       char *argv[])
@@ -270,6 +335,7 @@ main (int argc,
   g_test_add_func ("/Dex/TestSuite/Channel/basic", test_channel_basic);
   g_test_add_func ("/Dex/TestSuite/Channel/recv_first", test_channel_recv_first);
   g_test_add_func ("/Dex/TestSuite/Channel/receive_with_cancellation", test_channel_receive_with_cancellation);
+  dex_test_add_func ("/Dex/TestSuite/Channel/await_cancellation_from_signal", test_channel_await_cancellation_from_signal);
   g_test_add_func ("/Dex/TestSuite/Channel/receive_all_with_blocked_sender",
                    test_channel_receive_all_with_blocked_sender);
   return g_test_run ();
