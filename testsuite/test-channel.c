@@ -193,6 +193,74 @@ test_channel_receive_all_with_blocked_sender (void)
   dex_clear (&recv);
 }
 
+static void
+test_channel_receive_with_cancellation (void)
+{
+  g_autoptr(DexChannel) channel = NULL;
+  g_autoptr(DexCancellable) closed = NULL;
+  g_autoptr(DexPromise) payload = NULL;
+  g_autoptr(DexFuture) completed = NULL;
+  g_autoptr(DexFuture) paired = NULL;
+  g_autoptr(DexFuture) waiting = NULL;
+  g_autoptr(DexFuture) paired_result = NULL;
+  g_autoptr(DexFuture) waiting_result = NULL;
+  g_autoptr(DexFuture) send = NULL;
+  g_autoptr(GError) receive_error = NULL;
+
+  channel = dex_channel_new (0);
+  closed = dex_cancellable_new ();
+  payload = dex_promise_new ();
+
+  /* A delivered message must not cancel the shared connection lifetime. */
+  completed = dex_future_first (dex_channel_receive (channel), dex_ref (closed), NULL);
+  send = dex_channel_send (channel, dex_future_new_for_int (42));
+  ASSERT_CMPINT (completed, ==, 42);
+  ASSERT_STATUS (closed, DEX_FUTURE_STATUS_PENDING);
+  dex_clear (&send);
+
+  paired = dex_channel_receive (channel);
+  waiting = dex_channel_receive (channel);
+  paired_result = dex_future_first (dex_ref (paired), dex_ref (closed), NULL);
+  waiting_result = dex_future_first (dex_ref (waiting), dex_ref (closed), NULL);
+
+  /* Handoff removes the first receiver from the channel before its payload completes. */
+  send = dex_channel_send (channel, dex_ref (payload));
+  ASSERT_STATUS (send, DEX_FUTURE_STATUS_RESOLVED);
+  ASSERT_STATUS (paired, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (waiting, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (paired_result, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (waiting_result, DEX_FUTURE_STATUS_PENDING);
+
+  /* Simulate connection closure using the same cancellation future for both readers. */
+  dex_cancellable_cancel (closed);
+  dex_channel_close_receive (channel);
+
+  ASSERT_STATUS (paired_result, DEX_FUTURE_STATUS_REJECTED);
+  g_assert_null (dex_future_get_value (paired_result, &receive_error));
+  g_assert_error (receive_error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+  g_clear_error (&receive_error);
+
+  ASSERT_STATUS (waiting_result, DEX_FUTURE_STATUS_REJECTED);
+  g_assert_null (dex_future_get_value (waiting_result, &receive_error));
+  g_assert_error (receive_error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+  g_clear_error (&receive_error);
+
+  /* Channel closure reaches only the receiver that has not been paired yet. */
+  ASSERT_STATUS (paired, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (payload, DEX_FUTURE_STATUS_PENDING);
+  ASSERT_STATUS (waiting, DEX_FUTURE_STATUS_REJECTED);
+  g_assert_null (dex_future_get_value (waiting, &receive_error));
+  g_assert_error (receive_error, DEX_ERROR, DEX_ERROR_CHANNEL_CLOSED);
+  g_clear_error (&receive_error);
+
+  /* Late completion cannot replace cancellation or invalidate an earlier delivery. */
+  dex_promise_resolve_int (payload, 123);
+  ASSERT_CMPINT (paired, ==, 123);
+  ASSERT_STATUS (paired_result, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_STATUS (waiting_result, DEX_FUTURE_STATUS_REJECTED);
+  ASSERT_CMPINT (completed, ==, 42);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -201,6 +269,7 @@ main (int argc,
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Channel/basic", test_channel_basic);
   g_test_add_func ("/Dex/TestSuite/Channel/recv_first", test_channel_recv_first);
+  g_test_add_func ("/Dex/TestSuite/Channel/receive_with_cancellation", test_channel_receive_with_cancellation);
   g_test_add_func ("/Dex/TestSuite/Channel/receive_all_with_blocked_sender",
                    test_channel_receive_all_with_blocked_sender);
   return g_test_run ();
