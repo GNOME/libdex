@@ -18,7 +18,7 @@ updated as part of the CI pipeline.
 
 ## Building
 
-Dex requires GLib 2.68 or newer but can likely be ported to older versions.
+Dex requires GLib 2.88 or newer but can likely be ported to older versions.
 For those interested, you can add missing API to `dex-compat-private.h`.
 
 Some examples require additional libraries but will not be compiled if the
