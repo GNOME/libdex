@@ -1,3 +1,15 @@
+libdex 1.2.1 (unreleased)
+=========================
+
+ * Release POSIX AIO backends when their contexts are finalized
+ * Fix io_uring read and write error reporting
+ * Retry io_uring submissions left pending after a failed or partial submit
+ * Ensure task group cancellation reaches every child
+ * Reject adding a future to more than one task group at a time
+ * Fix races between D-Bus signal delivery and cancellation, and avoid
+   generating unused signal helpers for interfaces without signals
+
+
 libdex 1.2.0
 ============
 
