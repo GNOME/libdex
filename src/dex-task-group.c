@@ -136,7 +136,10 @@ dex_task_group_propagate (DexFuture *future,
     }
 
   if (should_discard_child)
-    g_queue_unlink (&group->futures, &completed->task_group_link);
+    {
+      g_queue_unlink (&group->futures, &completed->task_group_link);
+      g_atomic_pointer_set (&completed->task_group, NULL);
+    }
 
   dex_object_unlock (group);
 
@@ -210,6 +213,7 @@ dex_task_group_finalize (DexObject *object)
           DexFuture *future = g_queue_peek_head (&group->futures);
 
           g_queue_unlink (&group->futures, &future->task_group_link);
+          g_atomic_pointer_set (&future->task_group, NULL);
           dex_future_discard (future, DEX_FUTURE (group));
           dex_unref (future);
         }
@@ -263,6 +267,7 @@ dex_task_group_new (DexTaskGroupFlags flags)
  *
  * If @group is `null`, then the future will be disowned.
  * Otherwise, @future will be added to @group.
+ * A future may only be tracked by one task group at a time.
  *
  * Returns: `false` if the group is closed or cancelled;
  *   otherwise `true`.
@@ -295,6 +300,13 @@ dex_task_group_add (DexTaskGroup *group,
     {
       dex_object_unlock (group);
       dex_future_disown (g_steal_pointer (&future));
+      return FALSE;
+    }
+
+  if (!g_atomic_pointer_compare_and_exchange (&future->task_group, NULL, group))
+    {
+      dex_object_unlock (group);
+      dex_unref (future);
       return FALSE;
     }
 

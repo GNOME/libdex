@@ -37,13 +37,14 @@ typedef struct _DexScheduler DexScheduler;
 
 typedef struct _DexFuture
 {
-  DexObject parent_instance;
-  GValue resolved;
-  GError *rejected;
-  GQueue chained;
-  GList task_group_link;
-  const char *name;
-  DexFutureStatus status : 2;
+  DexObject        parent_instance;
+  GValue           resolved;
+  GError          *rejected;
+  GQueue           chained;
+  GList            task_group_link;
+  gpointer         task_group;
+  const char      *name;
+  DexFutureStatus  status : 2;
 } DexFuture;
 
 typedef struct _DexFutureClass
@@ -55,21 +56,21 @@ typedef struct _DexFutureClass
   void     (*discard)   (DexFuture *future);
 } DexFutureClass;
 
-void          dex_future_chain         (DexFuture     *future,
-                                        DexFuture     *chained);
-void          dex_future_complete      (DexFuture     *future,
-                                        const GValue  *value,
-                                        GError        *error);
+void          dex_future_chain          (DexFuture     *future,
+                                         DexFuture     *chained);
+void          dex_future_complete       (DexFuture     *future,
+                                         const GValue  *value,
+                                         GError        *error);
 void          dex_future_complete_steal (DexFuture     *future,
                                          GValue        *value,
                                          GError        *error);
-void          dex_future_complete_from (DexFuture     *future,
-                                        DexFuture     *completed);
-void          dex_future_discard       (DexFuture     *future,
-                                        DexFuture     *chained);
-const GValue *dex_await_borrowed       (DexFuture     *future,
-                                        GError       **error);
-void          dex_future_disown_full   (DexFuture     *future,
-                                        DexScheduler  *scheduler);
+void          dex_future_complete_from  (DexFuture     *future,
+                                         DexFuture     *completed);
+void          dex_future_discard        (DexFuture     *future,
+                                         DexFuture     *chained);
+const GValue *dex_await_borrowed        (DexFuture     *future,
+                                         GError       **error);
+void          dex_future_disown_full    (DexFuture     *future,
+                                         DexScheduler  *scheduler);
 
 G_END_DECLS

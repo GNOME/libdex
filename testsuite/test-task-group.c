@@ -131,6 +131,34 @@ test_task_group_cancel_on_error (void)
 }
 
 static void
+test_task_group_reject_duplicate_child (void)
+{
+  DexTaskGroup *first_group = dex_task_group_new (DEX_TASK_GROUP_FLAGS_NONE);
+  DexTaskGroup *second_group = dex_task_group_new (DEX_TASK_GROUP_FLAGS_NONE);
+  DexPromise *promise = dex_promise_new ();
+  DexFuture *first_result;
+  DexFuture *second_result;
+  GError *error = NULL;
+
+  g_assert_true (dex_task_group_add (first_group, dex_ref (DEX_FUTURE (promise))));
+  g_assert_false (dex_task_group_add (first_group, dex_ref (DEX_FUTURE (promise))));
+  g_assert_false (dex_task_group_add (second_group, dex_ref (DEX_FUTURE (promise))));
+
+  first_result = dex_task_group_close (first_group);
+  second_result = dex_task_group_close (second_group);
+  dex_promise_resolve_boolean (promise, TRUE);
+
+  g_assert_true (dex_await_boolean (first_result, &error));
+  g_assert_no_error (error);
+  g_assert_true (dex_await_boolean (second_result, &error));
+  g_assert_no_error (error);
+
+  dex_clear (&promise);
+  dex_clear (&first_group);
+  dex_clear (&second_group);
+}
+
+static void
 test_task_group_cancel_on_error_multiple_children (void)
 {
   DexTaskGroup *group = dex_task_group_new (DEX_TASK_GROUP_FLAGS_CANCEL_ON_ERROR);
@@ -301,6 +329,7 @@ main (int argc, char *argv[])
   g_test_add_func ("/dex/task-group/close-all-resolved", test_task_group_close_all_resolved);
   g_test_add_func ("/dex/task-group/cancel-on-error", test_task_group_cancel_on_error);
   g_test_add_func ("/dex/task-group/cancel-on-error-multiple-children", test_task_group_cancel_on_error_multiple_children);
+  g_test_add_func ("/dex/task-group/reject-duplicate-child", test_task_group_reject_duplicate_child);
   g_test_add_func ("/dex/task-group/timeout-cancels-children", test_task_group_timeout_cancels_children);
   g_test_add_func ("/dex/task-group/nested-cancellation", test_task_group_nested_cancellation);
   g_test_add_func ("/dex/task-group/null-uses-thread-default", test_task_group_null_uses_thread_default);
