@@ -34,6 +34,7 @@
 #include "dex-uring-version.h"
 
 #define DEFAULT_URING_SIZE 32
+#define SUBMIT_RETRY_MSEC 10
 
 struct _DexUringAioBackend
 {
@@ -178,6 +179,11 @@ dex_uring_aio_context_prepare (GSource *source,
 
   if (do_submit || io_uring_sq_ready (&aio_context->ring) > 0)
     io_uring_submit (&aio_context->ring);
+
+  /* A failed or partial submission leaves SQEs pending. Retry even when no
+   * completion can arrive to wake the main context. */
+  if (io_uring_sq_ready (&aio_context->ring) > 0)
+    *timeout = SUBMIT_RETRY_MSEC;
 
   g_mutex_unlock (&aio_context->mutex);
 
