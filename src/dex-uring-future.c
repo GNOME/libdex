@@ -153,7 +153,7 @@ complete_ssize (DexUringFuture *uring_future,
   if (value < 0)
     dex_future_complete (DEX_FUTURE (uring_future),
                          NULL,
-                         create_error (-value));
+                         create_error (value));
   else
     dex_future_complete (DEX_FUTURE (uring_future),
                          &(GValue) { G_TYPE_INT64, {{.v_int64 = value}}},

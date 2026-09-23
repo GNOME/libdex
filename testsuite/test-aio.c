@@ -36,6 +36,7 @@
 
 #ifdef HAVE_LIBURING
 # include "dex-uring-aio-backend-private.h"
+# include "dex-uring-future-private.h"
 #endif
 
 static DexFuture *
@@ -158,6 +159,24 @@ run_aio_open_missing (DexAioContext *aio_context)
 }
 
 static void
+run_aio_read_write_bad_fd (DexAioContext *aio_context)
+{
+  char buffer[1] = {0};
+  GError *error = NULL;
+  DexFuture *future;
+
+  future = await_future (dex_aio_read (aio_context, G_MAXINT, buffer, sizeof buffer, 0));
+  dex_await_int64 (future, &error);
+  g_assert_error (error, G_IO_ERROR, g_io_error_from_errno (EBADF));
+  g_clear_error (&error);
+
+  future = await_future (dex_aio_write (aio_context, G_MAXINT, buffer, sizeof buffer, 0));
+  dex_await_int64 (future, &error);
+  g_assert_error (error, G_IO_ERROR, g_io_error_from_errno (EBADF));
+  g_clear_error (&error);
+}
+
+static void
 test_aio_close_success (void)
 {
   run_aio_close_success (NULL);
@@ -195,6 +214,7 @@ test_aio_open_posix (void)
   run_aio_close_bad_fd (aio_context);
   run_aio_open_success (aio_context);
   run_aio_open_missing (aio_context);
+  run_aio_read_write_bad_fd (aio_context);
 
   g_source_destroy ((GSource *)aio_context);
   g_source_unref ((GSource *)aio_context);
@@ -202,6 +222,31 @@ test_aio_open_posix (void)
 }
 
 #ifdef HAVE_LIBURING
+static void
+test_aio_uring_read_write_error_mapping (void)
+{
+  struct io_uring_cqe cqe = {.res = -EBADF};
+  DexUringFuture *future;
+  GError *error = NULL;
+  char buffer[1];
+
+  future = dex_uring_future_new_read (G_MAXINT, buffer, sizeof buffer, 0);
+  dex_uring_future_cqe (future, &cqe);
+  dex_uring_future_complete (future);
+  g_assert_null (dex_future_get_value (DEX_FUTURE (future), &error));
+  g_assert_error (error, G_IO_ERROR, g_io_error_from_errno (EBADF));
+  g_clear_error (&error);
+  dex_unref (future);
+
+  future = dex_uring_future_new_write (G_MAXINT, buffer, sizeof buffer, 0);
+  dex_uring_future_cqe (future, &cqe);
+  dex_uring_future_complete (future);
+  g_assert_null (dex_future_get_value (DEX_FUTURE (future), &error));
+  g_assert_error (error, G_IO_ERROR, g_io_error_from_errno (EBADF));
+  g_clear_error (&error);
+  dex_unref (future);
+}
+
 static void
 test_aio_open_uring (void)
 {
@@ -221,6 +266,7 @@ test_aio_open_uring (void)
   run_aio_close_bad_fd (aio_context);
   run_aio_open_success (aio_context);
   run_aio_open_missing (aio_context);
+  run_aio_read_write_bad_fd (aio_context);
 
   g_source_destroy ((GSource *)aio_context);
   g_source_unref ((GSource *)aio_context);
@@ -241,6 +287,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Aio/open-posix", test_aio_open_posix);
 #ifdef HAVE_LIBURING
   g_test_add_func ("/Dex/TestSuite/Aio/open-uring", test_aio_open_uring);
+  g_test_add_func ("/Dex/TestSuite/Aio/uring-read-write-error-mapping", test_aio_uring_read_write_error_mapping);
 #endif
   return g_test_run ();
 }
