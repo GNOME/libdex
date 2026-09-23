@@ -222,6 +222,7 @@ dex_posix_aio_context_finalize (GSource *source)
   g_assert (DEX_IS_POSIX_AIO_BACKEND (aio_context->parent.aio_backend));
   g_assert (aio_context->completed.length == 0);
 
+  dex_clear (&aio_context->parent.aio_backend);
   g_mutex_clear (&aio_context->mutex);
 }
 
