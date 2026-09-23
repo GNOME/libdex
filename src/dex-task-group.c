@@ -68,6 +68,19 @@ static void dex_task_group_discard            (DexFuture    *future);
 
 static const GError *static_cancelled;
 
+static GPtrArray *
+dex_task_group_ref_children (DexTaskGroup *group)
+{
+  GPtrArray *children = g_ptr_array_new_with_free_func (dex_unref);
+
+  dex_object_lock (group);
+  for (GList *iter = group->futures.head; iter != NULL; iter = iter->next)
+    g_ptr_array_add (children, dex_ref (iter->data));
+  dex_object_unlock (group);
+
+  return children;
+}
+
 static gboolean
 dex_task_group_propagate (DexFuture *future,
                           DexFuture *completed)
@@ -122,19 +135,24 @@ dex_task_group_propagate (DexFuture *future,
         }
     }
 
+  if (should_discard_child)
+    g_queue_unlink (&group->futures, &completed->task_group_link);
+
   dex_object_unlock (group);
 
   if (should_discard_child)
     {
-      g_queue_unlink (&group->futures, &completed->task_group_link);
       dex_future_discard (completed, DEX_FUTURE (group));
       dex_unref (completed);
     }
 
   if (should_cancel_pending)
     {
-      for (GList *iter = group->futures.head; iter != NULL; iter = iter->next)
-        dex_task_group_cancel_child (group, iter->data);
+      GPtrArray *children = dex_task_group_ref_children (group);
+
+      for (guint i = 0; i < children->len; i++)
+        dex_task_group_cancel_child (group, g_ptr_array_index (children, i));
+      g_ptr_array_unref (children);
 
       dex_task_group_complete_cancelled (group,
                                          static_cancelled,
@@ -368,6 +386,8 @@ dex_task_group_complete_cancelled (DexTaskGroup *group,
 void
 dex_task_group_cancel (DexTaskGroup *group)
 {
+  GPtrArray *children;
+
   g_return_if_fail (DEX_IS_TASK_GROUP (group));
 
   dex_object_lock (group);
@@ -383,8 +403,10 @@ dex_task_group_cancel (DexTaskGroup *group)
 
   dex_object_unlock (group);
 
-  for (GList *iter = group->futures.head; iter != NULL; iter = iter->next)
-    dex_task_group_cancel_child (group, iter->data);
+  children = dex_task_group_ref_children (group);
+  for (guint i = 0; i < children->len; i++)
+    dex_task_group_cancel_child (group, g_ptr_array_index (children, i));
+  g_ptr_array_unref (children);
 
   dex_task_group_complete_cancelled (group, static_cancelled, NULL);
 }

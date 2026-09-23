@@ -131,6 +131,32 @@ test_task_group_cancel_on_error (void)
 }
 
 static void
+test_task_group_cancel_on_error_multiple_children (void)
+{
+  DexTaskGroup *group = dex_task_group_new (DEX_TASK_GROUP_FLAGS_CANCEL_ON_ERROR);
+  DexPromise *first = dex_promise_new ();
+  DexPromise *second = dex_promise_new_cancellable ();
+  DexPromise *third = dex_promise_new_cancellable ();
+  GCancellable *second_cancellable = g_object_ref (dex_promise_get_cancellable (second));
+  GCancellable *third_cancellable = g_object_ref (dex_promise_get_cancellable (third));
+
+  g_assert_true (dex_task_group_add (group, DEX_FUTURE (first)));
+  g_assert_true (dex_task_group_add (group, DEX_FUTURE (second)));
+  g_assert_true (dex_task_group_add (group, DEX_FUTURE (third)));
+
+  dex_promise_reject (first, g_error_new_literal (G_IO_ERROR,
+                                                  G_IO_ERROR_FAILED,
+                                                  "first failed"));
+
+  g_assert_true (g_cancellable_is_cancelled (second_cancellable));
+  g_assert_true (g_cancellable_is_cancelled (third_cancellable));
+
+  g_clear_object (&second_cancellable);
+  g_clear_object (&third_cancellable);
+  dex_clear (&group);
+}
+
+static void
 test_task_group_timeout_cancels_children (void)
 {
   GMainContext *context = g_main_context_default ();
@@ -274,6 +300,7 @@ main (int argc, char *argv[])
   g_test_add_func ("/dex/task-group/cancel", test_task_group_cancel);
   g_test_add_func ("/dex/task-group/close-all-resolved", test_task_group_close_all_resolved);
   g_test_add_func ("/dex/task-group/cancel-on-error", test_task_group_cancel_on_error);
+  g_test_add_func ("/dex/task-group/cancel-on-error-multiple-children", test_task_group_cancel_on_error_multiple_children);
   g_test_add_func ("/dex/task-group/timeout-cancels-children", test_task_group_timeout_cancels_children);
   g_test_add_func ("/dex/task-group/nested-cancellation", test_task_group_nested_cancellation);
   g_test_add_func ("/dex/task-group/null-uses-thread-default", test_task_group_null_uses_thread_default);
