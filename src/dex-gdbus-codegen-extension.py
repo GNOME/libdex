@@ -605,12 +605,20 @@ class CodeGenerator:
         self.outfile.write(
             ",\n    gpointer user_data)\n"
             "{\n"
-            "  GDBusFutureSignalData *data = user_data;\n"
+            "  GDBusFutureSignalData *data = gdbus_future_signal_data_ref (user_data);\n"
+        )
+        if len(s.args) > 0:
+            self.outfile.write("  %s *signal;\n" % signal_type)
+        self.outfile.write(
+            "  if (!g_atomic_int_compare_and_exchange (&data->completed, 0, 1))\n"
+            "    {\n"
+            "      gdbus_future_signal_data_unref (data);\n"
+            "      return;\n"
+            "    }\n"
         )
         if len(s.args) > 0:
             self.outfile.write(
-                "  %s *signal = g_new0 (%s, 1);\n"
-                % (signal_type, signal_type, )
+                "  signal = g_new0 (%s, 1);\n" % signal_type
             )
         for a in s.args:
             if a.copy_func:
@@ -621,9 +629,13 @@ class CodeGenerator:
             else:
                 self.outfile.write("  signal->%s = arg_%s;\n" % (a.name, a.name))
         self.outfile.write(
+            "  /* A concurrent signal can arrive before connect returns its handler ID. */\n"
+            "  g_mutex_lock (&data->mutex);\n"
+            "  g_mutex_unlock (&data->mutex);\n"
             "  g_cancellable_disconnect (dex_promise_get_cancellable (data->promise),\n"
             "                            data->cancelled_handler_id);\n"
             "  data->cancelled_handler_id = 0;\n"
+            "  g_clear_signal_handler (&data->signalled_handler_id, data->proxy);\n"
         )
         if len(s.args) > 0:
             self.outfile.write(
@@ -635,7 +647,7 @@ class CodeGenerator:
                 "  dex_promise_resolve_boolean (data->promise, TRUE);\n"
             )
         self.outfile.write(
-            "  gdbus_future_signal_data_free (data);\n"
+            "  gdbus_future_signal_data_unref (data);\n"
             "}\n\n"
         )
 
@@ -676,17 +688,26 @@ class CodeGenerator:
         self.outfile.write(
             "{\n"
             "  GDBusFutureSignalData *data = g_new0 (GDBusFutureSignalData, 1);\n"
+            "  DexFuture *future;\n"
+            "  g_atomic_ref_count_init (&data->ref_count);\n"
+            "  g_mutex_init (&data->mutex);\n"
             "  data->proxy = G_DBUS_PROXY (g_object_ref (proxy));\n"
             "  data->promise = dex_promise_new_cancellable ();\n"
             "  data->cancelled_handler_id =\n"
             "    g_cancellable_connect (dex_promise_get_cancellable (data->promise),\n"
             "                           G_CALLBACK (gdbus_future_signal_cancelled_cb),\n"
-            "                           data, NULL);\n"
+            "                           gdbus_future_signal_data_ref (data),\n"
+            "                           (GDestroyNotify) gdbus_future_signal_data_unref);\n"
+            "  g_mutex_lock (&data->mutex);\n"
             "  data->signalled_handler_id =\n"
-            "    g_signal_connect (proxy, \"%s\",\n"
+            "    g_signal_connect_data (proxy, \"%s\",\n"
             "                      G_CALLBACK (_%s_signalled_cb),\n" # FIXME!
-            "                      data);\n"
-            "  return DEX_FUTURE (dex_ref (data->promise));\n"
+            "                      gdbus_future_signal_data_ref (data),\n"
+            "                      gdbus_future_signal_data_closure_notify, 0);\n"
+            "  g_mutex_unlock (&data->mutex);\n"
+            "  future = DEX_FUTURE (dex_ref (data->promise));\n"
+            "  gdbus_future_signal_data_unref (data);\n"
+            "  return future;\n"
             "}\n"
             % (s.name_hyphen, wait_function_prefix)
         )
@@ -875,34 +896,61 @@ class CodeGenerator:
             )
 
     def generate_body_preamble(self):
+        if not any(i.signals for i in self.ifaces):
+            return
+
         self.outfile.write(
             "typedef struct\n"
             "{\n"
             "  GDBusProxy *proxy;\n"
             "  DexPromise *promise;\n"
+            "  GMutex mutex;\n"
+            "  gatomicrefcount ref_count;\n"
+            "  gint completed;\n"
             "  gulong cancelled_handler_id;\n"
-            "  guint signalled_handler_id;\n"
+            "  gulong signalled_handler_id;\n"
             "} GDBusFutureSignalData;\n"
             "\n"
-            "static void\n"
-            "gdbus_future_signal_data_free (GDBusFutureSignalData *data)\n"
+            "static GDBusFutureSignalData *\n"
+            "gdbus_future_signal_data_ref (GDBusFutureSignalData *data)\n"
             "{\n"
-            "  g_signal_handler_disconnect (data->proxy,\n"
-            "                               data->signalled_handler_id);\n"
-            "  g_clear_object (&data->proxy);\n"
-            "  g_clear_pointer (&data->promise, dex_unref);\n"
-            "  free (data);\n"
+            "  g_atomic_ref_count_inc (&data->ref_count);\n"
+            "  return data;\n"
+            "}\n"
+            "\n"
+            "static void\n"
+            "gdbus_future_signal_data_unref (GDBusFutureSignalData *data)\n"
+            "{\n"
+            "  if (g_atomic_ref_count_dec (&data->ref_count))\n"
+            "    {\n"
+            "      g_clear_object (&data->proxy);\n"
+            "      g_clear_pointer (&data->promise, dex_unref);\n"
+            "      g_mutex_clear (&data->mutex);\n"
+            "      g_free (data);\n"
+            "    }\n"
+            "}\n"
+            "\n"
+            "static void\n"
+            "gdbus_future_signal_data_closure_notify (gpointer data, GClosure *closure)\n"
+            "{\n"
+            "  gdbus_future_signal_data_unref (data);\n"
             "}\n"
             "\n"
             "G_GNUC_UNUSED static void\n"
             "gdbus_future_signal_cancelled_cb (GCancellable *cancellable,\n"
             "                                  gpointer      user_data)\n"
             "{\n"
-            "  GDBusFutureSignalData *data = user_data;\n"
-            "  dex_promise_reject (data->promise,\n"
-            "                      g_error_new_literal (G_IO_ERROR, G_IO_ERROR_CANCELLED,\n"
-            "                                           \"Cancelled\"));\n"
-            "  gdbus_future_signal_data_free (data);\n"
+            "  GDBusFutureSignalData *data = gdbus_future_signal_data_ref (user_data);\n"
+            "  if (g_atomic_int_compare_and_exchange (&data->completed, 0, 1))\n"
+            "    {\n"
+            "      dex_promise_reject (data->promise,\n"
+            "                          g_error_new_literal (G_IO_ERROR, G_IO_ERROR_CANCELLED,\n"
+            "                                               \"Cancelled\"));\n"
+            "      g_clear_signal_handler (&data->signalled_handler_id, data->proxy);\n"
+            "      /* g_cancellable_disconnect() would deadlock in this callback. */\n"
+            "      g_clear_signal_handler (&data->cancelled_handler_id, cancellable);\n"
+            "    }\n"
+            "  gdbus_future_signal_data_unref (data);\n"
             "}\n"
         )
 
