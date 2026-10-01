@@ -103,6 +103,9 @@ DexFuture *dex_file_query_info                            (GFile                
                                                            const char                  *attributes,
                                                            GFileQueryInfoFlags          flags,
                                                            int                          io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_file_test                                  (const char                  *filename,
+                                                           GFileTest                    test) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2
 DexFuture *dex_file_query_filesystem_info                 (GFile                       *file,
                                                            const char                  *attributes,

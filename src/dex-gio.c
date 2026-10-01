@@ -25,6 +25,10 @@
 
 #include <glib/gstdio.h>
 
+#ifdef G_OS_UNIX
+# include <unistd.h>
+#endif
+
 #include "dex-async-pair-private.h"
 #include "dex-future-private.h"
 #include "dex-future-set.h"
@@ -1763,6 +1767,89 @@ dex_file_query_info (GFile               *file,
                            dex_ref (async_pair));
 
   return DEX_FUTURE (async_pair);
+}
+
+static DexFuture *
+dex_file_test_info_cb (DexFuture *future,
+                       gpointer   user_data)
+{
+  GFileTest test = GPOINTER_TO_INT (user_data);
+  GFileInfo *info = g_value_get_object (dex_future_get_value (future, NULL));
+  GFileType type = g_file_info_get_file_type (info);
+  gboolean exists = type != G_FILE_TYPE_SYMBOLIC_LINK;
+  gboolean matches = FALSE;
+
+  if ((test & G_FILE_TEST_IS_SYMLINK) && g_file_info_get_is_symlink (info))
+    matches = TRUE;
+
+  if ((test & G_FILE_TEST_EXISTS) && exists)
+    matches = TRUE;
+
+  if ((test & G_FILE_TEST_IS_REGULAR) && type == G_FILE_TYPE_REGULAR)
+    matches = TRUE;
+
+  if ((test & G_FILE_TEST_IS_DIR) && type == G_FILE_TYPE_DIRECTORY)
+    matches = TRUE;
+
+  if ((test & G_FILE_TEST_IS_EXECUTABLE) &&
+      exists &&
+      g_file_info_get_attribute_boolean (info, G_FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE))
+    {
+#ifdef G_OS_UNIX
+      /* access (X_OK) can succeed for root even when no execute bit is set. */
+      if (getuid () == 0 &&
+          g_file_info_has_attribute (info, G_FILE_ATTRIBUTE_UNIX_MODE))
+        matches |= (g_file_info_get_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_MODE) & 0111) != 0;
+      else
+#endif
+        matches = TRUE;
+    }
+
+  return dex_future_new_for_boolean (matches);
+}
+
+static DexFuture *
+dex_file_test_error_cb (DexFuture *future,
+                        gpointer   user_data)
+{
+  return dex_future_new_false ();
+}
+
+/**
+ * dex_file_test:
+ * @filename: a filename in the GLib filename encoding
+ * @test: bitfield of [flags@GLib.FileTest] flags
+ *
+ * Tests @filename using the same flags as g_file_test(). The result is %TRUE
+ * if any requested test succeeds. All tests except
+ * %G_FILE_TEST_IS_SYMLINK follow symbolic links. A dangling symbolic link
+ * matches only %G_FILE_TEST_IS_SYMLINK. Query failures resolve to %FALSE.
+ *
+ * Returns: (transfer full): a [class@Dex.Future] that resolves to a boolean
+ *
+ * Since: 1.3
+ */
+DexFuture *
+dex_file_test (const char *filename,
+               GFileTest   test)
+{
+  GFile *file;
+  DexFuture *future;
+
+  g_return_val_if_fail (filename != NULL, NULL);
+
+  file = g_file_new_for_path (filename);
+  future = dex_file_query_info (file,
+                                G_FILE_ATTRIBUTE_STANDARD_TYPE ","
+                                G_FILE_ATTRIBUTE_STANDARD_IS_SYMLINK ","
+                                G_FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE ","
+                                G_FILE_ATTRIBUTE_UNIX_MODE,
+                                G_FILE_QUERY_INFO_NONE,
+                                G_PRIORITY_DEFAULT);
+  g_object_unref (file);
+  future = dex_future_then (future, dex_file_test_info_cb, GINT_TO_POINTER (test), NULL);
+
+  return dex_future_catch (future, dex_file_test_error_cb, NULL, NULL);
 }
 
 static void
