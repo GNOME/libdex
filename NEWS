@@ -8,6 +8,7 @@ libdex 1.2.1 (unreleased)
  * Reject adding a future to more than one task group at a time
  * Fix races between D-Bus signal delivery and cancellation, and avoid
    generating unused signal helpers for interfaces without signals
+ * Fix accidental use of autofree/autoptr
 
 
 libdex 1.2.0
