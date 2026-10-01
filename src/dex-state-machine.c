@@ -304,8 +304,8 @@ dex_state_machine_set_invalid_transition_error (DexStateMachine  *state_machine,
                                                 guint             to,
                                                 GError          **error)
 {
-  g_autofree char *from_name = NULL;
-  g_autofree char *to_name = NULL;
+  char *from_name;
+  char *to_name;
 
   g_assert (DEX_IS_STATE_MACHINE (state_machine));
 
@@ -318,6 +318,9 @@ dex_state_machine_set_invalid_transition_error (DexStateMachine  *state_machine,
                "Invalid transition from `%s` to `%s`",
                from_name,
                to_name);
+
+  g_free (from_name);
+  g_free (to_name);
 
   return FALSE;
 }
@@ -421,7 +424,7 @@ dex_state_machine_transition_to (DexStateMachine  *state_machine,
                                  GError          **error)
 {
   DexStateTransitionContext context = {0};
-  g_autoptr(DexPromise) interrupt = NULL;
+  DexPromise *interrupt = NULL;
   const DexStateTransition *transition;
   gboolean succeeded;
 
@@ -447,6 +450,8 @@ dex_state_machine_transition_to (DexStateMachine  *state_machine,
                         g_error_new_literal (G_IO_ERROR,
                                              G_IO_ERROR_CANCELLED,
                                              "State transition context completed"));
+
+  dex_clear (&interrupt);
 
   if (!succeeded)
     return FALSE;
