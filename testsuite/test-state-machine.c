@@ -305,8 +305,8 @@ test_state_machine_basic (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_READY, transition_basic },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -331,6 +331,9 @@ test_state_machine_basic (void)
   g_assert_cmpuint (data->visited->len, ==, 2);
   g_assert_cmpuint (g_array_index (data->visited, guint, 0), ==, TEST_STATE_INITIAL);
   g_assert_cmpuint (g_array_index (data->visited, guint, 1), ==, TEST_STATE_READY);
+
+  g_clear_error (&error);
+  dex_clear (&state_machine);
 }
 
 static void
@@ -339,8 +342,8 @@ test_state_machine_landing (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_prepare },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -362,6 +365,9 @@ test_state_machine_landing (void)
   g_assert_cmpuint (data->visited->len, ==, 2);
   g_assert_cmpuint (g_array_index (data->visited, guint, 0), ==, TEST_STATE_INITIAL);
   g_assert_cmpuint (g_array_index (data->visited, guint, 1), ==, TEST_STATE_PREPARE);
+
+  g_clear_error (&error);
+  dex_clear (&state_machine);
 }
 
 static void
@@ -371,8 +377,8 @@ test_state_machine_reverse (void)
     { TEST_STATE_INITIAL, TEST_STATE_READY, transition_basic },
     { TEST_STATE_READY, TEST_STATE_INITIAL, transition_basic },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -402,6 +408,9 @@ test_state_machine_reverse (void)
   g_assert_cmpuint (g_array_index (data->visited, guint, 1), ==, TEST_STATE_READY);
   g_assert_cmpuint (g_array_index (data->visited, guint, 2), ==, TEST_STATE_READY);
   g_assert_cmpuint (g_array_index (data->visited, guint, 3), ==, TEST_STATE_INITIAL);
+
+  g_clear_error (&error);
+  dex_clear (&state_machine);
 }
 
 static void
@@ -410,8 +419,8 @@ test_state_machine_landing_reverse (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_prepare_back },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -433,6 +442,9 @@ test_state_machine_landing_reverse (void)
   g_assert_cmpuint (data->visited->len, ==, 2);
   g_assert_cmpuint (g_array_index (data->visited, guint, 0), ==, TEST_STATE_INITIAL);
   g_assert_cmpuint (g_array_index (data->visited, guint, 1), ==, TEST_STATE_PREPARE);
+
+  g_clear_error (&error);
+  dex_clear (&state_machine);
 }
 
 static void
@@ -441,8 +453,8 @@ test_state_machine_invalid (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_READY, transition_basic },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -462,6 +474,8 @@ test_state_machine_invalid (void)
   g_assert_cmpuint (state, ==, 0);
   g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_INITIAL);
   g_clear_error (&error);
+
+  dex_clear (&state_machine);
 }
 
 static void
@@ -470,8 +484,8 @@ test_state_machine_failure (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_FAILED, transition_fail },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -491,6 +505,8 @@ test_state_machine_failure (void)
   g_assert_cmpuint (state, ==, 0);
   g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_INITIAL);
   g_clear_error (&error);
+
+  dex_clear (&state_machine);
 }
 
 static void
@@ -499,9 +515,9 @@ test_state_machine_requested_state (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_FAILED, transition_fail },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(DexFuture) transition = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  DexFuture *transition = NULL;
+  GError *error = NULL;
   guint state;
 
   state_machine = dex_state_machine_new (TEST_TYPE_STATE,
@@ -566,13 +582,16 @@ test_state_machine_requested_state (void)
                     ==,
                     TEST_STATE_FAILED);
   g_clear_error (&error);
+
+  dex_clear (&transition);
+  dex_clear (&state_machine);
 }
 
 static void
 test_state_machine_wait_for_state_immediate (void)
 {
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   guint state;
 
   state_machine = dex_state_machine_new (TEST_TYPE_STATE,
@@ -584,12 +603,14 @@ test_state_machine_wait_for_state_immediate (void)
                                          NULL,
                                          NULL);
 
-  state = dex_await_enum (dex_state_machine_wait_for_state (state_machine,
-                                                            TEST_STATE_INITIAL),
+  state = dex_await_enum (dex_state_machine_wait_for_state (state_machine, TEST_STATE_INITIAL),
                           &error);
 
   g_assert_no_error (error);
   g_assert_cmpuint (state, ==, TEST_STATE_INITIAL);
+
+  g_clear_error (&error);
+  dex_clear (&state_machine);
 }
 
 static void
@@ -598,10 +619,10 @@ test_state_machine_wait_for_state_transition (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_READY, transition_basic },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(DexFuture) wait = NULL;
-  g_autoptr(DexFuture) transition = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  DexFuture *wait = NULL;
+  DexFuture *transition = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -629,6 +650,11 @@ test_state_machine_wait_for_state_transition (void)
 
   g_assert_no_error (error);
   g_assert_cmpuint (state, ==, TEST_STATE_READY);
+
+  g_clear_error (&error);
+  dex_clear (&transition);
+  dex_clear (&wait);
+  dex_clear (&state_machine);
 }
 
 static void
@@ -637,10 +663,10 @@ test_state_machine_wait_for_state_intermediate (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_prepare },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(DexFuture) wait = NULL;
-  g_autoptr(DexFuture) transition = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  DexFuture *wait = NULL;
+  DexFuture *transition = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -666,13 +692,18 @@ test_state_machine_wait_for_state_intermediate (void)
 
   g_assert_no_error (error);
   g_assert_cmpuint (state, ==, TEST_STATE_READY);
+
+  g_clear_error (&error);
+  dex_clear (&transition);
+  dex_clear (&wait);
+  dex_clear (&state_machine);
 }
 
 static void
 test_state_machine_wait_for_state_invalid (void)
 {
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   guint state;
 
   state_machine = dex_state_machine_new (TEST_TYPE_STATE,
@@ -689,14 +720,16 @@ test_state_machine_wait_for_state_invalid (void)
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVAL);
   g_assert_cmpuint (state, ==, 0);
   g_clear_error (&error);
+
+  dex_clear (&state_machine);
 }
 
 static void
 test_state_machine_wait_for_state_finalized (void)
 {
   DexStateMachine *state_machine;
-  g_autoptr(DexFuture) wait = NULL;
-  g_autoptr(GError) error = NULL;
+  DexFuture *wait = NULL;
+  GError *error = NULL;
   guint state;
 
   state_machine = dex_state_machine_new (TEST_TYPE_STATE,
@@ -719,12 +752,14 @@ test_state_machine_wait_for_state_finalized (void)
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
   g_assert_cmpuint (state, ==, 0);
   g_clear_error (&error);
+
+  dex_clear (&wait);
 }
 
 static void
 test_state_machine_interrupt_none (void)
 {
-  g_autoptr(DexStateMachine) state_machine = NULL;
+  DexStateMachine *state_machine = NULL;
 
   state_machine = dex_state_machine_new (TEST_TYPE_STATE,
                                          TEST_STATE_INITIAL,
@@ -736,6 +771,8 @@ test_state_machine_interrupt_none (void)
                                          NULL);
 
   g_assert_false (dex_state_machine_interrupt (state_machine));
+
+  dex_clear (&state_machine);
 }
 
 static void
@@ -744,10 +781,10 @@ test_state_machine_interrupt (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_READY, transition_interrupt },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(DexFuture) wait = NULL;
-  g_autoptr(DexFuture) transition = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  DexFuture *wait = NULL;
+  DexFuture *transition = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -777,6 +814,11 @@ test_state_machine_interrupt (void)
   g_assert_no_error (error);
   g_assert_cmpuint (state, ==, TEST_STATE_READY);
   g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_READY);
+
+  g_clear_error (&error);
+  dex_clear (&transition);
+  dex_clear (&wait);
+  dex_clear (&state_machine);
 }
 
 static void
@@ -785,10 +827,10 @@ test_state_machine_interrupt_latched (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_READY, transition_interrupt_late_wait },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(DexFuture) wait = NULL;
-  g_autoptr(DexFuture) transition = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  DexFuture *wait = NULL;
+  DexFuture *transition = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -817,6 +859,11 @@ test_state_machine_interrupt_latched (void)
   g_assert_no_error (error);
   g_assert_cmpuint (state, ==, TEST_STATE_READY);
   g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_READY);
+
+  g_clear_error (&error);
+  dex_clear (&transition);
+  dex_clear (&wait);
+  dex_clear (&state_machine);
 }
 
 static void
@@ -825,8 +872,8 @@ test_state_machine_interrupt_context_completed (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_READY, transition_interrupt_not_taken },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -850,6 +897,8 @@ test_state_machine_interrupt_context_completed (void)
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
   g_clear_error (&error);
   g_assert_false (dex_state_machine_interrupt (state_machine));
+
+  dex_clear (&state_machine);
 }
 
 static void
@@ -859,8 +908,8 @@ test_state_machine_continue_to (void)
     { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_continue_to_ready },
     { TEST_STATE_PREPARE, TEST_STATE_READY, transition_basic },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -884,6 +933,9 @@ test_state_machine_continue_to (void)
   g_assert_cmpuint (g_array_index (data->visited, guint, 1), ==, TEST_STATE_PREPARE);
   g_assert_cmpuint (g_array_index (data->visited, guint, 2), ==, TEST_STATE_PREPARE);
   g_assert_cmpuint (g_array_index (data->visited, guint, 3), ==, TEST_STATE_READY);
+
+  g_clear_error (&error);
+  dex_clear (&state_machine);
 }
 
 static void
@@ -893,10 +945,10 @@ test_state_machine_continue_to_before_queued (void)
     { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_continue_to_ready },
     { TEST_STATE_PREPARE, TEST_STATE_READY, transition_basic },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(DexFuture) first = NULL;
-  g_autoptr(DexFuture) second = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  DexFuture *first = NULL;
+  DexFuture *second = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -926,6 +978,10 @@ test_state_machine_continue_to_before_queued (void)
   g_assert_cmpuint (dex_state_machine_get_state (state_machine), ==, TEST_STATE_READY);
   g_assert_cmpuint (data->visited->len, ==, 4);
   g_clear_error (&error);
+
+  dex_clear (&second);
+  dex_clear (&first);
+  dex_clear (&state_machine);
 }
 
 static void
@@ -934,8 +990,8 @@ test_state_machine_continue_to_invalid (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_continue_to_failed },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -958,6 +1014,8 @@ test_state_machine_continue_to_invalid (void)
   g_assert_cmpuint (g_array_index (data->visited, guint, 0), ==, TEST_STATE_INITIAL);
   g_assert_cmpuint (g_array_index (data->visited, guint, 1), ==, TEST_STATE_PREPARE);
   g_clear_error (&error);
+
+  dex_clear (&state_machine);
 }
 
 static void
@@ -967,8 +1025,8 @@ test_state_machine_continue_to_failure (void)
     { TEST_STATE_INITIAL, TEST_STATE_PREPARE, transition_continue_to_failed },
     { TEST_STATE_PREPARE, TEST_STATE_FAILED, transition_fail },
   };
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
   TransitionData *data;
   guint state;
 
@@ -991,6 +1049,8 @@ test_state_machine_continue_to_failure (void)
   g_assert_cmpuint (g_array_index (data->visited, guint, 0), ==, TEST_STATE_INITIAL);
   g_assert_cmpuint (g_array_index (data->visited, guint, 1), ==, TEST_STATE_PREPARE);
   g_clear_error (&error);
+
+  dex_clear (&state_machine);
 }
 
 static void
@@ -999,10 +1059,10 @@ test_state_machine_scheduler (void)
   static const DexStateTransition transitions[] = {
     { TEST_STATE_INITIAL, TEST_STATE_READY, transition_scheduler },
   };
-  g_autoptr(DexScheduler) scheduler = NULL;
-  g_autoptr(DexStateMachine) state_machine = NULL;
-  g_autoptr(GError) error = NULL;
-  SchedulerData data = {0};
+  DexScheduler *scheduler = NULL;
+  DexStateMachine *state_machine = NULL;
+  GError *error = NULL;
+  SchedulerData data = { 0 };
   guint state;
 
   scheduler = dex_thread_pool_scheduler_new ();
@@ -1021,6 +1081,10 @@ test_state_machine_scheduler (void)
   g_assert_no_error (error);
   g_assert_cmpuint (state, ==, TEST_STATE_READY);
   g_assert_true (data.used_scheduler);
+
+  g_clear_error (&error);
+  dex_clear (&state_machine);
+  dex_clear (&scheduler);
 }
 
 static void

@@ -196,16 +196,16 @@ test_channel_receive_all_with_blocked_sender (void)
 static void
 test_channel_receive_with_cancellation (void)
 {
-  g_autoptr(DexChannel) channel = NULL;
-  g_autoptr(DexCancellable) closed = NULL;
-  g_autoptr(DexPromise) payload = NULL;
-  g_autoptr(DexFuture) completed = NULL;
-  g_autoptr(DexFuture) paired = NULL;
-  g_autoptr(DexFuture) waiting = NULL;
-  g_autoptr(DexFuture) paired_result = NULL;
-  g_autoptr(DexFuture) waiting_result = NULL;
-  g_autoptr(DexFuture) send = NULL;
-  g_autoptr(GError) receive_error = NULL;
+  DexChannel *channel = NULL;
+  DexCancellable *closed = NULL;
+  DexPromise *payload = NULL;
+  DexFuture *completed = NULL;
+  DexFuture *paired = NULL;
+  DexFuture *waiting = NULL;
+  DexFuture *paired_result = NULL;
+  DexFuture *waiting_result = NULL;
+  DexFuture *send = NULL;
+  GError *receive_error = NULL;
 
   channel = dex_channel_new (0);
   closed = dex_cancellable_new ();
@@ -259,6 +259,17 @@ test_channel_receive_with_cancellation (void)
   ASSERT_STATUS (paired_result, DEX_FUTURE_STATUS_REJECTED);
   ASSERT_STATUS (waiting_result, DEX_FUTURE_STATUS_REJECTED);
   ASSERT_CMPINT (completed, ==, 42);
+
+  g_clear_error (&receive_error);
+  dex_clear (&send);
+  dex_clear (&waiting_result);
+  dex_clear (&paired_result);
+  dex_clear (&waiting);
+  dex_clear (&paired);
+  dex_clear (&completed);
+  dex_clear (&payload);
+  dex_clear (&closed);
+  dex_clear (&channel);
 }
 
 static void
@@ -282,15 +293,15 @@ test_channel_await_cancellation_from_signal (void)
 {
   for (guint paired = 0; paired < 2; paired++)
     {
-      g_autoptr(DexChannel) channel = NULL;
-      g_autoptr(DexCancellable) closed = NULL;
-      g_autoptr(DexPromise) payload = NULL;
-      g_autoptr(DexFuture) send = NULL;
-      g_autoptr(DexFuture) race = NULL;
-      g_autoptr(GCancellable) cancellable = NULL;
-      g_autoptr(GSource) source = NULL;
-      g_autoptr(GBytes) message = NULL;
-      g_autoptr(GError) error = NULL;
+      DexChannel *channel = NULL;
+      DexCancellable *closed = NULL;
+      DexPromise *payload = NULL;
+      DexFuture *send = NULL;
+      DexFuture *race = NULL;
+      GCancellable *cancellable = NULL;
+      GSource *source = NULL;
+      GBytes *message = NULL;
+      GError *error = NULL;
       gulong handler;
 
       channel = dex_channel_new (0);
@@ -323,6 +334,16 @@ test_channel_await_cancellation_from_signal (void)
       dex_channel_close_receive (channel);
       dex_promise_resolve_boxed (payload, G_TYPE_BYTES, g_bytes_new_static ("message", 7));
       ASSERT_STATUS (race, DEX_FUTURE_STATUS_REJECTED);
+
+      g_clear_error (&error);
+      g_clear_pointer (&message, g_bytes_unref);
+      g_clear_pointer (&source, g_source_unref);
+      g_clear_object (&cancellable);
+      dex_clear (&race);
+      dex_clear (&send);
+      dex_clear (&payload);
+      dex_clear (&closed);
+      dex_clear (&channel);
     }
 }
 
