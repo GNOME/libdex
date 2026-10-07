@@ -336,7 +336,6 @@ main (int argc,
   g_test_add_func ("/Dex/TestSuite/Channel/recv_first", test_channel_recv_first);
   g_test_add_func ("/Dex/TestSuite/Channel/receive_with_cancellation", test_channel_receive_with_cancellation);
   dex_test_add_func ("/Dex/TestSuite/Channel/await_cancellation_from_signal", test_channel_await_cancellation_from_signal);
-  g_test_add_func ("/Dex/TestSuite/Channel/receive_all_with_blocked_sender",
-                   test_channel_receive_all_with_blocked_sender);
+  g_test_add_func ("/Dex/TestSuite/Channel/receive_all_with_blocked_sender", test_channel_receive_all_with_blocked_sender);
   return g_test_run ();
 }

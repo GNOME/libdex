@@ -1059,29 +1059,19 @@ main (int   argc,
   _g_test_add_func ("/Dex/StateMachine/invalid", test_state_machine_invalid);
   _g_test_add_func ("/Dex/StateMachine/failure", test_state_machine_failure);
   _g_test_add_func ("/Dex/StateMachine/requested-state", test_state_machine_requested_state);
-  _g_test_add_func ("/Dex/StateMachine/wait-for-state-immediate",
-                    test_state_machine_wait_for_state_immediate);
-  _g_test_add_func ("/Dex/StateMachine/wait-for-state-transition",
-                    test_state_machine_wait_for_state_transition);
-  _g_test_add_func ("/Dex/StateMachine/wait-for-state-intermediate",
-                    test_state_machine_wait_for_state_intermediate);
-  _g_test_add_func ("/Dex/StateMachine/wait-for-state-invalid",
-                    test_state_machine_wait_for_state_invalid);
-  _g_test_add_func ("/Dex/StateMachine/wait-for-state-finalized",
-                    test_state_machine_wait_for_state_finalized);
+  _g_test_add_func ("/Dex/StateMachine/wait-for-state-immediate", test_state_machine_wait_for_state_immediate);
+  _g_test_add_func ("/Dex/StateMachine/wait-for-state-transition", test_state_machine_wait_for_state_transition);
+  _g_test_add_func ("/Dex/StateMachine/wait-for-state-intermediate", test_state_machine_wait_for_state_intermediate);
+  _g_test_add_func ("/Dex/StateMachine/wait-for-state-invalid", test_state_machine_wait_for_state_invalid);
+  _g_test_add_func ("/Dex/StateMachine/wait-for-state-finalized", test_state_machine_wait_for_state_finalized);
   _g_test_add_func ("/Dex/StateMachine/interrupt-none", test_state_machine_interrupt_none);
   _g_test_add_func ("/Dex/StateMachine/interrupt", test_state_machine_interrupt);
-  _g_test_add_func ("/Dex/StateMachine/interrupt-latched",
-                    test_state_machine_interrupt_latched);
-  _g_test_add_func ("/Dex/StateMachine/interrupt-context-completed",
-                    test_state_machine_interrupt_context_completed);
+  _g_test_add_func ("/Dex/StateMachine/interrupt-latched", test_state_machine_interrupt_latched);
+  _g_test_add_func ("/Dex/StateMachine/interrupt-context-completed", test_state_machine_interrupt_context_completed);
   _g_test_add_func ("/Dex/StateMachine/continue-to", test_state_machine_continue_to);
-  _g_test_add_func ("/Dex/StateMachine/continue-to-before-queued",
-                    test_state_machine_continue_to_before_queued);
-  _g_test_add_func ("/Dex/StateMachine/continue-to-invalid",
-                    test_state_machine_continue_to_invalid);
-  _g_test_add_func ("/Dex/StateMachine/continue-to-failure",
-                    test_state_machine_continue_to_failure);
+  _g_test_add_func ("/Dex/StateMachine/continue-to-before-queued", test_state_machine_continue_to_before_queued);
+  _g_test_add_func ("/Dex/StateMachine/continue-to-invalid", test_state_machine_continue_to_invalid);
+  _g_test_add_func ("/Dex/StateMachine/continue-to-failure", test_state_machine_continue_to_failure);
   _g_test_add_func ("/Dex/StateMachine/scheduler", test_state_machine_scheduler);
   _g_test_add_func ("/Dex/StateMachine/duplicate", test_state_machine_duplicate);
 
