@@ -9,6 +9,7 @@ test_env = [
 
 testsuite_c_args = [
   '-DDEX_COMPILATION',
+  '-DG_DISABLE_CLEANUP',
   '-DG_LOG_DOMAIN="libdex"',
   '-DG_ENABLE_DEBUG',
   '-UG_DISABLE_ASSERT',

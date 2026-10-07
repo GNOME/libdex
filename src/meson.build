@@ -198,6 +198,7 @@ endif
 libdex_c_args = [
   deprecated_c_args,
   release_args,
+  '-DG_DISABLE_CLEANUP',
   '-DG_LOG_DOMAIN="Dex"',
   '-DDEX_COMPILATION',
 ]
