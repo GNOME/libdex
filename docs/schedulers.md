@@ -17,7 +17,16 @@ The thread's scheduler can be retrieved with [func@Dex.Scheduler.ref_thread_defa
 
 Libdex manages a thread pool which may be retrieved using [func@Dex.ThreadPoolScheduler.get_default].
 
-The thread pool scheduler will manage a number of threads that is deemed useful based on the number of CPU available.
+The thread pool scheduler sizes its workers from the CPUs available to the
+creating thread. On Linux, it counts distinct physical cores in that thread's
+affinity mask. It creates one fewer worker than the core count when possible to
+leave capacity for the main thread, and caps the pool at 32 workers. If CPU
+topology is unavailable, it uses the number of available logical CPUs instead.
+
+Workers inherit the creating thread's affinity mask. The shared default pool is
+created on its first use, so an affinity restriction on that first caller also
+applies to its workers when they start. Create it before applying a temporary
+thread affinity restriction if it should use a wider mask.
 
 Work items created from outside of the thread pool are placed into a global queue.
 Thread pool workers will take items from the global queue when they have no more items to process.

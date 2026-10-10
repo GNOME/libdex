@@ -19,9 +19,20 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#ifdef __linux__
+# ifndef _GNU_SOURCE
+#  define _GNU_SOURCE
+# endif
+#endif
+
 #include "config.h"
 
 #include <stdatomic.h>
+
+#ifdef __linux__
+# include <errno.h>
+# include <sched.h>
+#endif
 
 #include "dex-scheduler-private.h"
 #include "dex-thread-pool-scheduler-private.h"
@@ -72,6 +83,98 @@ DEX_DEFINE_FINAL_TYPE (DexThreadPoolScheduler, dex_thread_pool_scheduler, DEX_TY
 #define DEX_TYPE_THREAD_POOL_SCHEDULER dex_thread_pool_scheduler_type
 
 static DexScheduler *default_thread_pool;
+
+#ifdef __linux__
+static char *
+dex_thread_pool_scheduler_get_core_siblings (guint cpu)
+{
+  char *path;
+  char *contents = NULL;
+
+  path = g_strdup_printf ("/sys/devices/system/cpu/cpu%u/topology/thread_siblings_list", cpu);
+
+  if (!g_file_get_contents (path, &contents, NULL, NULL))
+    {
+      g_free (path);
+      g_free (contents);
+      return NULL;
+    }
+
+  g_strstrip (contents);
+  g_free (path);
+
+  if (contents != NULL && *contents == '\0')
+    g_clear_pointer (&contents, g_free);
+
+  return contents;
+}
+
+static guint
+dex_thread_pool_scheduler_get_n_cores (void)
+{
+  GHashTable *cores = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  gsize mask_size = sizeof (cpu_set_t);
+  guint8 *mask = NULL;
+  guint n_cores = 0;
+
+  /* The kernel may have CPU IDs beyond CPU_SETSIZE. Grow the mask until it
+   * can represent every CPU in this thread's affinity set.
+   */
+  for (;;)
+    {
+      g_free (mask);
+      mask = g_malloc0 (mask_size);
+
+      if (sched_getaffinity (0, mask_size, (cpu_set_t *)mask) == 0)
+        break;
+
+      if (errno != EINVAL || mask_size >= 1024 * 1024)
+        goto failed;
+
+      mask_size *= 2;
+    }
+
+  for (gsize byte = 0; byte < mask_size; byte++)
+    {
+      for (guint bit = 0; bit < 8; bit++)
+        {
+          guint cpu;
+          char *siblings;
+
+          if (!(mask[byte] & (1u << bit)))
+            continue;
+
+          cpu = byte * 8 + bit;
+
+          /* Sibling CPUs report the same list, even if only one of them is
+           * present in this thread's affinity mask.
+           */
+          if (!(siblings = dex_thread_pool_scheduler_get_core_siblings (cpu)))
+            goto failed;
+
+          if (g_hash_table_contains (cores, siblings))
+            {
+              g_free (siblings);
+              continue;
+            }
+
+          g_hash_table_add (cores, siblings);
+
+          if (++n_cores > MAX_WORKERS)
+            goto done;
+        }
+    }
+
+done:
+  g_free (mask);
+  g_hash_table_unref (cores);
+  return n_cores;
+
+failed:
+  n_cores = 0;
+  goto done;
+}
+#endif
 
 static void
 dex_thread_pool_scheduler_push (DexScheduler *scheduler,
@@ -204,6 +307,7 @@ _dex_thread_pool_scheduler_get_n_workers (DexScheduler *scheduler)
  * dex_thread_pool_scheduler_new:
  *
  * Creates a new [class@Dex.Scheduler] that executes work items on a thread pool.
+ * Worker threads inherit the calling thread's CPU affinity mask.
  *
  * Returns: (transfer full): a [class@Dex.ThreadPoolScheduler]
  */
@@ -211,29 +315,25 @@ DexScheduler *
 dex_thread_pool_scheduler_new (void)
 {
   DexThreadPoolScheduler *thread_pool_scheduler;
-  guint n_procs;
+  guint n_cores = 0;
   guint n_workers;
 
   thread_pool_scheduler = (DexThreadPoolScheduler *)dex_object_create_instance (DEX_TYPE_THREAD_POOL_SCHEDULER);
 
   /* TODO: let this be dynamic and tunable, as well as thread pinning */
 
-  n_procs = MIN (MAX_WORKERS, g_get_num_processors ());
+#ifdef __linux__
+  n_cores = dex_thread_pool_scheduler_get_n_cores ();
+#endif
 
-  /* Couple things here, which we should take a look at in the future to
-   * see how we can tune them correctly, but:
-   *
-   * Remove one as the main thread has an AIO context too and we don't want
-   * to create contention there. Also, io_uring may limit us in the number
-   * of io_uring we can create.
-   *
-   * g_get_num_processors() includes hyperthreads, so take the result and
-   * cut it in half. It would be nicer to actually verify this on the system
-   * for cases where we don't have that.
-   *
-   * Additionally, bail if the worker fails to be created.
+  if (n_cores == 0)
+    n_cores = MAX (1, g_get_num_processors ());
+
+  /* Leave room for the main thread's AIO context. Apply the cap after
+   * counting cores so a large machine can use all MAX_WORKERS slots.
+   * Stop creating workers if one fails, for example due to io_uring limits.
    */
-  n_workers = MAX (1, (n_procs/2));
+  n_workers = MIN (MAX_WORKERS, MAX (1, n_cores - 1));
 
   for (guint i = 0; i < n_workers; i++)
     {
@@ -264,6 +364,8 @@ dex_thread_pool_scheduler_new (void)
  * This function is useful to allow programs and libraries to share
  * an off-main-thread scheduler without having to coordinate on where
  * the scheduler instance is created or owned.
+ * The pool is created on the first call, so its workers inherit that
+ * caller's CPU affinity mask when they start.
  *
  * Returns: (transfer none): a [class@Dex.Scheduler]
  */
