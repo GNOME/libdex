@@ -117,7 +117,7 @@ dex_coroutine_init (DexCoroutine *coroutine)
 }
 
 /**
- * dex_coroutine_suspend: (skip)
+ * dex_coroutine_context_suspend: (skip)
  * @context: the coroutine context
  * @pc: the state machine PC
  * @future: (transfer full): the future to suspend for
@@ -148,7 +148,7 @@ dex_coroutine_context_suspend (DexCoroutineContext *context,
 }
 
 /**
- * dex_coroutine_resume: (skip)
+ * dex_coroutine_context_resume: (skip)
  * @context: the coroutine context
  * @pc: (out): the state machine PC
  * @future: (out) (transfer full): the future which resumed
