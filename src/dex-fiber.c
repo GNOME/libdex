@@ -21,6 +21,10 @@
 #include "config.h"
 
 #include <glib.h>
+#ifdef __linux__
+# include <sys/syscall.h>
+# include <unistd.h>
+#endif
 
 #include "dex-compat-private.h"
 #include "dex-error.h"
@@ -87,6 +91,44 @@ static DexFuture *cancelled_future;
 static DexFuture *yield_future;
 static GValue yield_value = G_VALUE_INIT;
 
+#ifdef HAVE_SYSPROF
+static gint next_fiber_profiler_id;
+#endif
+
+#ifdef HAVE_SYSPROF
+/* A run mark is written after switching out, so include the kernel thread ID
+ * for Sysprof to resolve CPU migrations from scheduler marks.
+ */
+static void
+dex_fiber_mark_state (DexFiber *fiber,
+                      gint64    begin_time,
+                      gint64    end_time,
+                      gboolean  running)
+{
+  const char *name;
+  char *label;
+
+  if (begin_time <= 0 || end_time <= begin_time || !DEX_PROFILER_ACTIVE)
+    return;
+
+  /* Runnable transitions can happen while the future's lock is held. */
+  name = running ? dex_future_get_name (DEX_FUTURE (fiber)) : NULL;
+#ifdef __linux__
+  if (running)
+    label = g_strdup_printf ("tid=%ld;%s [%p#%u]", syscall (SYS_gettid),
+                             name != NULL ? name : "fiber", fiber, fiber->profiler_id);
+  else
+    label = g_strdup_printf ("fiber [%p#%u]", fiber, fiber->profiler_id);
+#else
+  label = g_strdup_printf ("%s [%p#%u]", name != NULL ? name : "fiber",
+                           fiber, fiber->profiler_id);
+#endif
+  sysprof_collector_mark (begin_time, end_time - begin_time,
+                          "libdex.fibers", running ? "fiber.run" : "fiber.runnable", label);
+  g_free (label);
+}
+#endif
+
 static void
 dex_yield_class_init (DexYieldClass *yield_class)
 {
@@ -109,6 +151,15 @@ dex_fiber_scheduler_set_queue (DexFiberScheduler *scheduler,
   if (fiber->queue == queue)
     return;
 
+#ifdef HAVE_SYSPROF
+  if (fiber->queue == QUEUE_RUNNABLE && fiber->runnable_begin_time > 0)
+    {
+      dex_fiber_mark_state (fiber, fiber->runnable_begin_time,
+                            DEX_PROFILER_CURRENT_TIME, FALSE);
+      fiber->runnable_begin_time = 0;
+    }
+#endif
+
   if (fiber->queue == QUEUE_RUNNABLE)
     g_queue_unlink (&scheduler->runnable, &fiber->link);
   else if (fiber->queue == QUEUE_BLOCKED)
@@ -117,7 +168,13 @@ dex_fiber_scheduler_set_queue (DexFiberScheduler *scheduler,
   fiber->queue = queue;
 
   if (queue == QUEUE_RUNNABLE)
-    g_queue_push_tail_link (&scheduler->runnable, &fiber->link);
+    {
+      g_queue_push_tail_link (&scheduler->runnable, &fiber->link);
+#ifdef HAVE_SYSPROF
+      if (!fiber->running && DEX_PROFILER_ACTIVE)
+        fiber->runnable_begin_time = DEX_PROFILER_CURRENT_TIME;
+#endif
+    }
   else if (queue == QUEUE_BLOCKED)
     g_queue_push_tail_link (&scheduler->blocked, &fiber->link);
 }
@@ -295,22 +352,37 @@ dex_fiber_start (DexFiber *fiber)
   fiber->exited = TRUE;
 
 #ifdef HAVE_SYSPROF
-  {
-    char *formatted_name = NULL;
-    const char *name = dex_future_get_name (DEX_FUTURE (fiber));
-    const char *mark_name = "fiber";
-    gint64 duration = DEX_PROFILER_CURRENT_TIME - fiber->begin_time;
+  if (DEX_PROFILER_ACTIVE)
+    {
+      char *formatted_name = NULL;
+      const char *name = dex_future_get_name (DEX_FUTURE (fiber));
+      const char *mark_name = "fiber";
+      gint64 duration = DEX_PROFILER_CURRENT_TIME - fiber->begin_time;
+      gint64 wall_duration = DEX_PROFILER_CURRENT_TIME - fiber->registration_time;
+      char *label;
 
-    if (name != NULL && name[0] != 0)
-      {
-        formatted_name = g_strconcat ("fiber.", name, NULL);
-        mark_name = formatted_name;
-      }
+      if (name != NULL && name[0] != 0)
+        {
+          formatted_name = g_strconcat ("fiber.", name, NULL);
+          mark_name = formatted_name;
+        }
 
-    DEX_PROFILER_MARK_AT_TIME (fiber->begin_time, duration, mark_name, "lifetime");
+      DEX_PROFILER_MARK_AT_TIME (fiber->begin_time, duration, mark_name, "lifetime");
 
-    g_free (formatted_name);
-  }
+#ifdef __linux__
+      label = g_strdup_printf ("tid=%ld;%s [%p#%u]", syscall (SYS_gettid),
+                               name != NULL ? name : "fiber", fiber, fiber->profiler_id);
+#else
+      label = g_strdup_printf ("%s [%p#%u]", name != NULL ? name : "fiber",
+                               fiber, fiber->profiler_id);
+#endif
+      if (wall_duration > 0)
+        sysprof_collector_mark (fiber->registration_time, wall_duration,
+                                "libdex.fibers", "fiber.lifetime", label);
+      g_free (label);
+
+      g_free (formatted_name);
+    }
 #endif
 
   /* Free func data if necessary
@@ -349,6 +421,10 @@ dex_fiber_new (DexFiberFunc   func,
   fiber->func_data = func_data;
   fiber->func_data_destroy = func_data_destroy;
   fiber->stack_size = stack_size;
+
+#ifdef HAVE_SYSPROF
+  fiber->profiler_id = g_atomic_int_add (&next_fiber_profiler_id, 1) + 1;
+#endif
 
   return fiber;
 }
@@ -414,6 +490,10 @@ dex_fiber_scheduler_iteration (DexFiberScheduler *fiber_scheduler)
 {
   DexFiber *fiber = NULL;
   gboolean ret;
+#ifdef HAVE_SYSPROF
+  gint64 run_begin_time = 0;
+  gint64 run_end_time;
+#endif
 
   g_assert (fiber_scheduler != NULL);
 
@@ -425,6 +505,15 @@ dex_fiber_scheduler_iteration (DexFiberScheduler *fiber_scheduler)
       g_assert (fiber->fiber_scheduler == fiber_scheduler);
       g_assert (fiber->link.data == fiber);
 
+#ifdef HAVE_SYSPROF
+      run_begin_time = DEX_PROFILER_CURRENT_TIME;
+      if (fiber->runnable_begin_time > 0)
+        {
+          dex_fiber_mark_state (fiber, fiber->runnable_begin_time,
+                                run_begin_time, FALSE);
+          fiber->runnable_begin_time = 0;
+        }
+#endif
       fiber->running = TRUE;
       fiber_scheduler->running = fiber;
 
@@ -438,9 +527,18 @@ dex_fiber_scheduler_iteration (DexFiberScheduler *fiber_scheduler)
 
   dex_fiber_context_switch (&fiber_scheduler->context, &fiber->context);
 
+#ifdef HAVE_SYSPROF
+  run_end_time = DEX_PROFILER_CURRENT_TIME;
+  dex_fiber_mark_state (fiber, run_begin_time, run_end_time, TRUE);
+#endif
+
   g_mutex_lock (&fiber_scheduler->mutex);
   fiber->running = FALSE;
   fiber_scheduler->running = NULL;
+#ifdef HAVE_SYSPROF
+  if (!fiber->exited && fiber->queue == QUEUE_RUNNABLE && DEX_PROFILER_ACTIVE)
+    fiber->runnable_begin_time = run_end_time;
+#endif
   if (!fiber->released && fiber->exited)
     {
       dex_fiber_scheduler_set_queue (fiber->fiber_scheduler, fiber, QUEUE_NONE);
@@ -561,6 +659,10 @@ dex_fiber_scheduler_register (DexFiberScheduler *fiber_scheduler,
 
   fiber->fiber_scheduler = fiber_scheduler;
   fiber->runnable = TRUE;
+
+#ifdef HAVE_SYSPROF
+  fiber->registration_time = DEX_PROFILER_CURRENT_TIME;
+#endif
 
   dex_fiber_scheduler_set_queue (fiber_scheduler, fiber, QUEUE_RUNNABLE);
 

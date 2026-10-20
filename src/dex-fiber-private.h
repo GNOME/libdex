@@ -68,8 +68,11 @@ struct _DexFiber
   gsize stack_size;
 
 #ifdef HAVE_SYSPROF
-  /* Entry time used to emit a duration mark when the fiber exits. */
+  /* Entry time for the legacy fiber mark, and registration time for wall time. */
   gint64 begin_time;
+  gint64 registration_time;
+  gint64 runnable_begin_time;
+  guint profiler_id;
 #endif
 
   /* The assigned stack */
