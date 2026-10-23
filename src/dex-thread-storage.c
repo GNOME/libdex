@@ -21,9 +21,20 @@
 
 #include "config.h"
 
+#include "dex-object.h"
 #include "dex-thread-storage-private.h"
 
-static GPrivate dex_thread_storage_key = G_PRIVATE_INIT (g_free);
+static void
+dex_thread_storage_free (gpointer data)
+{
+  DexThreadStorage *storage = data;
+
+  dex_clear (&storage->boolean_futures[FALSE]);
+  dex_clear (&storage->boolean_futures[TRUE]);
+  g_free (storage);
+}
+
+static GPrivate dex_thread_storage_key = G_PRIVATE_INIT (dex_thread_storage_free);
 
 DexThreadStorage *
 dex_thread_storage_get (void)

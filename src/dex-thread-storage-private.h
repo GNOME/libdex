@@ -31,6 +31,7 @@ G_BEGIN_DECLS
 typedef struct _DexAioContext         DexAioContext;
 typedef struct _DexCoroutineScheduler DexCoroutineScheduler;
 typedef struct _DexFiberScheduler     DexFiberScheduler;
+typedef struct _DexFuture             DexFuture;
 typedef struct _DexScheduler          DexScheduler;
 typedef struct _DexThreadPoolWorker   DexThreadPoolWorker;
 
@@ -42,6 +43,7 @@ typedef struct _DexThreadStorage
   DexAioContext         *aio_context;
   DexFiberScheduler     *fiber_scheduler;
   DexCoroutineScheduler *coroutine_scheduler;
+  DexFuture             *boolean_futures[2];
   guint                  sync_dispatch_depth;
 } DexThreadStorage;
 

@@ -32,6 +32,7 @@
 #include "dex-promise.h"
 #include "dex-scheduler.h"
 #include "dex-static-future-private.h"
+#include "dex-thread-storage-private.h"
 #include "dex-timeout-private.h"
 
 /**
@@ -61,6 +62,20 @@ DEX_DEFINE_DERIVABLE_TYPE (DexFuture, dex_future, DEX_TYPE_OBJECT)
 
 static gsize      static_booleans_init;
 static DexFuture *static_booleans[2];
+
+static DexFuture *
+dex_future_new_static_boolean (gboolean v_bool)
+{
+  GValue value = G_VALUE_INIT;
+  DexFuture *future;
+
+  g_value_init (&value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&value, v_bool);
+  future = dex_static_future_new_resolved (&value);
+  g_value_unset (&value);
+
+  return future;
+}
 
 typedef struct _DexChainedFuture
 {
@@ -1055,29 +1070,34 @@ DexFuture *
  * dex_future_new_for_boolean: (constructor)
  * @v_bool: the resolved value for the future
  *
- * Creates a new [class@Dex.Future] and resolves it with @v_bool.
+ * Returns a resolved [class@Dex.Future] containing @v_bool.
  *
  * Returns: (transfer full): a resolved [class@Dex.Future]
  */
 DexFuture *
 (dex_future_new_for_boolean) (gboolean v_bool)
 {
+  DexThreadStorage *storage = dex_thread_storage_peek ();
+  guint index = !!v_bool;
+
+  /* Unscheduled threads, including DexThreadPool workers, use the global cache. */
+  if (storage != NULL && storage->scheduler != NULL)
+    {
+      if (storage->boolean_futures[index] == NULL)
+        storage->boolean_futures[index] = dex_future_new_static_boolean (v_bool);
+
+      return dex_ref (storage->boolean_futures[index]);
+    }
+
   if G_UNLIKELY (g_once_init_enter (&static_booleans_init))
     {
-      GValue value = G_VALUE_INIT;
-
-      g_value_init (&value, G_TYPE_BOOLEAN);
-
-      g_value_set_boolean (&value, FALSE);
-      static_booleans[FALSE] = dex_static_future_new_resolved (&value);
-
-      g_value_set_boolean (&value, TRUE);
-      static_booleans[TRUE] = dex_static_future_new_resolved (&value);
+      static_booleans[FALSE] = dex_future_new_static_boolean (FALSE);
+      static_booleans[TRUE] = dex_future_new_static_boolean (TRUE);
 
       g_once_init_leave (&static_booleans_init, TRUE);
     }
 
-  return dex_ref (static_booleans[!!v_bool]);
+  return dex_ref (static_booleans[index]);
 }
 
 /**

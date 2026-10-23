@@ -20,6 +20,8 @@
 
 #include <libdex.h>
 
+#include "dex-thread-storage-private.h"
+
 typedef struct
 {
   GMainLoop *main_loop;
@@ -31,8 +33,14 @@ typedef struct
 static DexFuture *
 sleep_thread_func (gpointer data)
 {
+  DexFuture *future;
+
+  g_assert_null (dex_thread_storage_peek ());
   g_usleep (100000);
-  return dex_future_new_true ();
+  future = dex_future_new_true ();
+  g_assert_null (dex_thread_storage_peek ());
+
+  return future;
 }
 
 static gboolean

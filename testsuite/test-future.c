@@ -26,6 +26,7 @@
 
 #include "dex-future-private.h"
 #include "dex-async-pair-private.h"
+#include "dex-thread-storage-private.h"
 
 #define ASSERT_STATUS(f,status) g_assert_cmpint(status, ==, dex_future_get_status(DEX_FUTURE(f)))
 #define ASSERT_INSTANCE_TYPE(obj,type) \
@@ -293,6 +294,72 @@ test_static_future_new (void)
   g_assert_true (DEX_IS_STATIC_FUTURE (future));
   g_assert_cmpint (dex_future_get_status (DEX_FUTURE (future)), ==, DEX_FUTURE_STATUS_REJECTED);
   dex_clear (&future);
+}
+
+typedef struct
+{
+  DexFuture *futures[2];
+} BooleanFutureThreadResult;
+
+static gpointer
+boolean_future_thread (gpointer data)
+{
+  BooleanFutureThreadResult *result = data;
+
+  g_assert_null (dex_thread_storage_peek ());
+
+  result->futures[FALSE] = dex_future_new_false ();
+  result->futures[TRUE] = dex_future_new_true ();
+
+  g_assert_null (dex_thread_storage_peek ());
+
+  return NULL;
+}
+
+static void
+test_boolean_future_cache (void)
+{
+  BooleanFutureThreadResult threads[2] = {0};
+  DexFuture *scheduled_false;
+  DexFuture *scheduled_true;
+  DexFuture *repeated;
+  GThread *thread;
+
+  g_assert_nonnull (dex_thread_storage_peek ());
+  g_assert_nonnull (dex_thread_storage_peek ()->scheduler);
+
+  scheduled_false = dex_future_new_false ();
+  scheduled_true = dex_future_new_true ();
+
+  repeated = dex_future_new_false ();
+  g_assert_true (repeated == scheduled_false);
+  dex_unref (repeated);
+
+  repeated = dex_future_new_true ();
+  g_assert_true (repeated == scheduled_true);
+  dex_unref (repeated);
+
+  thread = g_thread_new ("boolean-future-0", boolean_future_thread, &threads[0]);
+  g_thread_join (thread);
+  thread = g_thread_new ("boolean-future-1", boolean_future_thread, &threads[1]);
+  g_thread_join (thread);
+
+  for (guint i = FALSE; i <= TRUE; i++)
+    {
+      const GValue *value = dex_future_get_value (threads[0].futures[i], NULL);
+
+      g_assert_true (threads[0].futures[i] == threads[1].futures[i]);
+      g_assert_true (threads[0].futures[i] != (i ? scheduled_true : scheduled_false));
+      g_assert_nonnull (value);
+      g_assert_true (G_VALUE_HOLDS_BOOLEAN (value));
+      g_assert_cmpint (g_value_get_boolean (value), ==, i);
+
+      dex_unref (threads[0].futures[i]);
+      dex_unref (threads[1].futures[i]);
+    }
+
+  dex_unref (scheduled_false);
+  dex_unref (scheduled_true);
 }
 
 static void
@@ -1141,6 +1208,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Block/then", test_future_then);
   g_test_add_func ("/Dex/TestSuite/Cancellable/cancel", test_cancellable_cancel);
   g_test_add_func ("/Dex/TestSuite/StaticFuture/new", test_static_future_new);
+  g_test_add_func ("/Dex/TestSuite/StaticFuture/boolean-cache", test_boolean_future_cache);
   g_test_add_func ("/Dex/TestSuite/Promise/type", test_promise_type);
 #if !defined (_MSC_VER) && !defined (__clang__)
   g_test_add_func ("/Dex/TestSuite/Promise/autoptr", test_promise_autoptr);
