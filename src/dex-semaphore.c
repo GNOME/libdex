@@ -196,18 +196,18 @@ dex_semaphore_wait (DexSemaphore *semaphore)
 
   g_return_val_if_fail (DEX_IS_SEMAPHORE (semaphore), NULL);
 
-  waiter = (DexSemaphoreWaiter *)
-    dex_object_create_instance (DEX_TYPE_SEMAPHORE_WAITER);
-
   dex_object_lock (semaphore);
   if (semaphore->counter > 0)
     {
       semaphore->counter--;
-      dex_future_complete (DEX_FUTURE (waiter), &semaphore_waiter_value, NULL);
-      ret = DEX_FUTURE (g_steal_pointer (&waiter));
+      dex_object_unlock (semaphore);
+
+      return dex_future_new_true ();
     }
   else
     {
+      waiter = (DexSemaphoreWaiter *)dex_object_create_instance (DEX_TYPE_SEMAPHORE_WAITER);
+
       scheduler = dex_scheduler_ref_thread_default ();
 
       g_assert (scheduler != NULL);
