@@ -439,6 +439,11 @@ dex_future_chain (DexFuture *future,
   g_return_if_fail (DEX_IS_FUTURE (future));
   g_return_if_fail (DEX_IS_FUTURE (chained));
 
+  /* Completion can release the dependent's reference to @future while we
+   * are still chaining or observing it.
+   */
+  dex_ref (future);
+
   dex_object_lock (future);
   if (future->status == DEX_FUTURE_STATUS_PENDING)
     {
@@ -448,8 +453,33 @@ dex_future_chain (DexFuture *future,
     }
   dex_object_unlock (future);
 
+  /* Observation may start work and complete the future, so invoke it after
+   * installing the dependent and releasing the future's lock.
+   */
+  if (did_chain && DEX_FUTURE_GET_CLASS (future)->observe)
+    DEX_FUTURE_GET_CLASS (future)->observe (future);
+
   if (!did_chain)
     dex_future_propagate (chained, future);
+
+  dex_unref (future);
+}
+
+void
+dex_future_abandon (DexFuture *future)
+{
+  g_return_if_fail (DEX_IS_FUTURE (future));
+
+  dex_object_lock (future);
+  future->abandoned = TRUE;
+  dex_object_unlock (future);
+
+  if (DEX_FUTURE_GET_CLASS (future)->discard)
+    {
+      dex_ref (future);
+      DEX_FUTURE_GET_CLASS (future)->discard (future);
+      dex_unref (future);
+    }
 }
 
 void
@@ -502,6 +532,12 @@ dex_future_discard (DexFuture *future,
         }
     }
 
+  /* Record this while still locked so an observer racing the discard cannot
+   * start deferred work before the class discard callback runs.
+   */
+  if (matched && !has_awaiting)
+    future->abandoned = TRUE;
+
   dex_object_unlock (future);
 
   /* Release chained futures outside of the @future lock */
@@ -517,14 +553,7 @@ dex_future_discard (DexFuture *future,
    * possibly cancelling anything in flight.
    */
   if (matched && !has_awaiting)
-    {
-      if (DEX_FUTURE_GET_CLASS (future)->discard)
-        {
-          dex_ref (future);
-          DEX_FUTURE_GET_CLASS (future)->discard (future);
-          dex_unref (future);
-        }
-    }
+    dex_future_abandon (future);
 }
 
 /**

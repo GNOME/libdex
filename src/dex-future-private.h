@@ -45,12 +45,17 @@ typedef struct _DexFuture
   gpointer         task_group;
   const char      *name;
   DexFutureStatus  status : 2;
+  guint            abandoned : 1;
 } DexFuture;
 
 typedef struct _DexFutureClass
 {
   DexObjectClass parent_class;
 
+  /* Called after a dependent is chained, without the future's lock held.
+   * Implementations may start work and complete the future here.
+   */
+  void     (*observe)   (DexFuture *future);
   gboolean (*propagate) (DexFuture *future,
                          DexFuture *completed);
   void     (*discard)   (DexFuture *future);
@@ -58,6 +63,7 @@ typedef struct _DexFutureClass
 
 void          dex_future_chain          (DexFuture     *future,
                                          DexFuture     *chained);
+void          dex_future_abandon        (DexFuture     *future);
 void          dex_future_complete       (DexFuture     *future,
                                          const GValue  *value,
                                          GError        *error);
