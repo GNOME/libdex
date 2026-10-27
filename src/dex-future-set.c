@@ -211,6 +211,28 @@ dex_future_set_init (DexFutureSet *future_set)
 {
 }
 
+static void
+dex_future_set_chain (DexFutureSet *future_set)
+{
+  g_assert (DEX_IS_FUTURE_SET (future_set));
+
+  for (guint i = 0; i < future_set->n_futures; i++)
+    {
+      /* Once we have a result, skip inputs whose observation starts work.
+       * Eager inputs still need a chain so discard can cancel them.
+       */
+      if (!dex_future_is_pending (DEX_FUTURE (future_set)) &&
+          DEX_FUTURE_GET_CLASS (future_set->futures[i])->observe != NULL)
+        continue;
+
+      dex_future_chain (future_set->futures[i], DEX_FUTURE (future_set));
+
+      /* Completion may have discarded inputs before this chain existed. */
+      if (!dex_future_is_pending (DEX_FUTURE (future_set)))
+        dex_future_discard (future_set->futures[i], DEX_FUTURE (future_set));
+    }
+}
+
 /**
  * dex_future_set_new: (skip)
  * @futures: (transfer none) (array length=n_futures): an array of futures to chain
@@ -251,11 +273,7 @@ dex_future_set_new (DexFuture * const *futures,
   for (guint i = 0; i < n_futures; i++)
     future_set->futures[i] = dex_ref (futures[i]);
 
-  /* Now start chaining futures, even if we progress from pending while
-   * we iterate this list (as we're safe against multiple resolves).
-   */
-  for (guint i = 0; i < n_futures; i++)
-    dex_future_chain (future_set->futures[i], DEX_FUTURE (future_set));
+  dex_future_set_chain (future_set);
 
   return future_set;
 }
@@ -298,11 +316,7 @@ dex_future_set_new_va (DexFuture         *first_future,
       future = va_arg (*args, DexFuture *);
     }
 
-  /* Now start chaining futures, even if we progress from pending while
-   * we iterate this list (as we're safe against multiple resolves).
-   */
-  for (guint i = 0; i < future_set->n_futures; i++)
-    dex_future_chain (future_set->futures[i], DEX_FUTURE (future_set));
+  dex_future_set_chain (future_set);
 
   return future_set;
 }

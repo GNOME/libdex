@@ -606,6 +606,138 @@ test_future_set_any_preresolved (void)
   dex_unref (future);
 }
 
+typedef struct
+{
+  guint calls;
+  guint destroyed;
+} DeferredRaceState;
+
+static DexFuture *
+deferred_race_cb (gpointer data)
+{
+  DeferredRaceState *state = data;
+
+  state->calls++;
+
+  return dex_future_new_for_int (42);
+}
+
+static void
+deferred_race_destroy (gpointer data)
+{
+  DeferredRaceState *state = data;
+
+  state->destroyed++;
+}
+
+static void
+deferred_race_flush (gpointer data)
+{
+  DexPromise *promise = data;
+
+  dex_promise_resolve_boolean (promise, TRUE);
+  dex_unref (promise);
+}
+
+static void
+test_future_set_deferred (void)
+{
+  const struct
+  {
+    DexFuture *(*variadic) (DexFuture *, ...);
+    DexFuture *(*vector) (DexFuture * const *, guint);
+    gboolean reject;
+  } constructors[] = {
+    { dex_future_first, dex_future_firstv, FALSE },
+    { dex_future_any, dex_future_anyv, FALSE },
+    { dex_future_all_race, dex_future_all_racev, TRUE },
+  };
+
+  for (guint i = 0; i < G_N_ELEMENTS (constructors); i++)
+    for (guint use_vector = 0; use_vector < 2; use_vector++)
+      for (guint deferred_first = 0; deferred_first < 2; deferred_first++)
+        {
+          DeferredRaceState state = { 0 };
+          DexDeferred *deferred = dex_deferred_new (NULL,
+                                                    deferred_race_cb,
+                                                    &state,
+                                                    deferred_race_destroy);
+          DexPromise *flushed = dex_promise_new ();
+          DexPromise *eager = dex_promise_new_cancellable ();
+          DexFuture *inputs[3];
+          DexFuture *winner;
+          DexFuture *race;
+          GError *error = NULL;
+
+          if (constructors[i].reject)
+            winner = dex_future_new_reject (G_IO_ERROR,
+                                            G_IO_ERROR_FAILED,
+                                            "Race failed");
+          else
+            winner = dex_future_new_for_int (7);
+
+          inputs[deferred_first ? 0 : 1] = DEX_FUTURE (deferred);
+          inputs[deferred_first ? 1 : 0] = winner;
+          inputs[2] = DEX_FUTURE (eager);
+
+          if (use_vector)
+            race = constructors[i].vector (inputs, G_N_ELEMENTS (inputs));
+          else
+            race = constructors[i].variadic (dex_ref (inputs[0]), dex_ref (inputs[1]), dex_ref (inputs[2]), NULL);
+
+          if (constructors[i].reject)
+            ASSERT_STATUS (race, DEX_FUTURE_STATUS_REJECTED);
+          else
+            ASSERT_STATUS (race, DEX_FUTURE_STATUS_RESOLVED);
+
+          /* Give any queued deferred work a chance to run while holding the set. */
+          dex_scheduler_push (dex_scheduler_get_thread_default (),
+                               deferred_race_flush, dex_ref (flushed));
+          g_assert_true (dex_await_boolean (DEX_FUTURE (flushed), &error));
+          g_assert_no_error (error);
+          g_assert_cmpuint (state.calls, ==, 0);
+
+          dex_clear (&race);
+          dex_clear (&winner);
+
+          /* Eager work after the winner still needs cancellation, even when
+           * an unused deferred precedes it in the input array.
+           */
+          g_assert_true (g_cancellable_is_cancelled (dex_promise_get_cancellable (eager)));
+          dex_clear (&eager);
+
+          if (!deferred_first)
+            {
+              /* An input we never observed must still be usable elsewhere. */
+              g_assert_cmpuint (state.destroyed, ==, 0);
+              g_assert_cmpint (dex_await_int (dex_ref (DEX_FUTURE (deferred)), &error), ==, 42);
+              g_assert_no_error (error);
+              g_assert_cmpuint (state.calls, ==, 1);
+            }
+
+          dex_clear (&deferred);
+          g_assert_cmpuint (state.destroyed, ==, 1);
+        }
+}
+
+static void
+test_future_set_eager_other_observer (void)
+{
+  DexPromise *eager = dex_promise_new_cancellable ();
+  DexFuture *observer;
+  DexFuture *race;
+
+  observer = dex_future_all (dex_ref (eager), NULL);
+  race = dex_future_first (dex_future_new_true (), dex_ref (eager), NULL);
+  dex_clear (&race);
+
+  /* Discard only the race's interest in work shared with another observer. */
+  g_assert_false (g_cancellable_is_cancelled (dex_promise_get_cancellable (eager)));
+  dex_clear (&observer);
+  g_assert_true (g_cancellable_is_cancelled (dex_promise_get_cancellable (eager)));
+  dex_clear (&eager);
+}
+
 static void
 test_future_set_all_preresolved (void)
 {
@@ -1239,6 +1371,8 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Future/first_preresolved", test_future_set_first_preresolved);
   g_test_add_func ("/Dex/TestSuite/Future/all_race_preresolved", test_future_set_all_race_preresolved);
   g_test_add_func ("/Dex/TestSuite/Future/any_preresolved", test_future_set_any_preresolved);
+  dex_test_add_func ("/Dex/TestSuite/Future/deferred_race", test_future_set_deferred);
+  g_test_add_func ("/Dex/TestSuite/Future/eager_other_observer", test_future_set_eager_other_observer);
   g_test_add_func ("/Dex/TestSuite/Future/all_preresolved", test_future_set_all_preresolved);
   g_test_add_func ("/Dex/TestSuite/Future/all_preresolved_error", test_future_set_all_preresolved_error);
   g_test_add_func ("/Dex/TestSuite/Future/any_preresolved_error", test_future_set_any_preresolved_error);
