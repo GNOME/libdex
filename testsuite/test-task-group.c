@@ -12,6 +12,29 @@ typedef struct
   GCancellable *cancellable;
 } FinalizeTestState;
 
+typedef struct
+{
+  int calls;
+  int destroyed;
+} DeferredCancelState;
+
+static DexFuture *
+deferred_cancel_callback (gpointer data)
+{
+  DeferredCancelState *state = data;
+
+  state->calls++;
+  return dex_future_new_for_int (42);
+}
+
+static void
+deferred_cancel_destroy (gpointer data)
+{
+  DeferredCancelState *state = data;
+
+  state->destroyed++;
+}
+
 static DexFuture *
 timeout_task_group_fiber (gpointer data)
 {
@@ -69,6 +92,33 @@ test_task_group_cancel (void)
   g_clear_error (&error);
 
   dex_clear (&promise);
+  dex_clear (&group);
+}
+
+static void
+test_task_group_cancel_deferred (void)
+{
+  DeferredCancelState state = { 0 };
+  DexTaskGroup *group = dex_task_group_new (DEX_TASK_GROUP_FLAGS_NONE);
+  DexDeferred *deferred = dex_deferred_new (NULL,
+                                            deferred_cancel_callback,
+                                            &state,
+                                            deferred_cancel_destroy);
+  GError *error = NULL;
+
+  g_assert_true (dex_task_group_add (group, dex_ref (DEX_FUTURE (deferred))));
+  dex_task_group_cancel (group);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  g_assert_cmpint (state.calls, ==, 0);
+  g_assert_cmpint (state.destroyed, ==, 1);
+  g_assert_null (dex_future_get_value (DEX_FUTURE (deferred), &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+
+  g_clear_error (&error);
+  dex_clear (&deferred);
   dex_clear (&group);
 }
 
@@ -193,7 +243,8 @@ test_task_group_timeout_cancels_children (void)
   GError * error = NULL;
   const GValue *value;
 
-  future = dex_scheduler_spawn (NULL, 0,
+  future = dex_scheduler_spawn (NULL,
+                                0,
                                 timeout_task_group_fiber,
                                 &state,
                                 NULL);
@@ -320,12 +371,14 @@ test_task_group_finalize_cancels_children (void)
 }
 
 int
-main (int argc, char *argv[])
+main (int   argc,
+      char *argv[])
 {
   dex_init ();
   g_test_init (&argc, &argv, NULL);
 
   g_test_add_func ("/dex/task-group/cancel", test_task_group_cancel);
+  g_test_add_func ("/dex/task-group/cancel-deferred", test_task_group_cancel_deferred);
   g_test_add_func ("/dex/task-group/close-all-resolved", test_task_group_close_all_resolved);
   g_test_add_func ("/dex/task-group/cancel-on-error", test_task_group_cancel_on_error);
   g_test_add_func ("/dex/task-group/cancel-on-error-multiple-children", test_task_group_cancel_on_error_multiple_children);

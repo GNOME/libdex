@@ -389,8 +389,7 @@ static void
 dex_task_group_cancel_child (DexTaskGroup *group,
                              DexFuture    *future)
 {
-  if (DEX_FUTURE_GET_CLASS (future)->discard != NULL)
-    DEX_FUTURE_GET_CLASS (future)->discard (future);
+  dex_future_abandon (future);
 
   dex_future_complete (future, NULL, g_error_copy (static_cancelled));
   dex_future_discard (future, DEX_FUTURE (group));
