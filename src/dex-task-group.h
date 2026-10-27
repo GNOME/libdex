@@ -41,20 +41,20 @@ typedef enum _DexTaskGroupFlags
   DEX_TASK_GROUP_FLAGS_CANCEL_ON_ERROR = 1 << 0,
 } DexTaskGroupFlags;
 
-DEX_AVAILABLE_IN_ALL
+DEX_AVAILABLE_IN_1_2
 GType         dex_task_group_get_type            (void);
-DEX_AVAILABLE_IN_ALL
+DEX_AVAILABLE_IN_1_2
 DexTaskGroup *dex_task_group_new                 (DexTaskGroupFlags  flags);
-DEX_AVAILABLE_IN_ALL
+DEX_AVAILABLE_IN_1_2
 gboolean      dex_task_group_add                 (DexTaskGroup      *group,
                                                   DexFuture         *future);
-DEX_AVAILABLE_IN_ALL
+DEX_AVAILABLE_IN_1_2
 DexFuture    *dex_task_group_close               (DexTaskGroup      *group) G_GNUC_WARN_UNUSED_RESULT;
-DEX_AVAILABLE_IN_ALL
+DEX_AVAILABLE_IN_1_2
 void          dex_task_group_cancel              (DexTaskGroup      *group);
-DEX_AVAILABLE_IN_ALL
+DEX_AVAILABLE_IN_1_2
 void          dex_task_group_push_thread_default (DexTaskGroup      *group);
-DEX_AVAILABLE_IN_ALL
+DEX_AVAILABLE_IN_1_2
 void          dex_task_group_pop_thread_default  (DexTaskGroup      *group);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexTaskGroup, dex_unref)
