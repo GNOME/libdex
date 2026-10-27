@@ -40,6 +40,7 @@ testsuite = {
   'test-future': {},
   'test-future-list-model': {},
   'test-gio': {},
+  'test-graph': {},
   'test-limiter': {},
   'test-scheduler': {},
   'test-semaphore': {},
