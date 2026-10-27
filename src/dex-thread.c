@@ -142,7 +142,7 @@ dex_thread_spawn (const char     *thread_name,
 
   storage = dex_thread_storage_peek ();
 
-  if (storage == NULL)
+  if (storage == NULL || storage->scheduler == NULL)
     scheduler = dex_scheduler_get_default ();
   else
     scheduler = storage->scheduler;

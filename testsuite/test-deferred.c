@@ -23,6 +23,7 @@
 #include <libdex.h>
 
 #include "dex-future-private.h"
+#include "dex-thread-storage-private.h"
 
 typedef struct
 {
@@ -199,6 +200,65 @@ test_deferred_closed_thread_pool (void)
   dex_unref (future);
   dex_unref (closed);
   dex_unref (pool);
+}
+
+static DexFuture *
+native_observer (gpointer data)
+{
+  DexThreadStorage *storage = NULL;
+  DexDeferred *deferred;
+
+  g_assert_null (dex_thread_storage_peek ());
+
+  if (GPOINTER_TO_INT (data))
+    {
+      storage = dex_thread_storage_get ();
+      g_assert_null (storage->scheduler);
+    }
+
+  /* Capturing the fallback scheduler must not allocate thread storage. */
+  deferred = dex_deferred_new (NULL, return_promise, dex_future_new_for_int (42), dex_unref);
+  g_assert_true (dex_thread_storage_peek () == storage);
+  dex_unref (deferred);
+
+  for (guint i = 0; i < 2; i++)
+    {
+      GError *error = NULL;
+      const GValue *value;
+
+      deferred = dex_deferred_new_thread ("deferred-native-observer",
+                                          return_promise,
+                                          dex_future_new_for_int (i),
+                                          dex_unref);
+
+      g_assert_true (dex_thread_wait_for (dex_ref (DEX_FUTURE (deferred)), &error));
+      g_assert_no_error (error);
+      value = dex_future_get_value (DEX_FUTURE (deferred), &error);
+      g_assert_no_error (error);
+      g_assert_nonnull (value);
+      g_assert_cmpint (g_value_get_int (value), ==, i);
+      dex_unref (deferred);
+    }
+
+  return dex_future_new_for_int (42);
+}
+
+static void
+test_deferred_native_observer (gconstpointer data)
+{
+  DexFuture *thread;
+  GError *error = NULL;
+  const GValue *value;
+
+  thread = dex_thread_spawn ("deferred-native-observer", native_observer, (gpointer)data, NULL);
+  wait_for (thread);
+
+  value = dex_future_get_value (thread, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  g_assert_cmpint (g_value_get_int (value), ==, 42);
+
+  dex_unref (thread);
 }
 
 typedef struct
@@ -591,6 +651,8 @@ main (int   argc,
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/Deferred/kinds", test_deferred_kinds);
   g_test_add_func ("/Dex/Deferred/closed_thread_pool", test_deferred_closed_thread_pool);
+  g_test_add_data_func ("/Dex/Deferred/native_observer", GINT_TO_POINTER (FALSE), test_deferred_native_observer);
+  g_test_add_data_func ("/Dex/Deferred/native_observer_with_storage", GINT_TO_POINTER (TRUE), test_deferred_native_observer);
   g_test_add_func ("/Dex/Deferred/cancel_running_thread", test_deferred_cancel_running_thread);
   g_test_add_func ("/Dex/Deferred/thread_pool_lifetime", test_deferred_thread_pool_lifetime);
   g_test_add_func ("/Dex/Deferred/unused_cleanup", test_deferred_unused_cleanup);

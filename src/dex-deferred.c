@@ -27,6 +27,7 @@
 #include "dex-error.h"
 #include "dex-future-private.h"
 #include "dex-thread.h"
+#include "dex-thread-storage-private.h"
 
 typedef enum
 {
@@ -194,11 +195,13 @@ dex_deferred_new_with_state (DexDeferredState *state)
 static DexScheduler *
 dex_deferred_ref_scheduler (DexScheduler *scheduler)
 {
+  DexThreadStorage *storage;
+
   if (scheduler != NULL)
     return dex_ref (scheduler);
 
-  if ((scheduler = dex_scheduler_ref_thread_default ()))
-    return scheduler;
+  if ((storage = dex_thread_storage_peek ()) && storage->scheduler != NULL)
+    return dex_ref (storage->scheduler);
 
   return dex_ref (dex_scheduler_get_default ());
 }
