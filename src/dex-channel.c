@@ -40,8 +40,9 @@ typedef enum _DexChannelStateFlags
 
 typedef struct _DexChannelReceiver
 {
-  DexFuture parent_instance;
-  GList link;
+  DexFuture  parent_instance;
+  GList      link;
+  DexFuture *awaiting;
 } DexChannelReceiver;
 
 typedef struct _DexChannelReceiverClass
@@ -73,9 +74,50 @@ steal_queue (GQueue *queue)
   };
 }
 
+static gboolean
+dex_channel_receiver_propagate (DexFuture *future,
+                                DexFuture *completed)
+{
+  DexChannelReceiver *receiver = (DexChannelReceiver *)future;
+  DexFuture *awaiting;
+
+  g_assert (DEX_IS_CHANNEL_RECEIVER (receiver));
+  g_assert (DEX_IS_FUTURE (completed));
+
+  dex_object_lock (receiver);
+  awaiting = g_steal_pointer (&receiver->awaiting);
+  dex_object_unlock (receiver);
+
+  dex_clear (&awaiting);
+
+  return FALSE;
+}
+
+static void
+dex_channel_receiver_finalize (DexObject *object)
+{
+  DexChannelReceiver *receiver = (DexChannelReceiver *)object;
+
+  g_assert (DEX_IS_CHANNEL_RECEIVER (receiver));
+
+  if (receiver->awaiting != NULL)
+    {
+      dex_future_discard (receiver->awaiting, DEX_FUTURE (receiver));
+      dex_clear (&receiver->awaiting);
+    }
+
+  DEX_OBJECT_CLASS (dex_channel_receiver_parent_class)->finalize (object);
+}
+
 static void
 dex_channel_receiver_class_init (DexChannelReceiverClass *channel_receiver_class)
 {
+  DexObjectClass *object_class = DEX_OBJECT_CLASS (channel_receiver_class);
+  DexFutureClass *future_class = DEX_FUTURE_CLASS (channel_receiver_class);
+
+  object_class->finalize = dex_channel_receiver_finalize;
+  future_class->propagate = dex_channel_receiver_propagate;
+
   success_value = (GValue) {G_TYPE_BOOLEAN, {{.v_int = TRUE}}};
 }
 
@@ -304,6 +346,13 @@ dex_channel_one_receive_and_unlock (DexChannel *channel)
 
   if (item != NULL)
     {
+      /* Chaining only keeps a weak reference to the receiver. Keep the
+       * payload alive until it can deliver its result.
+       */
+      dex_object_lock (recv);
+      recv->awaiting = dex_ref (item->future);
+      dex_object_unlock (recv);
+
       dex_future_chain (item->future, DEX_FUTURE (recv));
       dex_channel_item_free (item);
       dex_unref (recv);

@@ -36,6 +36,126 @@
 #define ASSERT_CMPINT(future, op, value) ASSERT_CMP(future, int, int, op, value)
 #define ASSERT_CMPUINT(future, op, value) ASSERT_CMP(future, int, uint, op, value)
 
+typedef struct
+{
+  DexPromise *started;
+  DexPromise *result;
+  guint       calls;
+  guint       destroyed;
+} DeferredState;
+
+static DexFuture *
+channel_deferred_cb (gpointer data)
+{
+  DeferredState *state = data;
+
+  state->calls++;
+  dex_promise_resolve_boolean (state->started, TRUE);
+
+  return dex_ref (state->result);
+}
+
+static void
+channel_deferred_destroy (gpointer data)
+{
+  DeferredState *state = data;
+
+  state->destroyed++;
+}
+
+static void
+test_channel_deferred (void)
+{
+  for (guint use_fiber = 0; use_fiber < 2; use_fiber++)
+    for (guint receive_first = 0; receive_first < 2; receive_first++)
+      for (guint reject = 0; reject < 2; reject++)
+        {
+          DeferredState state = { dex_promise_new (), dex_promise_new (), 0, 0 };
+          DexChannel *channel = dex_channel_new (0);
+          DexDeferred *deferred;
+          DexFuture *receive = NULL;
+          DexFuture *send;
+          GError *error = NULL;
+          int value;
+
+          if (use_fiber)
+            deferred = dex_deferred_new_fiber (NULL,
+                                               0,
+                                               channel_deferred_cb,
+                                               &state,
+                                               channel_deferred_destroy);
+          else
+            deferred = dex_deferred_new (NULL,
+                                         channel_deferred_cb,
+                                         &state,
+                                         channel_deferred_destroy);
+
+          if (receive_first)
+            receive = dex_channel_receive (channel);
+
+          /* Transfer the only reference to the deferred into the channel. */
+          send = dex_channel_send (channel, DEX_FUTURE (deferred));
+          if (!receive_first)
+            receive = dex_channel_receive (channel);
+
+          dex_clear (&channel);
+          dex_clear (&send);
+
+          g_assert_true (dex_await_boolean (dex_ref (state.started), &error));
+          g_assert_no_error (error);
+          g_assert_cmpuint (state.calls, ==, 1);
+          g_assert_cmpuint (state.destroyed, ==, 0);
+          ASSERT_STATUS (receive, DEX_FUTURE_STATUS_PENDING);
+
+          if (reject)
+            dex_promise_reject (state.result,
+                                g_error_new_literal (G_IO_ERROR,
+                                                     G_IO_ERROR_FAILED,
+                                                     "Deferred payload failed"));
+          else
+            dex_promise_resolve_int (state.result, 42);
+
+          value = dex_await_int (g_steal_pointer (&receive), &error);
+          if (reject)
+            g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+          else
+            {
+              g_assert_no_error (error);
+              g_assert_cmpint (value, ==, 42);
+            }
+
+          g_assert_cmpuint (state.destroyed, ==, 1);
+          g_clear_error (&error);
+          dex_clear (&state.started);
+          dex_clear (&state.result);
+        }
+}
+
+static void
+test_channel_deferred_discard (void)
+{
+  DeferredState state = { dex_promise_new (), dex_promise_new (), 0, 0 };
+  DexChannel *channel = dex_channel_new (0);
+  DexDeferred *deferred = dex_deferred_new (NULL,
+                                            channel_deferred_cb,
+                                            &state,
+                                            channel_deferred_destroy);
+  DexFuture *send = dex_channel_send (channel, DEX_FUTURE (deferred));
+  DexFuture *receive = dex_channel_receive (channel);
+
+  dex_clear (&receive);
+  dex_clear (&send);
+  dex_clear (&channel);
+
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
+
+  g_assert_cmpuint (state.calls, ==, 0);
+  g_assert_cmpuint (state.destroyed, ==, 1);
+  dex_clear (&state.started);
+  dex_clear (&state.result);
+}
+
 static void
 test_channel_basic (void)
 {
@@ -354,6 +474,8 @@ main (int argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/TestSuite/Channel/basic", test_channel_basic);
+  dex_test_add_func ("/Dex/TestSuite/Channel/deferred", test_channel_deferred);
+  g_test_add_func ("/Dex/TestSuite/Channel/deferred_discard", test_channel_deferred_discard);
   g_test_add_func ("/Dex/TestSuite/Channel/recv_first", test_channel_recv_first);
   g_test_add_func ("/Dex/TestSuite/Channel/receive_with_cancellation", test_channel_receive_with_cancellation);
   dex_test_add_func ("/Dex/TestSuite/Channel/await_cancellation_from_signal", test_channel_await_cancellation_from_signal);
