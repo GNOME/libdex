@@ -8,6 +8,9 @@ authors who want to structure concurrent code in an easy to manage way.
 Dex also provides Fibers which allow writing synchronous looking code in C
 that uses asynchronous and future-based APIs.
 
+Dex can provide "deferred execution" so that operations are not executed until
+the result of the operation is requested.
+
 Dex is licensed as LGPL-2.1+.
 
 ## Documentation
