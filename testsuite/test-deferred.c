@@ -61,6 +61,12 @@ return_value (gpointer data)
 }
 
 static DexFuture *
+return_null (gpointer data)
+{
+  return NULL;
+}
+
+static DexFuture *
 coroutine_value (DexCoroutineContext *context,
                  gpointer             data)
 {
@@ -200,6 +206,25 @@ test_deferred_closed_thread_pool (void)
   dex_unref (future);
   dex_unref (closed);
   dex_unref (pool);
+}
+
+static void
+test_deferred_no_result (void)
+{
+  DexDeferred *deferred = dex_deferred_new (NULL, return_null, NULL, NULL);
+  DexFuture *future;
+  GError *error = NULL;
+
+  future = dex_future_then (dex_ref (DEX_FUTURE (deferred)), pass_through, NULL, NULL);
+  wait_for (future);
+
+  g_assert_null (dex_future_get_value (future, &error));
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_NO_RESULT);
+  g_assert_cmpstr (error->message, ==, "Deferred callback returned NULL");
+
+  g_clear_error (&error);
+  dex_unref (future);
+  dex_unref (deferred);
 }
 
 static DexFuture *
@@ -651,6 +676,7 @@ main (int   argc,
   g_test_init (&argc, &argv, NULL);
   g_test_add_func ("/Dex/Deferred/kinds", test_deferred_kinds);
   g_test_add_func ("/Dex/Deferred/closed_thread_pool", test_deferred_closed_thread_pool);
+  g_test_add_func ("/Dex/Deferred/no_result", test_deferred_no_result);
   g_test_add_data_func ("/Dex/Deferred/native_observer", GINT_TO_POINTER (FALSE), test_deferred_native_observer);
   g_test_add_data_func ("/Dex/Deferred/native_observer_with_storage", GINT_TO_POINTER (TRUE), test_deferred_native_observer);
   g_test_add_func ("/Dex/Deferred/cancel_running_thread", test_deferred_cancel_running_thread);

@@ -481,7 +481,7 @@ dex_deferred_invoke (gpointer user_data)
   future = state->func.callback (state->user_data);
   if (future == NULL)
     future = dex_future_new_reject (DEX_ERROR,
-                                    DEX_ERROR_INVALID_TRANSITION,
+                                    DEX_ERROR_NO_RESULT,
                                     "Deferred callback returned NULL");
 
   state->deferred = NULL;

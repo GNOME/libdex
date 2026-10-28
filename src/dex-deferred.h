@@ -43,7 +43,8 @@ typedef struct _DexDeferred DexDeferred;
  * Called on the scheduler selected at construction when the deferred future
  * is first observed.
  *
- * Returns: (transfer full): a future whose result completes the deferred
+ * Returns: (transfer full) (nullable): a future whose result completes the
+ *   deferred, or %NULL to reject it with %DEX_ERROR_NO_RESULT
  *
  * Since: 1.3
  */

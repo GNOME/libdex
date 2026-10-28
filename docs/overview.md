@@ -36,6 +36,23 @@ futures, such as a [class@Dex.Promise] or [class@Dex.Timeout].
 
 See the class hierarchy for other types of futures.
 
+## Deferred Work
+
+Use [class@Dex.Deferred] to prepare a future whose work starts when it is
+observed. This is useful for optional work such as loading attachment contents
+only when they are opened. Multiple consumers share one operation and its
+result. See [Deferred Work](deferred.html) for examples and observation rules.
+
+## Dependency Graphs
+
+Use [struct@Dex.GraphBuilder] to collect operations and their prerequisites
+before running them. This is useful for build plans assembled from data, where
+shared prerequisites must finish before dependent work starts. The builder
+checks for cycles and returns a future for the whole graph.
+
+See [Dependency Graphs](graphs.html) for an example using deferred subprocess
+commands.
+
 ## Task Groups
 
 Use [class@Dex.TaskGroup] to manage a structured scope of related futures.
