@@ -44,7 +44,6 @@ libdex_sources = [
   'dex-timeout.c',
   'dex-version.c',
   'dex-waiter.c',
-  'dex-watch.c',
   'dex-work-queue.c',
   'dex-work-stealing-queue.c',
 ]
@@ -147,6 +146,7 @@ if host_machine.system() != 'windows'
   libdex_sources += [
     'dex-unix-signal.c',
     'dex-ucontext.c',
+    'dex-watch.c',
   ]
   if libucontext_dep.found()
     libdex_deps += [libucontext_dep]

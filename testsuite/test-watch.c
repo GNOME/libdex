@@ -22,6 +22,8 @@
 
 #include <libdex.h>
 #include <gio/gio.h>
+
+#ifdef G_OS_UNIX
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -311,12 +313,33 @@ test_socket_wait_read_ready (void)
   dex_unref (wait);
 }
 
+#else
+
+static void
+test_watch_not_supported (void)
+{
+  DexFuture *watch;
+  GError *error = NULL;
+
+  watch = dex_fd_watch (0, G_IO_IN);
+
+  g_assert_true (dex_future_is_rejected (watch));
+  g_assert_null (dex_future_get_value (watch, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED);
+
+  g_clear_error (&error);
+  dex_unref (watch);
+}
+
+#endif
+
 int
 main (int   argc,
       char *argv[])
 {
   dex_init ();
   g_test_init (&argc, &argv, NULL);
+#ifdef G_OS_UNIX
   g_test_add_func ("/Dex/TestSuite/Watch/read_ready", test_watch_read_ready);
   g_test_add_func ("/Dex/TestSuite/Watch/write_ready", test_watch_write_ready);
   g_test_add_func ("/Dex/TestSuite/Watch/write_side_closed", test_watch_write_side_closed);
@@ -324,5 +347,8 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Watch/read_side_closed", test_watch_read_side_closed);
   g_test_add_func ("/Dex/TestSuite/Watch/multiple_events", test_watch_multiple_events);
   g_test_add_func ("/Dex/TestSuite/Socket/wait_read_ready", test_socket_wait_read_ready);
+#else
+  g_test_add_func ("/Dex/TestSuite/Watch/not_supported", test_watch_not_supported);
+#endif
   return g_test_run ();
 }

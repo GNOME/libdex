@@ -5060,6 +5060,9 @@ dex_unlink (const char *path)
  * This is primarily useful when integrating with legacy systems on a
  * fiber.
  *
+ * On non-Unix platforms, the future rejects with
+ * %G_IO_ERROR_NOT_SUPPORTED.
+ *
  * Returns: (transfer full): a [class@Dex.Future] that resolves to the
  *   revents value when @events is satisfied.
  *
@@ -5069,5 +5072,11 @@ DexFuture *
 dex_fd_watch (int fd,
               int events)
 {
+#ifdef G_OS_UNIX
   return dex_watch_new (fd, events);
+#else
+  return dex_future_new_reject (G_IO_ERROR,
+                                G_IO_ERROR_NOT_SUPPORTED,
+                                "File descriptor watches are not supported on this platform");
+#endif
 }
