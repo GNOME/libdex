@@ -133,6 +133,9 @@ void  dex_coroutine_context_resume  (DexCoroutineContext  *context,
 #define DEX_COROUTINE_SUSPEND_POINTER(_out, _error, _future) \
   _DEX_COROUTINE_SUSPEND (_out, _error, _future, dex_await_pointer, _DEX_COROUTINE_LABEL_ID ())
 
+#define DEX_COROUTINE_SUSPEND_FD(_out, _error, _future) \
+  _DEX_COROUTINE_SUSPEND (_out, _error, _future, dex_await_fd, _DEX_COROUTINE_LABEL_ID ())
+
 #define DEX_COROUTINE_SUSPEND_INT(_out, _error, _future) \
   _DEX_COROUTINE_SUSPEND (_out, _error, _future, dex_await_int, _DEX_COROUTINE_LABEL_ID ())
 
