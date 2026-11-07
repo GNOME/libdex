@@ -20,6 +20,10 @@
 
 #include "config.h"
 
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
+
 #include <fcntl.h>
 
 #include <liburing.h>
@@ -35,6 +39,7 @@ typedef enum _DexUringType
   DEX_URING_TYPE_CLOSE = 1,
   DEX_URING_TYPE_OPEN,
   DEX_URING_TYPE_READ,
+  DEX_URING_TYPE_STAT,
   DEX_URING_TYPE_WRITE,
 } DexUringType;
 
@@ -43,6 +48,11 @@ struct _DexUringFuture
   DexFuture parent_instance;
   DexUringType type;
   union {
+    struct {
+      int fd;
+      struct statx *buffer;
+      int result;
+    } stat;
     struct {
       DexFD *fd;
       int result;
@@ -183,6 +193,10 @@ dex_uring_future_complete (DexUringFuture *uring_future)
       complete_ssize (uring_future, uring_future->read.result);
       break;
 
+    case DEX_URING_TYPE_STAT:
+      complete_boolean (uring_future, uring_future->stat.result);
+      break;
+
     case DEX_URING_TYPE_WRITE:
       complete_ssize (uring_future, uring_future->write.result);
       break;
@@ -208,6 +222,10 @@ dex_uring_future_cqe (DexUringFuture      *uring_future,
 
     case DEX_URING_TYPE_READ:
       uring_future->read.result = cqe->res;
+      break;
+
+    case DEX_URING_TYPE_STAT:
+      uring_future->stat.result = cqe->res;
       break;
 
     case DEX_URING_TYPE_WRITE:
@@ -243,6 +261,15 @@ dex_uring_future_sqe (DexUringFuture      *uring_future,
                           uring_future->read.buffer,
                           uring_future->read.count,
                           uring_future->read.offset);
+      break;
+
+    case DEX_URING_TYPE_STAT:
+      io_uring_prep_statx (sqe,
+                           uring_future->stat.fd,
+                           "",
+                           AT_EMPTY_PATH,
+                           (STATX_SIZE | STATX_TYPE),
+                           uring_future->stat.buffer);
       break;
 
     case DEX_URING_TYPE_WRITE:
@@ -320,6 +347,23 @@ dex_uring_future_new_write (int           fd,
   future->write.buffer = buffer;
   future->write.count = count;
   future->write.offset = offset;
+
+  return future;
+}
+
+DexUringFuture *
+_dex_uring_future_new_stat (int           fd,
+                            struct statx *buffer)
+{
+  DexUringFuture *future;
+
+  g_assert (fd >= 0);
+  g_assert (buffer != NULL);
+
+  future = (DexUringFuture *)dex_object_create_instance (DEX_TYPE_URING_FUTURE);
+  future->type = DEX_URING_TYPE_STAT;
+  future->stat.fd = fd;
+  future->stat.buffer = buffer;
 
   return future;
 }

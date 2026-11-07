@@ -419,3 +419,17 @@ dex_uring_aio_backend_new (void)
 
   return aio_backend;
 }
+
+DexFuture *
+_dex_uring_aio_stat (DexAioContext *aio_context,
+                     int            fd,
+                     struct statx  *buffer)
+{
+  g_assert (aio_context != NULL);
+  g_assert (DEX_IS_URING_AIO_BACKEND (aio_context->aio_backend));
+  g_assert (fd >= 0);
+  g_assert (buffer != NULL);
+
+  return dex_uring_aio_context_queue ((DexUringAioContext *)aio_context,
+                                      _dex_uring_future_new_stat (fd, buffer));
+}

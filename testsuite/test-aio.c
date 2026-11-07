@@ -38,6 +38,8 @@
 #include "dex-posix-aio-future-private.h"
 
 #ifdef HAVE_LIBURING
+# include <linux/stat.h>
+# include <sys/stat.h>
 # include "dex-uring-aio-backend-private.h"
 # include "dex-uring-future-private.h"
 #endif
@@ -248,6 +250,47 @@ test_aio_uring_read_write_error_mapping (void)
   g_assert_error (error, G_IO_ERROR, g_io_error_from_errno (EBADF));
   g_clear_error (&error);
   dex_unref (future);
+}
+
+static void
+test_aio_stat_uring (void)
+{
+  DexAioBackend *backend = dex_uring_aio_backend_new ();
+  DexAioContext *aio_context;
+  struct statx stat = { 0 };
+  GError *error = NULL;
+  char *path = NULL;
+  int fd;
+
+  if (backend == NULL)
+    {
+      g_test_skip ("io_uring backend is not available");
+      return;
+    }
+
+  aio_context = dex_aio_backend_create_context (backend);
+  g_source_attach ((GSource *)aio_context, NULL);
+  fd = g_file_open_tmp ("libdex-stat-XXXXXX", &path, &error);
+  g_assert_no_error (error);
+  g_assert_cmpint (fd, >=, 0);
+  g_assert_cmpint (write (fd, "stat", 4), ==, 4);
+
+  g_assert_true (dex_await_boolean (await_future (_dex_uring_aio_stat (aio_context, fd, &stat)), &error));
+  g_assert_no_error (error);
+  g_assert_cmpuint (stat.stx_mask & (STATX_TYPE | STATX_SIZE), ==, (STATX_TYPE | STATX_SIZE));
+  g_assert_true (S_ISREG (stat.stx_mode));
+  g_assert_cmpuint (stat.stx_size, ==, 4);
+
+  g_assert_false (dex_await_boolean (await_future (_dex_uring_aio_stat (aio_context, G_MAXINT, &stat)), &error));
+  g_assert_error (error, G_IO_ERROR, g_io_error_from_errno (EBADF));
+  g_clear_error (&error);
+
+  dex_unref (await_future (dex_aio_close (aio_context, fd)));
+  g_assert_cmpint (g_unlink (path), ==, 0);
+  g_free (path);
+  g_source_destroy ((GSource *)aio_context);
+  g_source_unref ((GSource *)aio_context);
+  dex_unref (backend);
 }
 
 static void
@@ -501,6 +544,7 @@ main (int   argc,
   g_test_add_func ("/Dex/TestSuite/Aio/open-missing", test_aio_open_missing);
   g_test_add_func ("/Dex/TestSuite/Aio/open-posix", test_aio_open_posix);
 #ifdef HAVE_LIBURING
+  g_test_add_func ("/Dex/TestSuite/Aio/stat-uring", test_aio_stat_uring);
   g_test_add_func ("/Dex/TestSuite/Aio/open-uring", test_aio_open_uring);
   g_test_add_func ("/Dex/TestSuite/Aio/uring-read-write-error-mapping", test_aio_uring_read_write_error_mapping);
 #endif

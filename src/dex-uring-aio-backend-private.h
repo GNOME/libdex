@@ -31,6 +31,11 @@ G_BEGIN_DECLS
 typedef struct _DexUringAioBackend      DexUringAioBackend;
 typedef struct _DexUringAioBackendClass DexUringAioBackendClass;
 
+struct statx;
+
+DexFuture     *_dex_uring_aio_stat            (DexAioContext *aio_context,
+                                               int            fd,
+                                               struct statx  *buffer);
 GType          dex_uring_aio_backend_get_type (void);
 DexAioBackend *dex_uring_aio_backend_new      (void);
 
