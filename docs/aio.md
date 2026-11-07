@@ -36,7 +36,19 @@ You can also asynchronously enumerate the files of that directory using [func@De
 
 The [func@Dex.file_read] will provide a [class@Gio.FileInputStream] which can be read from.
 
-A simpler interface to get the bytes of a file is provided via [func@Dex.file_load_contents_bytes].
+For a local filename, [func@Dex.file_get_contents_bytes] returns a future of
+[struct@GLib.Bytes]. It uses the calling thread's io_uring context when available,
+falling back to GIO's asynchronous file operations.
+
+```c
+g_autoptr(GError) error = NULL;
+g_autoptr(GBytes) contents = NULL;
+
+contents = dex_await_boxed (dex_file_get_contents_bytes (filename), &error);
+```
+
+For a [iface@Gio.File], including remote files, use
+[func@Dex.file_load_contents_bytes].
 
 The [func@Dex.file_replace] will replace a file on disk providing a [class@Gio.FileOutputStream] to write to.
 The [func@Dex.file_replace_contents_bytes] provides a simplified API for this when the content is readily available.

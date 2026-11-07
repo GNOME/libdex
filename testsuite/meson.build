@@ -37,6 +37,7 @@ testsuite = {
   'test-deferred': {},
   'test-object': {},
   'test-fiber': {},
+  'test-file': {},
   'test-future': {},
   'test-future-list-model': {},
   'test-gio': {},

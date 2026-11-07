@@ -89,6 +89,8 @@ DEX_AVAILABLE_IN_1_2
 DexFuture *dex_file_append_to                             (GFile                       *file,
                                                            GFileCreateFlags             flags,
                                                            int                          io_priority) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_file_get_contents_bytes                    (const char                  *filename) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_ALL
 DexFuture *dex_file_load_contents_bytes                   (GFile                       *file) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_2

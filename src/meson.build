@@ -12,6 +12,7 @@ libdex_sources = [
   'dex-error.c',
   'dex-fd.c',
   'dex-fiber.c',
+  'dex-file.c',
   'dex-coroutine.c',
   'dex-future.c',
   'dex-future-list-model.c',
