@@ -32,10 +32,13 @@
  * `DexCoroutine` is a [class@Dex.Future] implemented as a stateful stackless
  * coroutine cooperatively scheduled on a [class@Dex.Scheduler].
  *
- * Each coroutine stores stackful suspension state and optionally accepts user
+ * Each coroutine stores stackless suspension state and optionally accepts user
  * data via `user_data`.
  *
  * Use user data passed at spawn time for stateful data.
+ *
+ * Cancellation keeps user data alive until pending work completes.
+ * The destroy callback runs on the coroutine's scheduler thread and must not block.
  */
 
 typedef enum _DexCoroutineQueue
@@ -76,10 +79,10 @@ struct _DexCoroutine
   gpointer               user_data;
   GDestroyNotify         user_data_destroy;
   DexCoroutineScheduler *coroutine_scheduler;
+  int                    cancelled;
   DexCoroutineQueue      queue : 2;
   guint                  running : 1;
   guint                  runnable : 1;
-  guint                  cancelled : 1;
   guint                  exited : 1;
   guint                  released : 1;
   guint                  awaiting_final : 1;
@@ -339,7 +342,6 @@ dex_coroutine_wait_for (DexCoroutine *coroutine,
   g_assert (DEX_IS_COROUTINE (coroutine));
   g_assert (future != NULL);
   g_assert (!coroutine->exited);
-  g_assert (!coroutine->cancelled);
 
   dex_clear (&coroutine->context.pending);
   coroutine->context.pending = g_steal_pointer (&future);
@@ -376,9 +378,17 @@ dex_coroutine_resume (DexCoroutine *coroutine)
 
   g_assert (coroutine != NULL);
 
-  if (coroutine->cancelled)
+  if (g_atomic_int_get (&coroutine->cancelled))
     {
       dex_coroutine_complete_cancelled (coroutine);
+      return;
+    }
+
+  if (coroutine->awaiting_final)
+    {
+      future = g_steal_pointer (&coroutine->context.pending);
+      dex_coroutine_complete_from_future (coroutine, future);
+      dex_unref (future);
       return;
     }
 
@@ -387,37 +397,27 @@ dex_coroutine_resume (DexCoroutine *coroutine)
   if ((future = coroutine->func (&coroutine->context, coroutine->user_data)))
     {
       if (dex_future_is_pending (future))
+        dex_coroutine_wait_for (coroutine, g_steal_pointer (&future), TRUE);
+      else
         {
-          if (coroutine->cancelled)
-            {
-              dex_unref (future);
-              dex_coroutine_complete_cancelled (coroutine);
-            }
+          if (g_atomic_int_get (&coroutine->cancelled))
+            dex_coroutine_complete_cancelled (coroutine);
           else
-            {
-              dex_coroutine_wait_for (coroutine, g_steal_pointer (&future), TRUE);
-            }
-        }
-        else
-        {
-          DexFuture *completed = g_steal_pointer (&future);
-          dex_coroutine_complete_from_future (coroutine, completed);
-          dex_unref (completed);
+            dex_coroutine_complete_from_future (coroutine, future);
+          dex_unref (future);
         }
 
       return;
     }
 
-  if (coroutine->context.pending == NULL)
-    dex_coroutine_complete_error (coroutine, NULL);
-  else if (dex_future_is_pending (coroutine->context.pending))
-    dex_coroutine_wait_for (coroutine, g_steal_pointer (&coroutine->context.pending), FALSE);
-  else
+  if (coroutine->context.pending != NULL)
     {
-      DexFuture *completed = g_steal_pointer (&coroutine->context.pending);
-      dex_coroutine_complete_from_future (coroutine, completed);
-      dex_unref (completed);
+      dex_coroutine_wait_for (coroutine, g_steal_pointer (&coroutine->context.pending), FALSE);
     }
+  else if (g_atomic_int_get (&coroutine->cancelled))
+    dex_coroutine_complete_cancelled (coroutine);
+  else
+    dex_coroutine_complete_error (coroutine, NULL);
 }
 
 static gboolean
@@ -594,41 +594,13 @@ static void
 dex_coroutine_discard (DexFuture *future)
 {
   DexCoroutine *coroutine = DEX_COROUTINE (future);
-  DexFuture *pending = NULL;
 
-  g_return_if_fail (coroutine != NULL);
+  g_atomic_int_set (&coroutine->cancelled, TRUE);
 
-  dex_object_lock (coroutine);
-
-  if (coroutine->exited)
-    {
-      dex_object_unlock (coroutine);
-      return;
-    }
-
-  coroutine->cancelled = TRUE;
-  pending = g_steal_pointer (&coroutine->context.pending);
-
-  if (coroutine->running)
-    {
-      dex_object_unlock (coroutine);
-      return;
-    }
-
-  dex_coroutine_detach_from_scheduler (coroutine);
-
-  coroutine->awaiting_final = FALSE;
-  coroutine->exited = TRUE;
-  dex_object_unlock (coroutine);
-
-  if (pending != NULL)
-    {
-      if (dex_future_is_pending (pending))
-        dex_future_discard (pending, DEX_FUTURE (coroutine));
-      dex_unref (pending);
-    }
-
-  dex_coroutine_complete_cancelled (coroutine);
+  dex_future_complete (future, NULL,
+                       g_error_new_literal (DEX_ERROR,
+                                            DEX_ERROR_FIBER_CANCELLED,
+                                            "Coroutine was cancelled"));
 }
 
 static gboolean
@@ -636,54 +608,24 @@ dex_coroutine_propagate (DexFuture *future,
                          DexFuture *completed)
 {
   DexCoroutine *coroutine = DEX_COROUTINE (future);
+  DexCoroutineScheduler *scheduler = coroutine->coroutine_scheduler;
+  GSource *source;
 
-  g_assert (coroutine != NULL);
+  g_assert (DEX_IS_COROUTINE (coroutine));
   g_assert (completed != NULL);
+  g_assert (scheduler != NULL);
 
-  if (coroutine->cancelled)
+  g_mutex_lock (&scheduler->mutex);
+  dex_coroutine_set_queue (scheduler, coroutine, CORO_QUEUE_RUNNABLE);
+  source = dex_thread_storage_get ()->coroutine_scheduler == scheduler
+             ? NULL : g_source_ref ((GSource *)scheduler);
+  g_mutex_unlock (&scheduler->mutex);
+
+  if (source != NULL)
     {
-      dex_coroutine_complete_cancelled (coroutine);
-      return TRUE;
+      g_main_context_wakeup (g_source_get_context (source));
+      g_source_unref (source);
     }
-
-  if (!coroutine->awaiting_final)
-    {
-      if (coroutine->coroutine_scheduler != NULL)
-        {
-          GSource *source;
-          DexThreadStorage *thread_storage;
-
-          g_mutex_lock (&coroutine->coroutine_scheduler->mutex);
-          dex_coroutine_set_queue (coroutine->coroutine_scheduler,
-                                   coroutine,
-                                   CORO_QUEUE_RUNNABLE);
-          thread_storage = dex_thread_storage_get ();
-          source = thread_storage->coroutine_scheduler == coroutine->coroutine_scheduler
-                     ? NULL
-                     : g_source_ref ((GSource *)coroutine->coroutine_scheduler);
-          g_mutex_unlock (&coroutine->coroutine_scheduler->mutex);
-
-          if (source != NULL)
-            {
-              g_main_context_wakeup (g_source_get_context (source));
-              g_source_unref (source);
-            }
-        }
-
-      return TRUE;
-    }
-
-  dex_clear (&coroutine->context.pending);
-
-  coroutine->awaiting_final = FALSE;
-  coroutine->exited = TRUE;
-
-  dex_coroutine_detach_from_scheduler (coroutine);
-
-  if (coroutine->cancelled)
-    dex_coroutine_complete_cancelled (coroutine);
-  else
-    dex_coroutine_complete_from_future (coroutine, completed);
 
   return TRUE;
 }

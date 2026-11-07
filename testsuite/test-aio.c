@@ -32,6 +32,7 @@
 #include <libdex.h>
 
 #include "dex-aio-backend-private.h"
+#include "dex-future-private.h"
 #include "dex-posix-aio-backend-private.h"
 
 #ifdef HAVE_LIBURING
@@ -274,6 +275,113 @@ test_aio_open_uring (void)
 }
 #endif
 
+#ifdef G_OS_UNIX
+typedef struct
+{
+  DexAioContext *aio_context;
+  DexFuture     *read;
+  GThread       *owner;
+  int            fd;
+  char           buffer[1];
+  gboolean       destroyed;
+} TestAioCoroutine;
+
+static DexFuture *
+test_aio_coroutine_read (DexCoroutineContext *context,
+                         gpointer             user_data)
+{
+  TestAioCoroutine *state = user_data;
+
+  DEX_COROUTINE_BEGIN (context);
+
+  state->read = dex_aio_read (state->aio_context,
+                              state->fd,
+                              state->buffer,
+                              sizeof state->buffer,
+                              -1);
+  DEX_COROUTINE_SUSPEND (dex_ref (state->read), NULL);
+  g_assert_not_reached ();
+
+  DEX_COROUTINE_END;
+}
+
+static void
+test_aio_coroutine_destroy (gpointer user_data)
+{
+  TestAioCoroutine *state = user_data;
+
+  g_assert_true (g_thread_self () == state->owner);
+  g_assert_true (dex_future_is_resolved (state->read));
+  g_assert_cmpint (state->buffer[0], ==, 'x');
+  state->destroyed = TRUE;
+}
+
+static void
+run_aio_coroutine_cancel (DexAioBackend *backend)
+{
+  TestAioCoroutine state = { 0 };
+  DexFuture *coroutine;
+  DexWeakRef weak;
+  int fds[2];
+
+  g_assert_cmpint (pipe (fds), ==, 0);
+  state.aio_context = dex_aio_backend_create_context (backend);
+  state.owner = g_thread_self ();
+  state.fd = fds[0];
+  g_source_attach ((GSource *)state.aio_context, NULL);
+
+  coroutine = dex_scheduler_spawn_coroutine (NULL, test_aio_coroutine_read,
+                                              &state, test_aio_coroutine_destroy);
+  dex_weak_ref_init (&weak, coroutine);
+  while (state.read == NULL)
+    g_main_context_iteration (NULL, TRUE);
+
+  dex_future_abandon (coroutine);
+  dex_clear (&coroutine);
+  g_assert_false (state.destroyed);
+  g_assert_true (dex_future_is_pending (state.read));
+
+  g_assert_cmpint (write (fds[1], "x", 1), ==, 1);
+  while (!state.destroyed)
+    g_main_context_iteration (NULL, TRUE);
+
+  g_assert_null (dex_weak_ref_get (&weak));
+  dex_weak_ref_clear (&weak);
+  dex_clear (&state.read);
+  dex_unref (await_future (dex_aio_close (state.aio_context, fds[0])));
+  dex_unref (await_future (dex_aio_close (state.aio_context, fds[1])));
+  g_source_destroy ((GSource *)state.aio_context);
+  g_source_unref ((GSource *)state.aio_context);
+}
+
+static void
+test_aio_coroutine_cancel (void)
+{
+  DexAioBackend *backend = dex_posix_aio_backend_new ();
+
+  run_aio_coroutine_cancel (backend);
+  dex_unref (backend);
+}
+
+#ifdef HAVE_LIBURING
+static void
+test_aio_coroutine_cancel_uring (void)
+{
+  DexAioBackend *backend = dex_uring_aio_backend_new ();
+
+  if (backend == NULL)
+    {
+      g_test_skip ("io_uring backend is not available");
+      return;
+    }
+
+  run_aio_coroutine_cancel (backend);
+  dex_unref (backend);
+}
+#endif
+
+#endif
+
 int
 main (int   argc,
       char *argv[])
@@ -288,6 +396,12 @@ main (int   argc,
 #ifdef HAVE_LIBURING
   g_test_add_func ("/Dex/TestSuite/Aio/open-uring", test_aio_open_uring);
   g_test_add_func ("/Dex/TestSuite/Aio/uring-read-write-error-mapping", test_aio_uring_read_write_error_mapping);
+#endif
+#ifdef G_OS_UNIX
+  g_test_add_func ("/Dex/TestSuite/Aio/coroutine-cancel", test_aio_coroutine_cancel);
+#ifdef HAVE_LIBURING
+  g_test_add_func ("/Dex/TestSuite/Aio/coroutine-cancel-uring", test_aio_coroutine_cancel_uring);
+#endif
 #endif
   return g_test_run ();
 }

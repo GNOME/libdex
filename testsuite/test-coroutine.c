@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "test-util.h"
+#include "dex-future-private.h"
 
 static void test_coroutine_g_weak_ref_clear (GWeakRef *weak_ref);
 
@@ -714,6 +715,189 @@ test_coroutine_thread_pool_await (void)
   g_assert_cmpuint (value, ==, 7u);
 }
 
+typedef struct
+{
+  DexFuture  *coroutine;
+  DexPromise *pending;
+  GThread    *owner;
+  guint       entered;
+  guint       destroyed;
+  gboolean    return_pending;
+  gboolean    cancel_in_callback;
+} TestCoroutineCleanup;
+
+static void
+test_coroutine_cleanup_destroy (gpointer user_data)
+{
+  TestCoroutineCleanup *state = user_data;
+
+  g_assert_true (g_thread_self () == state->owner);
+  g_assert_false (dex_future_is_pending (DEX_FUTURE (state->pending)));
+  state->destroyed++;
+}
+
+static DexFuture *
+test_coroutine_cleanup_func (DexCoroutineContext *context,
+                             gpointer             user_data)
+{
+  TestCoroutineCleanup *state = user_data;
+
+  state->entered++;
+
+  DEX_COROUTINE_BEGIN (context);
+
+  if (state->cancel_in_callback)
+    dex_future_abandon (state->coroutine);
+
+  if (state->return_pending)
+    return dex_ref (DEX_FUTURE (state->pending));
+
+  DEX_COROUTINE_SUSPEND (dex_ref (DEX_FUTURE (state->pending)), NULL);
+
+  return dex_future_new_true ();
+
+  DEX_COROUTINE_END;
+}
+
+static gpointer
+test_coroutine_cleanup_complete_thread (gpointer user_data)
+{
+  TestCoroutineCleanup *state = user_data;
+
+  dex_promise_resolve_boolean (state->pending, TRUE);
+  return NULL;
+}
+
+static gpointer
+test_coroutine_cleanup_cancel_thread (gpointer user_data)
+{
+  TestCoroutineCleanup *state = user_data;
+
+  dex_future_abandon (state->coroutine);
+  return NULL;
+}
+
+static void
+test_coroutine_cleanup (void)
+{
+  for (guint mode = 0; mode < 6; mode++)
+    {
+      TestCoroutineCleanup state = { 0 };
+      DexWeakRef weak;
+      GThread *thread;
+      GError *error = NULL;
+      gboolean cancel = mode != 0;
+
+      state.pending = dex_promise_new_cancellable ();
+      state.owner = g_thread_self ();
+      state.return_pending = mode % 2 == 0;
+      state.cancel_in_callback = mode >= 4;
+      state.coroutine = dex_scheduler_spawn_coroutine (NULL,
+                                                        test_coroutine_cleanup_func,
+                                                        &state,
+                                                        test_coroutine_cleanup_destroy);
+      dex_weak_ref_init (&weak, state.coroutine);
+
+      while (state.entered == 0)
+        g_main_context_iteration (NULL, TRUE);
+
+      if (cancel && !state.cancel_in_callback)
+        {
+          thread = g_thread_new ("cancel-coroutine", test_coroutine_cleanup_cancel_thread, &state);
+          g_thread_join (thread);
+        }
+
+      g_assert_cmpuint (state.destroyed, ==, 0);
+      g_assert_cmpint (dex_future_is_pending (state.coroutine), ==, !cancel);
+      g_assert_false (g_cancellable_is_cancelled (dex_promise_get_cancellable (state.pending)));
+
+      thread = g_thread_new ("complete-coroutine", test_coroutine_cleanup_complete_thread, &state);
+      g_thread_join (thread);
+
+      g_assert_cmpuint (state.destroyed, ==, 0);
+
+      g_assert_cmpint (dex_await_boolean (dex_ref (state.coroutine), &error), ==, !cancel);
+      if (cancel)
+        g_assert_error (error, DEX_ERROR, DEX_ERROR_FIBER_CANCELLED);
+      else
+        g_assert_no_error (error);
+
+      g_clear_error (&error);
+      while (state.destroyed == 0)
+        g_main_context_iteration (NULL, TRUE);
+      g_assert_cmpuint (state.destroyed, ==, 1);
+      g_assert_cmpuint (state.entered, ==, 1);
+      dex_clear (&state.coroutine);
+      dex_clear (&state.pending);
+      g_assert_null (dex_weak_ref_get (&weak));
+      dex_weak_ref_clear (&weak);
+    }
+}
+
+static DexFuture *
+test_coroutine_completed_suspend_func (DexCoroutineContext *context,
+                                       gpointer             user_data)
+{
+  DexPromise *promise = user_data;
+  DexFuture *pending = NULL;
+  guint pc;
+
+  dex_coroutine_context_resume (context, &pc, &pending);
+
+  if (pc == 0)
+    {
+      dex_coroutine_context_suspend (context, 1, dex_ref (DEX_FUTURE (promise)));
+      dex_promise_resolve_boolean (promise, TRUE);
+      return NULL;
+    }
+
+  g_assert_cmpuint (pc, ==, 1);
+  g_assert_true (dex_await_boolean (pending, NULL));
+
+  return dex_future_new_for_int (42);
+}
+
+static void
+test_coroutine_completed_suspend (void)
+{
+  DexPromise *promise = dex_promise_new ();
+  DexFuture *future;
+  GError *error = NULL;
+
+  future = dex_scheduler_spawn_coroutine (NULL, test_coroutine_completed_suspend_func,
+                                           promise, dex_unref);
+  g_assert_cmpint (dex_await_int (future, &error), ==, 42);
+  g_assert_no_error (error);
+}
+
+static void
+test_coroutine_cancel_before_start (void)
+{
+  TestCoroutineCleanup state = { 0 };
+  DexWeakRef weak;
+  GThread *thread;
+
+  state.pending = dex_promise_new ();
+  dex_promise_resolve_boolean (state.pending, TRUE);
+  state.owner = g_thread_self ();
+  state.coroutine = dex_scheduler_spawn_coroutine (NULL, test_coroutine_cleanup_func,
+                                                    &state, test_coroutine_cleanup_destroy);
+  dex_weak_ref_init (&weak, state.coroutine);
+  thread = g_thread_new ("cancel-coroutine", test_coroutine_cleanup_cancel_thread, &state);
+  g_thread_join (thread);
+  g_assert_cmpuint (state.destroyed, ==, 0);
+  dex_clear (&state.coroutine);
+
+  while (state.destroyed == 0)
+    g_main_context_iteration (NULL, TRUE);
+
+  g_assert_cmpuint (state.destroyed, ==, 1);
+  g_assert_cmpuint (state.entered, ==, 0);
+  g_assert_null (dex_weak_ref_get (&weak));
+  dex_weak_ref_clear (&weak);
+  dex_clear (&state.pending);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -721,6 +905,9 @@ main (int   argc,
   dex_init ();
   g_test_init (&argc, &argv, NULL);
 
+  _g_test_add_func ("/Dex/TestSuite/Coroutine/completed-suspend", test_coroutine_completed_suspend);
+  _g_test_add_func ("/Dex/TestSuite/Coroutine/cancel-before-start", test_coroutine_cancel_before_start);
+  _g_test_add_func ("/Dex/TestSuite/Coroutine/cleanup", test_coroutine_cleanup);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/spawn_complete", test_coroutine_spawn_complete);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/cancel_race_awaited", test_coroutine_cancel_race);
   _g_test_add_func ("/Dex/TestSuite/Coroutine/suspend_resume", test_coroutine_suspend_resume);

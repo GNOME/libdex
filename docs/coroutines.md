@@ -150,13 +150,14 @@ DEX_DEFINE_CLOSURE_TYPE (WatchState, watch_state,
 Like all `DexFuture` values, coroutines follow normal ownership and cancellation
 rules.
 
-* If a coroutine is no longer depended on, discarding may cancel its work.
-* Cancellation will propagate into an error for suspended coroutines which
-  they can handle when they are next resumed.
+* Discarding a coroutine rejects its future with `DEX_ERROR_FIBER_CANCELLED`.
+* Cancellation does not resume the coroutine. State is kept alive until any
+  awaited or returned future completes so that pending I/O can still use it.
 * If work must complete even after callers drop references, use
   [method@Dex.Future.disown] on the returned future.
-* State registered with the coroutine is released with the configured
-  callback function when the [class@Dex.Coroutine] completes.
+* State is released on the coroutine's scheduler thread, possibly after
+  cancellation is reported. Destroy callbacks must not block; use
+  [func@Dex.aio_close] to close file descriptors.
 
 ## When Not To Use
 
