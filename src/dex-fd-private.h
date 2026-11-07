@@ -28,11 +28,12 @@ G_BEGIN_DECLS
 
 typedef struct _DexFD DexFD;
 
-GType  dex_fd_get_type (void);
-int    dex_fd_peek     (const DexFD *fd);
-int    dex_fd_steal    (DexFD       *fd);
-DexFD *dex_fd_dup      (const DexFD *fd);
-void   dex_fd_free     (DexFD       *fd);
+void   _dex_fd_close_in_thread (int          fd);
+GType  dex_fd_get_type         (void);
+int    dex_fd_peek             (const DexFD *fd);
+int    dex_fd_steal            (DexFD       *fd);
+DexFD *dex_fd_dup              (const DexFD *fd);
+void   dex_fd_free             (DexFD       *fd);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFD, dex_fd_free)
 

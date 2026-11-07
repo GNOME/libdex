@@ -24,7 +24,11 @@
 #include <unistd.h>
 #endif
 
+#include <gio/gio.h>
+
+#include "dex-aio.h"
 #include "dex-fd-private.h"
+#include "dex-thread-storage-private.h"
 
 #ifdef G_OS_WIN32
 #include <io.h>
@@ -48,12 +52,46 @@ dex_fd_steal (DexFD *fd)
   return g_steal_fd ((int *)fd);
 }
 
+static void
+dex_fd_close_worker (GTask        *task,
+                     gpointer      source_object,
+                     gpointer      task_data,
+                     GCancellable *cancellable)
+{
+  int fd = GPOINTER_TO_INT (task_data);
+
+  close (fd);
+  g_task_return_boolean (task, TRUE);
+}
+
+void
+_dex_fd_close_in_thread (int fd)
+{
+  GTask *task;
+
+  g_assert (fd >= 0);
+
+  task = g_task_new (NULL, NULL, NULL, NULL);
+  g_task_set_task_data (task, GINT_TO_POINTER (fd), NULL);
+  g_task_run_in_thread (task, dex_fd_close_worker);
+  g_object_unref (task);
+}
+
 void
 dex_fd_free (DexFD *fd)
 {
   int real = dex_fd_steal (fd);
+
   if (real != -1)
-    close (real);
+    {
+      DexThreadStorage *storage = dex_thread_storage_peek ();
+
+      if (storage != NULL && storage->aio_context != NULL)
+        dex_unref (dex_aio_close (storage->aio_context, real));
+      else
+        _dex_fd_close_in_thread (real);
+    }
+
   g_free (fd);
 }
 

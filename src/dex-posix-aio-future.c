@@ -93,7 +93,13 @@ dex_posix_aio_future_finalize (DexObject *object)
   DexPosixAioFuture *posix_aio_future = DEX_POSIX_AIO_FUTURE (object);
 
   if (posix_aio_future->kind == DEX_POSIX_AIO_FUTURE_CLOSE)
-    g_clear_pointer (&posix_aio_future->close.fd, dex_fd_free);
+    {
+      int fd = dex_fd_steal (posix_aio_future->close.fd);
+
+      if (fd != -1)
+        _dex_fd_close_in_thread (fd);
+      g_clear_pointer (&posix_aio_future->close.fd, dex_fd_free);
+    }
   else if (posix_aio_future->kind == DEX_POSIX_AIO_FUTURE_OPEN)
     g_clear_pointer (&posix_aio_future->open.path, g_free);
 

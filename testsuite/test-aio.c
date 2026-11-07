@@ -32,8 +32,10 @@
 #include <libdex.h>
 
 #include "dex-aio-backend-private.h"
+#include "dex-fd-private.h"
 #include "dex-future-private.h"
 #include "dex-posix-aio-backend-private.h"
+#include "dex-posix-aio-future-private.h"
 
 #ifdef HAVE_LIBURING
 # include "dex-uring-aio-backend-private.h"
@@ -380,6 +382,111 @@ test_aio_coroutine_cancel_uring (void)
 }
 #endif
 
+static gboolean
+test_aio_close_poll (gpointer user_data)
+{
+  GMainLoop *loop = user_data;
+
+  g_main_loop_quit (loop);
+  return G_SOURCE_REMOVE;
+}
+
+static void
+test_aio_wait_closed (int fd)
+{
+  GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+  gint64 deadline = g_get_monotonic_time () + 5 * G_USEC_PER_SEC;
+
+  while (fcntl (fd, F_GETFD) != -1)
+    {
+      g_assert_cmpint (g_get_monotonic_time (), <, deadline);
+      g_timeout_add (1, test_aio_close_poll, loop);
+      g_main_loop_run (loop);
+    }
+
+  g_assert_cmpint (errno, ==, EBADF);
+  g_main_loop_unref (loop);
+}
+
+static gpointer
+test_aio_drop_fd_thread (gpointer user_data)
+{
+  dex_unref (user_data);
+  return NULL;
+}
+
+static void
+test_aio_unconsumed_fd (void)
+{
+  for (guint foreign_thread = 0; foreign_thread < 2; foreign_thread++)
+    {
+      DexFuture *future;
+      char byte;
+      int fds[2];
+
+      g_assert_cmpint (pipe (fds), ==, 0);
+      g_assert_cmpint (fcntl (fds[0], F_SETFL, O_NONBLOCK), ==, 0);
+      future = dex_future_new_for_fd (fds[1]);
+
+      if (foreign_thread)
+        {
+          GThread *thread = g_thread_new ("drop-fd", test_aio_drop_fd_thread, future);
+
+          g_thread_join (thread);
+        }
+      else
+        {
+          dex_unref (future);
+        }
+
+      test_aio_wait_closed (fds[1]);
+      g_assert_cmpint (read (fds[0], &byte, 1), ==, 0);
+      g_assert_cmpint (close (fds[0]), ==, 0);
+    }
+}
+
+static void
+test_aio_unconsumed_open (void)
+{
+  DexFuture *future = dex_aio_open (NULL, "/dev/null", O_RDONLY | O_CLOEXEC, 0);
+  const GValue *value;
+  GError *error = NULL;
+  int fd;
+
+  while (dex_future_is_pending (future))
+    g_main_context_iteration (NULL, TRUE);
+
+  value = dex_future_get_value (future, &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (value);
+  fd = dex_fd_peek (g_value_get_boxed (value));
+  g_assert_cmpint (fd, >=, 0);
+  dex_unref (future);
+  test_aio_wait_closed (fd);
+}
+
+static void
+test_aio_unsubmitted_close (void)
+{
+  DexAioBackend *backend = dex_posix_aio_backend_new ();
+  DexAioContext *aio_context = dex_aio_backend_create_context (backend);
+  int fds[2];
+
+  g_assert_cmpint (pipe (fds), ==, 0);
+  dex_unref (dex_posix_aio_future_new_close ((DexPosixAioContext *)aio_context, fds[1]));
+  test_aio_wait_closed (fds[1]);
+  g_assert_cmpint (close (fds[0]), ==, 0);
+
+#ifdef HAVE_LIBURING
+  g_assert_cmpint (pipe (fds), ==, 0);
+  dex_unref (dex_uring_future_new_close (fds[1]));
+  test_aio_wait_closed (fds[1]);
+  g_assert_cmpint (close (fds[0]), ==, 0);
+#endif
+
+  g_source_unref ((GSource *)aio_context);
+  dex_unref (backend);
+}
 #endif
 
 int
@@ -402,6 +509,9 @@ main (int   argc,
 #ifdef HAVE_LIBURING
   g_test_add_func ("/Dex/TestSuite/Aio/coroutine-cancel-uring", test_aio_coroutine_cancel_uring);
 #endif
+  g_test_add_func ("/Dex/TestSuite/Aio/unconsumed-fd", test_aio_unconsumed_fd);
+  g_test_add_func ("/Dex/TestSuite/Aio/unconsumed-open", test_aio_unconsumed_open);
+  g_test_add_func ("/Dex/TestSuite/Aio/unsubmitted-close", test_aio_unsubmitted_close);
 #endif
   return g_test_run ();
 }

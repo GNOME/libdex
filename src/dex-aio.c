@@ -83,7 +83,8 @@ dex_aio_close (DexAioContext *aio_context,
  * will get the default aio context for your scheduler.
  *
  * The resulting future resolves to a file descriptor which can be consumed
- * with [method@Dex.Future.await_fd].
+ * with [method@Dex.Future.await_fd]. If the file descriptor is not consumed,
+ * it is closed asynchronously when the result is freed.
  *
  * Returns: (transfer full): a future that will resolve when the
  *   open completes or rejects with error.

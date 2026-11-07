@@ -86,7 +86,13 @@ dex_uring_future_finalize (DexObject *object)
   DexUringFuture *uring_future = DEX_URING_FUTURE (object);
 
   if (uring_future->type == DEX_URING_TYPE_CLOSE)
-    g_clear_pointer (&uring_future->close.fd, dex_fd_free);
+    {
+      int fd = dex_fd_steal (uring_future->close.fd);
+
+      if (fd != -1)
+        _dex_fd_close_in_thread (fd);
+      g_clear_pointer (&uring_future->close.fd, dex_fd_free);
+    }
   else if (uring_future->type == DEX_URING_TYPE_OPEN)
     g_clear_pointer (&uring_future->open.path, g_free);
 
