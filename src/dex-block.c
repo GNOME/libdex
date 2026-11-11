@@ -93,6 +93,13 @@ dex_block_propagate_within_scheduler_internal (PropagateState *state)
 {
   DexFuture *delayed = state->block->callback (state->completed, state->block->callback_data);
 
+  /* If we got the same value back we passed in, normalize to NULL so
+   * we hit branch below to release our scheduler.
+   */
+  if (delayed == state->completed &&
+      (state->block->kind & DEX_BLOCK_KIND_LOOP) == 0)
+    dex_clear (&delayed);
+
   /* If we got a future then we need to chain to it so that we get
    * a second propagation callback with the resolved or rejected
    * value for resolution.
