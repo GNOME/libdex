@@ -888,6 +888,7 @@ test_graph_cycle_variants (void)
           g_assert_cmpuint (operations[i].destroyed, ==, 0);
         }
       dex_graph_builder_free (builder);
+      drain_context ();
       for (guint i = 0; i < G_N_ELEMENTS (operations); i++)
         g_assert_cmpuint (operations[i].destroyed, ==, 1);
     }

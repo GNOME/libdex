@@ -124,6 +124,9 @@ test_channel_deferred (void)
               g_assert_cmpint (value, ==, 42);
             }
 
+          while (state.destroyed == 0)
+            g_assert_true (dex_fiber_yield (NULL));
+
           g_assert_cmpuint (state.destroyed, ==, 1);
           g_clear_error (&error);
           dex_clear (&state.started);

@@ -136,6 +136,8 @@ test_future_then (void)
   g_assert_cmpint (info.catch, ==, 1);
   g_assert_cmpint (info.finally, ==, 1);
   g_assert_cmpint (info.then, ==, 1);
+  while (g_main_context_pending (NULL))
+    g_main_context_iteration (NULL, FALSE);
   g_assert_cmpint (info.destroy, ==, 3);
 }
 
@@ -716,6 +718,8 @@ test_future_set_deferred (void)
             }
 
           dex_clear (&deferred);
+          while (state.destroyed == 0)
+            g_assert_true (dex_fiber_yield (NULL));
           g_assert_cmpuint (state.destroyed, ==, 1);
         }
 }

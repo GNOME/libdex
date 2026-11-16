@@ -112,6 +112,21 @@ wait_for (DexFuture *future)
 }
 
 static void
+wait_destroyed (int *destroyed,
+                int expected)
+{
+  gint64 deadline = g_get_monotonic_time () + 5 * G_USEC_PER_SEC;
+
+  while (g_atomic_int_get (destroyed) < expected && g_get_monotonic_time () < deadline)
+    {
+      while (g_main_context_pending (NULL))
+        g_main_context_iteration (NULL, FALSE);
+      g_usleep (100);
+    }
+  g_assert_cmpint (g_atomic_int_get (destroyed), ==, expected);
+}
+
+static void
 test_deferred_kinds (void)
 {
   DexThreadPool *pool = dex_thread_pool_new (1);
@@ -173,7 +188,7 @@ test_deferred_kinds (void)
   }
 
   g_assert_cmpint (g_atomic_int_get (&calls), ==, 5);
-  g_assert_cmpint (g_atomic_int_get (&destroyed), ==, 5);
+  wait_destroyed (&destroyed, 5);
   dex_unref (pool);
 }
 
@@ -199,7 +214,7 @@ test_deferred_closed_thread_pool (void)
   g_assert_null (dex_future_get_value (future, &error));
   g_assert_error (error, DEX_ERROR, DEX_ERROR_SEMAPHORE_CLOSED);
   g_assert_cmpint (g_atomic_int_get (&calls), ==, 0);
-  g_assert_cmpint (g_atomic_int_get (&destroyed), ==, 1);
+  wait_destroyed (&destroyed, 1);
 
   wait_for (closed);
   g_clear_error (&error);
@@ -469,7 +484,7 @@ test_deferred_unused_cleanup (void)
     dex_unref (deferred[i]);
 
   g_assert_cmpint (g_atomic_int_get (&calls), ==, 0);
-  g_assert_cmpint (g_atomic_int_get (&destroyed), ==, 5);
+  wait_destroyed (&destroyed, 5);
   dex_unref (pool);
 }
 
@@ -499,6 +514,7 @@ test_deferred_await (void)
 
   dex_unref (fiber);
   dex_unref (deferred);
+  wait_destroyed (&destroyed, 1);
 }
 
 static void
@@ -576,7 +592,7 @@ test_deferred_concurrent_observers (void)
       dex_unref (deferred);
     }
 
-  g_assert_cmpint (g_atomic_int_get (&destroyed), ==, 100);
+  wait_destroyed (&destroyed, 100);
 }
 
 static gpointer
@@ -607,7 +623,7 @@ test_deferred_discard_before_callback (void)
   g_assert_null (dex_future_get_value (DEX_FUTURE (deferred), &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
   g_assert_cmpint (g_atomic_int_get (&calls), ==, 0);
-  g_assert_cmpint (g_atomic_int_get (&destroyed), ==, 1);
+  wait_destroyed (&destroyed, 1);
 
   dex_future_chain (DEX_FUTURE (deferred), DEX_FUTURE (late));
   g_assert_true (dex_future_is_rejected (DEX_FUTURE (late)));

@@ -22,28 +22,30 @@
 #include "config.h"
 
 #include "dex-block-private.h"
+#include "dex-thunk-private.h"
 #include "dex-thread-storage-private.h"
 
 /**
  * DexBlock:
  *
- * `DexBlock` represents a callback closure that can be scheduled to run
+ * `DexBlock` represents a callback thunk that can be scheduled to run
  * within a specific [struct@GLib.MainContext].
  *
  * You create these by chaining futures together using [ctor@Dex.Future.then],
  * [ctor@Dex.Future.catch], [ctor@Dex.Future.finally] and similar.
+ *
+ * Callback data destruction is queued on the captured scheduler, including when
+ * the block is discarded before invocation. It may run after future completion.
  */
 
 typedef struct _DexBlock
 {
-  DexFuture          parent_instance;
-  DexScheduler      *scheduler;
-  DexFuture         *awaiting;
-  DexFutureCallback  callback;
-  gpointer           callback_data;
-  GDestroyNotify     callback_data_destroy;
-  DexBlockKind       kind : 3;
-  guint              handled : 1;
+  DexFuture     parent_instance;
+  DexScheduler *scheduler;
+  DexFuture    *awaiting;
+  DexThunk     *thunk;
+  DexBlockKind  kind : 3;
+  guint         handled : 1;
 } DexBlock;
 
 typedef struct _DexBlockClass
@@ -84,14 +86,14 @@ dex_block_handles (DexBlock  *block,
 
 typedef struct _PropagateState
 {
-  DexBlock *block;
+  DexBlock  *block;
   DexFuture *completed;
 } PropagateState;
 
 static gboolean
 dex_block_propagate_within_scheduler_internal (PropagateState *state)
 {
-  DexFuture *delayed = state->block->callback (state->completed, state->block->callback_data);
+  DexFuture *delayed = dex_thunk_invoke_callback (state->block->thunk, state->completed);
 
   /* If we got the same value back we passed in, normalize to NULL so
    * we hit branch below to release our scheduler.
@@ -117,21 +119,13 @@ dex_block_propagate_within_scheduler_internal (PropagateState *state)
     }
   else
     {
-      GDestroyNotify notify = NULL;
-      gpointer notify_data = NULL;
+      DexThunk *thunk;
 
-      /* We can't asynchronously wait for more futures now so we should
-       * aggressively release the callback data so that any reference cycles
-       * are broken immediately.
-       */
       dex_object_lock (state->block);
-      notify = g_steal_pointer (&state->block->callback_data_destroy);
-      notify_data = g_steal_pointer (&state->block->callback_data);
-      state->block->callback = NULL;
+      thunk = g_steal_pointer (&state->block->thunk);
       dex_object_unlock (state->block);
 
-      if (notify != NULL)
-        notify (notify_data);
+      g_clear_pointer (&thunk, dex_thunk_unref);
 
       return FALSE;
     }
@@ -189,7 +183,7 @@ dex_block_propagate (DexFuture *future,
    */
   if (do_callback && dex_block_handles (block, completed))
     {
-      PropagateState state = {block, completed};
+      PropagateState state = { block, completed };
       DexThreadStorage *storage = dex_thread_storage_get ();
 
       /* If we are on the same scheduler that created this block, then
@@ -226,13 +220,7 @@ dex_block_finalize (DexObject *object)
 {
   DexBlock *block = DEX_BLOCK (object);
 
-  if (block->callback_data_destroy)
-    {
-      block->callback_data_destroy (block->callback_data);
-      block->callback_data_destroy = NULL;
-      block->callback_data = NULL;
-      block->callback = NULL;
-    }
+  g_clear_pointer (&block->thunk, dex_thunk_unref);
 
   if (block->awaiting)
     {
@@ -268,7 +256,7 @@ dex_block_init (DexBlock *block)
  * @kind: the kind of block
  * @callback: (scope notified): the callback for the block
  * @callback_data: the data for the callback
- * @callback_data_destroy: closure destroy for @callback_data
+ * @callback_data_destroy: thunk destroy for @callback_data
  *
  * Creates a new block that will process the result of @future.
  *
@@ -293,9 +281,10 @@ dex_block_new (DexFuture         *future,
   block->scheduler = scheduler ? dex_ref (scheduler) : dex_scheduler_ref_thread_default ();
   block->awaiting = future;
   block->kind = kind;
-  block->callback = callback;
-  block->callback_data = callback_data;
-  block->callback_data_destroy = callback_data_destroy;
+  block->thunk = dex_thunk_new (G_CALLBACK (callback),
+                                callback_data,
+                                callback_data_destroy,
+                                block->scheduler);
 
   g_assert (block->scheduler != NULL);
 
