@@ -23,6 +23,7 @@
 #include <gio/gio.h>
 
 #include "dex-block-private.h"
+#include "dex-thunk-private.h"
 #include "dex-deferred.h"
 #include "dex-error.h"
 #include "dex-future-private.h"
@@ -44,16 +45,9 @@ typedef struct
   DexScheduler    *scheduler;
   DexThreadPool   *pool;
   char            *name;
-  gpointer         user_data;
-  GDestroyNotify   destroy;
+  DexThunk        *thunk;
   gsize            stack_size;
   DexDeferredKind  kind;
-  union {
-    DexDeferredFunc  callback;
-    DexFiberFunc     fiber;
-    DexCoroutineFunc coroutine;
-    DexThreadFunc    thread;
-  }                func;
 } DexDeferredState;
 
 struct _DexDeferred
@@ -75,7 +69,9 @@ typedef struct _DexDeferredClass
  * [ctor@Dex.Future.then] or [method@Dex.Future.await]. Its work starts once.
  * Querying its status or value does not start the work.
  * Dropping it without observing it releases its callback data without
- * invoking the callback.
+ * invoking the callback. Scheduler-backed deferreds queue data destruction on
+ * their captured scheduler, including when never observed. Native thread-pool
+ * deferreds capture their cleanup scheduler at construction too.
  * If its last observer is discarded before the work starts, the deferred
  * rejects with %G_IO_ERROR_CANCELLED. Work that has already started may
  * still run while cancellation propagates.
@@ -93,8 +89,7 @@ dex_deferred_state_free (DexDeferredState *state)
   if (state == NULL)
     return;
 
-  if (state->destroy != NULL)
-    state->destroy (state->user_data);
+  g_clear_pointer (&state->thunk, dex_thunk_unref);
 
   dex_clear (&state->scheduler);
   dex_clear (&state->pool);
@@ -107,8 +102,10 @@ dex_deferred_cancel_unstarted (DexDeferred      *self,
                                DexDeferredState *state)
 {
   dex_deferred_state_free (state);
-  dex_future_complete (DEX_FUTURE (self), NULL,
-                       g_error_new_literal (G_IO_ERROR, G_IO_ERROR_CANCELLED,
+  dex_future_complete (DEX_FUTURE (self),
+                       NULL,
+                       g_error_new_literal (G_IO_ERROR,
+                                            G_IO_ERROR_CANCELLED,
                                             "Deferred was discarded before starting"));
 }
 
@@ -236,9 +233,7 @@ dex_deferred_new (DexScheduler    *scheduler,
 
   state = g_new0 (DexDeferredState, 1);
   state->scheduler = dex_deferred_ref_scheduler (scheduler);
-  state->func.callback = func;
-  state->user_data = user_data;
-  state->destroy = destroy;
+  state->thunk = dex_thunk_new (G_CALLBACK (func), user_data, destroy, state->scheduler);
   state->kind = DEX_DEFERRED_CALLBACK;
 
   if (state->scheduler == NULL)
@@ -281,9 +276,7 @@ dex_deferred_new_fiber (DexScheduler   *scheduler,
 
   state = g_new0 (DexDeferredState, 1);
   state->scheduler = dex_deferred_ref_scheduler (scheduler);
-  state->func.fiber = func;
-  state->user_data = user_data;
-  state->destroy = destroy;
+  state->thunk = dex_thunk_new (G_CALLBACK (func), user_data, destroy, state->scheduler);
   state->stack_size = stack_size;
   state->kind = DEX_DEFERRED_FIBER;
 
@@ -324,9 +317,7 @@ dex_deferred_new_coroutine (DexScheduler     *scheduler,
 
   state = g_new0 (DexDeferredState, 1);
   state->scheduler = dex_deferred_ref_scheduler (scheduler);
-  state->func.coroutine = func;
-  state->user_data = user_data;
-  state->destroy = destroy;
+  state->thunk = dex_thunk_new (G_CALLBACK (func), user_data, destroy, state->scheduler);
   state->kind = DEX_DEFERRED_COROUTINE;
 
   if (state->scheduler == NULL)
@@ -365,10 +356,9 @@ dex_deferred_new_thread (const char     *thread_name,
   g_return_val_if_fail (func != NULL, NULL);
 
   state = g_new0 (DexDeferredState, 1);
+  state->scheduler = dex_deferred_ref_scheduler (NULL);
   state->name = g_strdup (thread_name);
-  state->func.thread = func;
-  state->user_data = user_data;
-  state->destroy = destroy;
+  state->thunk = dex_thunk_new (G_CALLBACK (func), user_data, destroy, state->scheduler);
   state->kind = DEX_DEFERRED_THREAD;
 
   return dex_deferred_new_with_state (state);
@@ -382,7 +372,9 @@ dex_deferred_new_thread (const char     *thread_name,
  * @user_data: closure data for @func
  * @destroy: destroy notify for @user_data
  *
- * Creates deferred work on @pool.
+ * Creates deferred work on @pool. Callback data destruction is queued on the
+ * constructing thread's scheduler, or the default scheduler if it has none,
+ * even when the deferred is never observed.
  *
  * The deferred retains @pool until the submitted work completes, even if
  * the deferred is discarded after submission.
@@ -404,11 +396,10 @@ dex_deferred_new_on_thread_pool (DexThreadPool  *pool,
   g_return_val_if_fail (func != NULL, NULL);
 
   state = g_new0 (DexDeferredState, 1);
+  state->scheduler = dex_deferred_ref_scheduler (NULL);
   state->pool = dex_ref (pool);
   state->name = g_strdup (name);
-  state->func.thread = func;
-  state->user_data = user_data;
-  state->destroy = destroy;
+  state->thunk = dex_thunk_new (G_CALLBACK (func), user_data, destroy, state->scheduler);
   state->kind = DEX_DEFERRED_THREAD_POOL;
 
   return dex_deferred_new_with_state (state);
@@ -478,7 +469,7 @@ dex_deferred_invoke (gpointer user_data)
       return;
     }
 
-  future = state->func.callback (state->user_data);
+  future = dex_thunk_invoke (state->thunk);
   if (future == NULL)
     future = dex_future_new_reject (DEX_ERROR,
                                     DEX_ERROR_NO_RESULT,
@@ -493,14 +484,26 @@ dex_deferred_invoke (gpointer user_data)
   dex_unref (self);
 }
 
+static DexFuture *
+dex_deferred_invoke_thunk (gpointer data)
+{
+  return dex_thunk_invoke (data);
+}
+
+static DexFuture *
+dex_deferred_invoke_coroutine (DexCoroutineContext *context,
+                               gpointer             data)
+{
+  return dex_thunk_invoke_coroutine (data, context);
+}
+
 static void
 dex_deferred_observe (DexFuture *future)
 {
   DexDeferred *self = DEX_DEFERRED (future);
   DexDeferredState *state;
   DexFuture *started = NULL;
-  GDestroyNotify destroy;
-  gpointer user_data;
+  DexThunk *thunk;
 
   dex_object_lock (self);
   state = future->abandoned ? NULL : g_steal_pointer (&self->state);
@@ -525,26 +528,35 @@ dex_deferred_observe (DexFuture *future)
       return;
     }
 
-  user_data = g_steal_pointer (&state->user_data);
-  destroy = state->destroy;
-  state->destroy = NULL;
+  thunk = g_steal_pointer (&state->thunk);
 
   switch (state->kind)
     {
     case DEX_DEFERRED_FIBER:
-      started = (dex_scheduler_spawn) (state->scheduler, state->stack_size, state->func.fiber, user_data, destroy);
+      started = (dex_scheduler_spawn) (state->scheduler,
+                                       state->stack_size,
+                                       dex_deferred_invoke_thunk,
+                                       thunk,
+                                       dex_thunk_unref);
       break;
 
     case DEX_DEFERRED_COROUTINE:
-      started = (dex_scheduler_spawn_coroutine) (state->scheduler, state->func.coroutine, user_data, destroy);
+      started = (dex_scheduler_spawn_coroutine) (state->scheduler,
+                                                 dex_deferred_invoke_coroutine,
+                                                 thunk,
+                                                 dex_thunk_unref);
       break;
 
     case DEX_DEFERRED_THREAD:
-      started = dex_thread_spawn (state->name, state->func.thread, user_data, destroy);
+      started = dex_thread_spawn (state->name, dex_deferred_invoke_thunk, thunk, dex_thunk_unref);
       break;
 
     case DEX_DEFERRED_THREAD_POOL:
-      started = dex_thread_pool_submit (state->pool, state->name, state->func.thread, user_data, destroy);
+      started = dex_thread_pool_submit (state->pool,
+                                        state->name,
+                                        dex_deferred_invoke_thunk,
+                                        thunk,
+                                        dex_thunk_unref);
       break;
 
     case DEX_DEFERRED_CALLBACK:

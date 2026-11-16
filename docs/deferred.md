@@ -129,3 +129,12 @@ new deferred if the application needs to retry a cancelled or failed read.
 
 Deferred work also allows a [dependency graph](graphs.html) to hold operations
 without starting them until their prerequisites have resolved.
+
+## Callback cleanup
+
+Deferreds capture a cleanup scheduler at construction, even if never observed.
+Native thread work uses the constructing thread's scheduler, or the default
+scheduler if there is none.
+
+Cleanup may run after the future completes. Keep the scheduler running and
+callback data alive until the destroy notify is called.
