@@ -31,9 +31,13 @@ G_BEGIN_DECLS
 typedef struct _DexFiber DexFiber;
 
 DEX_AVAILABLE_IN_ALL
-GType    dex_fiber_get_type (void);
+GType    dex_fiber_get_type    (void);
 DEX_AVAILABLE_IN_ALL
-gboolean dex_fiber_yield    (GError **error) G_GNUC_WARN_UNUSED_RESULT;
+gboolean dex_fiber_yield       (GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_value (const GValue  *value,
+                                GError       **error) G_GNUC_WARN_UNUSED_RESULT;
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFiber, dex_unref)
 

@@ -51,6 +51,7 @@ enum {
 struct _DexFiber
 {
   DexFuture parent_instance;
+  gpointer  generator_state;
 
   /* Augmented link placed in either runnable or waiting queue
    * of the DexFiberScheduler.

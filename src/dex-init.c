@@ -79,6 +79,7 @@ dex_init_once (void)
   /* Misc types */
   g_type_ensure (DEX_TYPE_ASYNC_RESULT);
   g_type_ensure (DEX_TYPE_CHANNEL);
+  g_type_ensure (DEX_TYPE_GENERATOR);
   g_type_ensure (DEX_TYPE_LIMITER);
   g_type_ensure (DEX_TYPE_SEMAPHORE);
   g_type_ensure (DEX_TYPE_STATE_MACHINE);

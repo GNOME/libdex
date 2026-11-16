@@ -67,6 +67,7 @@ typedef struct _DexCoroutineScheduler
 struct _DexCoroutineContext
 {
   DexCoroutine      *coroutine;
+  gpointer           generator_state;
   guint              pc;
   DexFuture         *pending;
 };
@@ -631,4 +632,17 @@ dex_coroutine_new (DexCoroutineFunc func,
   coroutine->thunk = dex_thunk_new (G_CALLBACK (func), user_data, user_data_destroy, NULL);
 
   return coroutine;
+}
+
+void
+dex_coroutine_context_set_generator (DexCoroutineContext *context,
+                                    gpointer             state)
+{
+  context->generator_state = state;
+}
+
+gpointer
+dex_coroutine_context_get_generator (DexCoroutineContext *context)
+{
+  return context->generator_state;
 }

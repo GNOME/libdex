@@ -39,15 +39,15 @@ typedef struct _DexCoroutineClass DexCoroutineClass;
 #define DEX_IS_COROUTINE(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), DEX_TYPE_COROUTINE))
 
 DEX_AVAILABLE_IN_ALL
-GType dex_coroutine_get_type        (void);
+void  dex_coroutine_context_resume  (DexCoroutineContext  *context,
+                                     guint                *pc,
+                                     DexFuture           **future);
 DEX_AVAILABLE_IN_ALL
 void  dex_coroutine_context_suspend (DexCoroutineContext  *context,
                                      guint                 pc,
                                      DexFuture            *future);
 DEX_AVAILABLE_IN_ALL
-void  dex_coroutine_context_resume  (DexCoroutineContext  *context,
-                                     guint                *pc,
-                                     DexFuture           **future);
+GType dex_coroutine_get_type        (void);
 
 /**
  * DEX_COROUTINE_BEGIN:
@@ -153,5 +153,22 @@ void  dex_coroutine_context_resume  (DexCoroutineContext  *context,
 
 #define DEX_COROUTINE_SUSPEND_FLOAT(_out, _error, _future) \
   _DEX_COROUTINE_SUSPEND (_out, _error, _future, dex_await_float, _DEX_COROUTINE_LABEL_ID ())
+
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_value (DexCoroutineContext *context,
+                                              const GValue        *value) G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * DEX_COROUTINE_YIELD_VALUE:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Yields a copy of @value and suspends until the next pull. Keep state in
+ * user data across yields, and return from the producer on error.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_VALUE(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_value (__dex_coro, (value)), (error))
 
 G_END_DECLS

@@ -29,11 +29,14 @@ G_BEGIN_DECLS
 typedef struct _DexCoroutine          DexCoroutine;
 typedef struct _DexCoroutineScheduler DexCoroutineScheduler;
 
-DexCoroutine          *dex_coroutine_new                (DexCoroutineFunc       func,
-                                                         gpointer               user_data,
-                                                         GDestroyNotify         user_data_destroy);
-DexCoroutineScheduler *dex_coroutine_scheduler_new      (void);
-void                   dex_coroutine_scheduler_register (DexCoroutineScheduler *scheduler,
-                                                         DexCoroutine          *coroutine);
+DexCoroutine          *dex_coroutine_new                   (DexCoroutineFunc       func,
+                                                            gpointer               user_data,
+                                                            GDestroyNotify         user_data_destroy);
+DexCoroutineScheduler *dex_coroutine_scheduler_new         (void);
+void                   dex_coroutine_scheduler_register    (DexCoroutineScheduler *scheduler,
+                                                            DexCoroutine          *coroutine);
+void                   dex_coroutine_context_set_generator (DexCoroutineContext   *context,
+                                                            gpointer               state);
+gpointer               dex_coroutine_context_get_generator (DexCoroutineContext   *context);
 
 G_END_DECLS
