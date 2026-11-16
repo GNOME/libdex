@@ -32,6 +32,7 @@ testsuite = {
   'test-aio': {},
   'test-async-result': {},
   'test-channel': {},
+  'test-thunk': {},
   'test-dbus': {'extra-sources': dbus_foo, 'disable': not have_gdbus_codegen, 'is_parallel': false},
   'test-coroutine': {},
   'test-deferred': {},
