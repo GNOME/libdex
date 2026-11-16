@@ -31,13 +31,64 @@ G_BEGIN_DECLS
 typedef struct _DexFiber DexFiber;
 
 DEX_AVAILABLE_IN_ALL
-GType    dex_fiber_get_type    (void);
+GType    dex_fiber_get_type      (void);
 DEX_AVAILABLE_IN_ALL
-gboolean dex_fiber_yield       (GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+gboolean dex_fiber_yield         (GError       **error) G_GNUC_WARN_UNUSED_RESULT;
 
 DEX_AVAILABLE_IN_1_3
-gboolean dex_fiber_yield_value (const GValue  *value,
-                                GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+gboolean dex_fiber_yield_boolean (gboolean       value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_boxed   (GType          expected_type,
+                                  gpointer       value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_double  (double         value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_enum    (GType          expected_type,
+                                  int            value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_fd      (int            value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_flags   (GType          expected_type,
+                                  guint          value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_float   (float          value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_future  (DexFuture     *value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_int     (int            value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_int64   (gint64         value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_object  (GObject       *value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_pointer (gpointer       value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_string  (const char    *value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_uint    (guint          value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_uint64  (guint64        value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_value   (const GValue  *value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+gboolean dex_fiber_yield_variant (GVariant      *value,
+                                  GError       **error) G_GNUC_WARN_UNUSED_RESULT;
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexFiber, dex_unref)
 

@@ -155,8 +155,59 @@ GType dex_coroutine_get_type        (void);
   _DEX_COROUTINE_SUSPEND (_out, _error, _future, dex_await_float, _DEX_COROUTINE_LABEL_ID ())
 
 DEX_AVAILABLE_IN_1_3
-DexFuture *dex_coroutine_context_yield_value (DexCoroutineContext *context,
-                                              const GValue        *value) G_GNUC_WARN_UNUSED_RESULT;
+DexFuture *dex_coroutine_context_yield_boolean (DexCoroutineContext *context,
+                                                gboolean             value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_boxed   (DexCoroutineContext *context,
+                                                GType                expected_type,
+                                                gpointer             value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_double  (DexCoroutineContext *context,
+                                                double               value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_enum    (DexCoroutineContext *context,
+                                                GType                expected_type,
+                                                int                  value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_fd      (DexCoroutineContext *context,
+                                                int                  value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_flags   (DexCoroutineContext *context,
+                                                GType                expected_type,
+                                                guint                value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_float   (DexCoroutineContext *context,
+                                                float                value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_future  (DexCoroutineContext *context,
+                                                DexFuture           *value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_int     (DexCoroutineContext *context,
+                                                int                  value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_int64   (DexCoroutineContext *context,
+                                                gint64               value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_object  (DexCoroutineContext *context,
+                                                GObject             *value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_pointer (DexCoroutineContext *context,
+                                                gpointer             value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_string  (DexCoroutineContext *context,
+                                                const char          *value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_uint    (DexCoroutineContext *context,
+                                                guint                value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_uint64  (DexCoroutineContext *context,
+                                                guint64              value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_value   (DexCoroutineContext *context,
+                                                const GValue        *value) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexFuture *dex_coroutine_context_yield_variant (DexCoroutineContext *context,
+                                                GVariant            *value) G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * DEX_COROUTINE_YIELD_VALUE:
@@ -170,5 +221,200 @@ DexFuture *dex_coroutine_context_yield_value (DexCoroutineContext *context,
  */
 #define DEX_COROUTINE_YIELD_VALUE(value, error) \
   DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_value (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_BOOLEAN:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for boolean values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_BOOLEAN(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_boolean (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_INT:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for int values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_INT(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_int (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_UINT:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for uint values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_UINT(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_uint (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_INT64:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for int64 values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_INT64(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_int64 (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_UINT64:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for uint64 values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_UINT64(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_uint64 (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_FLOAT:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for float values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_FLOAT(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_float (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_DOUBLE:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for double values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_DOUBLE(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_double (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_ENUM:
+ * @type: expected value type
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for enum values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_ENUM(type, value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_enum (__dex_coro, (type), (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_FLAGS:
+ * @type: expected value type
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for flags values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_FLAGS(type, value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_flags (__dex_coro, (type), (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_STRING:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for string values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_STRING(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_string (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_VARIANT:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for variant values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_VARIANT(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_variant (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_BOXED:
+ * @type: expected value type
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for boxed values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_BOXED(type, value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_boxed (__dex_coro, (type), (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_POINTER:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for pointer values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_POINTER(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_pointer (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_OBJECT:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for object values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_OBJECT(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_object (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_FUTURE:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for future values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_FUTURE(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_future (__dex_coro, (value)), (error))
+
+/**
+ * DEX_COROUTINE_YIELD_FD:
+ * @value: expression evaluated once for this yield
+ * @error: return location for an error
+ *
+ * Like DEX_COROUTINE_YIELD_VALUE(), for fd values.
+ *
+ * Since: 1.3
+ */
+#define DEX_COROUTINE_YIELD_FD(value, error) \
+  DEX_COROUTINE_SUSPEND (dex_coroutine_context_yield_fd (__dex_coro, (value)), (error))
 
 G_END_DECLS

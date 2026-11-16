@@ -839,3 +839,1609 @@ dex_coroutine_context_yield_value (DexCoroutineContext *context,
 
   return generator_yield (dex_coroutine_context_get_generator (context), value);
 }
+
+/**
+ * dex_generator_await_next_boolean:
+ * @self: a generator
+ * @value: (out): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for boolean values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_boolean (DexGenerator  *self,
+                                  gboolean      *value,
+                                  GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = FALSE;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_BOOLEAN))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_BOOLEAN),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_get_boolean (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_boolean:
+ * @value: the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for boolean values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_boolean (gboolean   value,
+                         GError   **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_boolean: (skip)
+ * @context: producer coroutine context
+ * @value: the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for boolean values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_boolean (DexCoroutineContext *context,
+                                     gboolean             value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_int:
+ * @self: a generator
+ * @value: (out): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for int values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_int (DexGenerator  *self,
+                              int           *value,
+                              GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = 0;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_INT))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_INT),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_get_int (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_int:
+ * @value: the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for int values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_int (int      value,
+                     GError **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_INT);
+  g_value_set_int (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_int: (skip)
+ * @context: producer coroutine context
+ * @value: the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for int values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_int (DexCoroutineContext *context,
+                                 int                  value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_INT);
+  g_value_set_int (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_uint:
+ * @self: a generator
+ * @value: (out): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for uint values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_uint (DexGenerator  *self,
+                               guint         *value,
+                               GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = 0;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_UINT))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_UINT),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_get_uint (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_uint:
+ * @value: the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for uint values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_uint (guint    value,
+                      GError **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_UINT);
+  g_value_set_uint (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_uint: (skip)
+ * @context: producer coroutine context
+ * @value: the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for uint values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_uint (DexCoroutineContext *context,
+                                  guint                value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_UINT);
+  g_value_set_uint (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_int64:
+ * @self: a generator
+ * @value: (out): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for int64 values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_int64 (DexGenerator  *self,
+                                gint64        *value,
+                                GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = 0;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_INT64))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_INT64),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_get_int64 (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_int64:
+ * @value: the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for int64 values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_int64 (gint64   value,
+                       GError **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_INT64);
+  g_value_set_int64 (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_int64: (skip)
+ * @context: producer coroutine context
+ * @value: the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for int64 values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_int64 (DexCoroutineContext *context,
+                                   gint64               value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_INT64);
+  g_value_set_int64 (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_uint64:
+ * @self: a generator
+ * @value: (out): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for uint64 values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_uint64 (DexGenerator  *self,
+                                 guint64       *value,
+                                 GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = 0;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_UINT64))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_UINT64),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_get_uint64 (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_uint64:
+ * @value: the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for uint64 values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_uint64 (guint64   value,
+                        GError  **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_UINT64);
+  g_value_set_uint64 (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_uint64: (skip)
+ * @context: producer coroutine context
+ * @value: the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for uint64 values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_uint64 (DexCoroutineContext *context,
+                                    guint64              value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_UINT64);
+  g_value_set_uint64 (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_float:
+ * @self: a generator
+ * @value: (out): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for float values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_float (DexGenerator  *self,
+                                float         *value,
+                                GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = 0;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_FLOAT))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_FLOAT),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_get_float (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_float:
+ * @value: the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for float values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_float (float    value,
+                       GError **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_FLOAT);
+  g_value_set_float (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_float: (skip)
+ * @context: producer coroutine context
+ * @value: the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for float values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_float (DexCoroutineContext *context,
+                                   float                value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_FLOAT);
+  g_value_set_float (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_double:
+ * @self: a generator
+ * @value: (out): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for double values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_double (DexGenerator  *self,
+                                 double        *value,
+                                 GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = 0;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_DOUBLE))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_DOUBLE),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_get_double (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_double:
+ * @value: the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for double values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_double (double   value,
+                        GError **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_DOUBLE);
+  g_value_set_double (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_double: (skip)
+ * @context: producer coroutine context
+ * @value: the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for double values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_double (DexCoroutineContext *context,
+                                    double               value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_DOUBLE);
+  g_value_set_double (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_enum:
+ * @self: a generator
+ * @expected_type: expected item type
+ * @value: (out): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for enum values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_enum (DexGenerator  *self,
+                               GType          expected_type,
+                               int           *value,
+                               GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+  g_return_val_if_fail (g_type_is_a (expected_type, G_TYPE_ENUM), FALSE);
+
+  *value = 0;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, expected_type))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (expected_type),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_get_enum (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_enum:
+ * @expected_type: expected item type
+ * @value: the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for enum values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_enum (GType    expected_type,
+                      int      value,
+                      GError **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_return_val_if_fail (g_type_is_a (expected_type, G_TYPE_ENUM), FALSE);
+
+  g_value_init (&item, expected_type);
+  g_value_set_enum (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_enum: (skip)
+ * @context: producer coroutine context
+ * @expected_type: expected item type
+ * @value: the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for enum values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_enum (DexCoroutineContext *context,
+                                  GType                expected_type,
+                                  int                  value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_return_val_if_fail (g_type_is_a (expected_type, G_TYPE_ENUM), NULL);
+
+  g_value_init (&item, expected_type);
+  g_value_set_enum (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_flags:
+ * @self: a generator
+ * @expected_type: expected item type
+ * @value: (out): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for flags values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_flags (DexGenerator  *self,
+                                GType          expected_type,
+                                guint         *value,
+                                GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+  g_return_val_if_fail (g_type_is_a (expected_type, G_TYPE_FLAGS), FALSE);
+
+  *value = 0;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, expected_type))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (expected_type),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_get_flags (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_flags:
+ * @expected_type: expected item type
+ * @value: the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for flags values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_flags (GType    expected_type,
+                       guint    value,
+                       GError **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_return_val_if_fail (g_type_is_a (expected_type, G_TYPE_FLAGS), FALSE);
+
+  g_value_init (&item, expected_type);
+  g_value_set_flags (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_flags: (skip)
+ * @context: producer coroutine context
+ * @expected_type: expected item type
+ * @value: the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for flags values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_flags (DexCoroutineContext *context,
+                                   GType                expected_type,
+                                   guint                value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_return_val_if_fail (g_type_is_a (expected_type, G_TYPE_FLAGS), NULL);
+
+  g_value_init (&item, expected_type);
+  g_value_set_flags (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_string:
+ * @self: a generator
+ * @value: (out) (transfer full) (nullable): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for string values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_string (DexGenerator  *self,
+                                 char         **value,
+                                 GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = NULL;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_STRING))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_STRING),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_dup_string (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_string:
+ * @value: (nullable): the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for string values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_string (const char  *value,
+                        GError     **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_STRING);
+  g_value_set_string (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_string: (skip)
+ * @context: producer coroutine context
+ * @value: (nullable): the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for string values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_string (DexCoroutineContext *context,
+                                    const char          *value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_STRING);
+  g_value_set_string (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_variant:
+ * @self: a generator
+ * @value: (out) (transfer full) (nullable): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for variant values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_variant (DexGenerator  *self,
+                                  GVariant     **value,
+                                  GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = NULL;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_VARIANT))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_VARIANT),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_dup_variant (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_variant:
+ * @value: (nullable): the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for variant values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_variant (GVariant  *value,
+                         GError   **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_VARIANT);
+  g_value_set_variant (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_variant: (skip)
+ * @context: producer coroutine context
+ * @value: (nullable): the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for variant values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_variant (DexCoroutineContext *context,
+                                     GVariant            *value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_VARIANT);
+  g_value_set_variant (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_boxed:
+ * @self: a generator
+ * @expected_type: expected item type
+ * @value: (out) (transfer full) (nullable): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for boxed values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_boxed (DexGenerator  *self,
+                                GType          expected_type,
+                                gpointer      *value,
+                                GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+  g_return_val_if_fail (g_type_is_a (expected_type, G_TYPE_BOXED), FALSE);
+
+  *value = NULL;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, expected_type))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (expected_type),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_dup_boxed (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_boxed:
+ * @expected_type: expected item type
+ * @value: (nullable): the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for boxed values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_boxed (GType      expected_type,
+                       gpointer   value,
+                       GError   **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_return_val_if_fail (g_type_is_a (expected_type, G_TYPE_BOXED), FALSE);
+
+  g_value_init (&item, expected_type);
+  g_value_set_boxed (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_boxed: (skip)
+ * @context: producer coroutine context
+ * @expected_type: expected item type
+ * @value: (nullable): the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for boxed values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_boxed (DexCoroutineContext *context,
+                                   GType                expected_type,
+                                   gpointer             value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_return_val_if_fail (g_type_is_a (expected_type, G_TYPE_BOXED), NULL);
+
+  g_value_init (&item, expected_type);
+  g_value_set_boxed (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_pointer:
+ * @self: a generator
+ * @value: (out) (transfer none) (nullable): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for pointer values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_pointer (DexGenerator  *self,
+                                  gpointer      *value,
+                                  GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = NULL;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_POINTER))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_POINTER),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_get_pointer (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_pointer:
+ * @value: (nullable): the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for pointer values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_pointer (gpointer   value,
+                         GError   **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_POINTER);
+  g_value_set_pointer (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_pointer: (skip)
+ * @context: producer coroutine context
+ * @value: (nullable): the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for pointer values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_pointer (DexCoroutineContext *context,
+                                     gpointer             value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_POINTER);
+  g_value_set_pointer (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_object:
+ * @self: a generator
+ * @value: (out) (transfer full) (nullable): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for object values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_object (DexGenerator  *self,
+                                 GObject      **value,
+                                 GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = NULL;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, G_TYPE_OBJECT))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (G_TYPE_OBJECT),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = g_value_dup_object (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_object:
+ * @value: (nullable): the item to publish
+ * @error: return location for an error
+ *
+ * Like dex_fiber_yield_value(), for object values.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_object (GObject  *value,
+                        GError  **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, G_TYPE_OBJECT);
+  g_value_set_object (&item, value);
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_object: (skip)
+ * @context: producer coroutine context
+ * @value: (nullable): the item to publish
+ *
+ * Like dex_coroutine_context_yield_value(), for object values.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_object (DexCoroutineContext *context,
+                                    GObject             *value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, G_TYPE_OBJECT);
+  g_value_set_object (&item, value);
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_future:
+ * @self: a generator
+ * @value: (out) (transfer full) (nullable): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Like dex_generator_await_next(), for future values.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_future (DexGenerator  *self,
+                                 DexFuture    **value,
+                                 GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = NULL;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, DEX_TYPE_FUTURE))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (DEX_TYPE_FUTURE),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = (DexFuture *)dex_value_dup_object (resolved);
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_future:
+ * @value: (nullable): the item to publish
+ * @error: return location for an error
+ *
+ * Publishes a future as an item without observing it. The future is retained.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_future (DexFuture  *value,
+                        GError    **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_return_val_if_fail (value == NULL || DEX_IS_FUTURE (value), FALSE);
+
+  g_value_init (&item, DEX_TYPE_FUTURE);
+  dex_value_set_object (&item, DEX_OBJECT (value));
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_future: (skip)
+ * @context: producer coroutine context
+ * @value: (nullable): the item to publish
+ *
+ * Publishes a future as an item without observing it. The future is retained.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_future (DexCoroutineContext *context,
+                                    DexFuture           *value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_return_val_if_fail (value == NULL || DEX_IS_FUTURE (value), NULL);
+
+  g_value_init (&item, DEX_TYPE_FUTURE);
+  dex_value_set_object (&item, DEX_OBJECT (value));
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_generator_await_next_fd:
+ * @self: a generator
+ * @value: (out): item output, reset on exhaustion or failure
+ * @error: return location for an error
+ *
+ * Consumes a sequential fd item. See dex_generator_await_next().
+ * The caller owns the returned file descriptor.
+ *
+ * Returns: whether an item was received
+ * Since: 1.3
+ */
+gboolean
+dex_generator_await_next_fd (DexGenerator  *self,
+                             int           *value,
+                             GError       **error)
+{
+  DexFuture *item;
+  const GValue *resolved;
+
+  g_return_val_if_fail (DEX_IS_GENERATOR (self), FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  *value = -1;
+
+  if (!(item = generator_await_item (self, error)))
+    return FALSE;
+
+  resolved = dex_future_get_value (item, NULL);
+
+  if (!G_VALUE_HOLDS (resolved, DEX_TYPE_FD))
+    {
+      g_set_error (error,
+                   DEX_ERROR,
+                   DEX_ERROR_TYPE_MISMATCH,
+                   "Expected %s, got %s",
+                   g_type_name (DEX_TYPE_FD),
+                   G_VALUE_TYPE_NAME (resolved));
+      dex_unref (item);
+      return FALSE;
+    }
+
+  *value = dex_fd_steal (g_value_get_boxed (resolved));
+  dex_unref (item);
+
+  return TRUE;
+}
+
+/**
+ * dex_fiber_yield_fd:
+ * @value: the file descriptor to take ownership of
+ * @error: return location for an error
+ *
+ * Publishes a file descriptor, taking ownership of @value.
+ *
+ * Returns: %TRUE when resumed for another pull
+ * Since: 1.3
+ */
+gboolean
+dex_fiber_yield_fd (int      value,
+                    GError **error)
+{
+  GValue item = G_VALUE_INIT;
+  gboolean result;
+
+  g_value_init (&item, DEX_TYPE_FD);
+  g_value_take_boxed (&item, g_memdup2 (&value, sizeof value));
+  result = dex_fiber_yield_value (&item, error);
+  g_value_unset (&item);
+
+  return result;
+}
+
+/**
+ * dex_coroutine_context_yield_fd: (skip)
+ * @context: producer coroutine context
+ * @value: the file descriptor to take ownership of
+ *
+ * Publishes a file descriptor, taking ownership of @value.
+ *
+ * Returns: (transfer full): the next-demand gate
+ * Since: 1.3
+ */
+DexFuture *
+dex_coroutine_context_yield_fd (DexCoroutineContext *context,
+                                int                  value)
+{
+  GValue item = G_VALUE_INIT;
+  DexFuture *result;
+
+  g_value_init (&item, DEX_TYPE_FD);
+  g_value_take_boxed (&item, g_memdup2 (&value, sizeof value));
+  result = dex_coroutine_context_yield_value (context, &item);
+  g_value_unset (&item);
+
+  return result;
+}

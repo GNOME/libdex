@@ -47,34 +47,117 @@ typedef struct _DexGenerator DexGenerator;
 typedef DexFuture *(*DexGeneratorFunc) (gpointer user_data);
 
 DEX_AVAILABLE_IN_1_3
-gboolean      dex_generator_await_next        (DexGenerator      *self,
-                                               GValue            *value,
-                                               GError           **error) G_GNUC_WARN_UNUSED_RESULT;
+gboolean      dex_generator_await_next         (DexGenerator      *self,
+                                                GValue            *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_3
-void          dex_generator_close             (DexGenerator      *self);
+gboolean      dex_generator_await_next_boolean (DexGenerator      *self,
+                                                gboolean          *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_3
-DexFuture    *dex_generator_close_after_drain (DexGenerator      *self) G_GNUC_WARN_UNUSED_RESULT;
+gboolean      dex_generator_await_next_boxed   (DexGenerator      *self,
+                                                GType              expected_type,
+                                                gpointer          *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_3
-GType         dex_generator_get_type          (void);
+gboolean      dex_generator_await_next_double  (DexGenerator      *self,
+                                                double            *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_3
-gboolean      dex_generator_is_exhausted      (DexGenerator      *self);
+gboolean      dex_generator_await_next_enum    (DexGenerator      *self,
+                                                GType              expected_type,
+                                                int               *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_3
-DexGenerator *dex_generator_new               (DexGeneratorFunc   producer,
-                                               gpointer           user_data,
-                                               GDestroyNotify     destroy) G_GNUC_WARN_UNUSED_RESULT;
+gboolean      dex_generator_await_next_fd      (DexGenerator      *self,
+                                                int               *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_3
-DexGenerator *dex_generator_new_coroutine     (DexScheduler      *scheduler,
-                                               DexCoroutineFunc   func,
-                                               gpointer           user_data,
-                                               GDestroyNotify     destroy) G_GNUC_WARN_UNUSED_RESULT;
+gboolean      dex_generator_await_next_flags   (DexGenerator      *self,
+                                                GType              expected_type,
+                                                guint             *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_3
-DexGenerator *dex_generator_new_fiber         (DexScheduler      *scheduler,
-                                               gsize              stack_size,
-                                               DexFiberFunc       func,
-                                               gpointer           user_data,
-                                               GDestroyNotify     destroy) G_GNUC_WARN_UNUSED_RESULT;
+gboolean      dex_generator_await_next_float   (DexGenerator      *self,
+                                                float             *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_3
-DexFuture    *dex_generator_next              (DexGenerator      *self) G_GNUC_WARN_UNUSED_RESULT;
+gboolean      dex_generator_await_next_future  (DexGenerator      *self,
+                                                DexFuture        **value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+gboolean      dex_generator_await_next_int     (DexGenerator      *self,
+                                                int               *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+gboolean      dex_generator_await_next_int64   (DexGenerator      *self,
+                                                gint64            *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+gboolean      dex_generator_await_next_object  (DexGenerator      *self,
+                                                GObject          **value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+gboolean      dex_generator_await_next_pointer (DexGenerator      *self,
+                                                gpointer          *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+gboolean      dex_generator_await_next_string  (DexGenerator      *self,
+                                                char             **value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+gboolean      dex_generator_await_next_uint    (DexGenerator      *self,
+                                                guint             *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+gboolean      dex_generator_await_next_uint64  (DexGenerator      *self,
+                                                guint64           *value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+gboolean      dex_generator_await_next_variant (DexGenerator      *self,
+                                                GVariant         **value,
+                                                GError           **error) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+void          dex_generator_close              (DexGenerator      *self);
+
+DEX_AVAILABLE_IN_1_3
+DexFuture    *dex_generator_close_after_drain  (DexGenerator      *self) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+GType         dex_generator_get_type           (void);
+
+DEX_AVAILABLE_IN_1_3
+gboolean      dex_generator_is_exhausted       (DexGenerator      *self);
+
+DEX_AVAILABLE_IN_1_3
+DexGenerator *dex_generator_new                (DexGeneratorFunc   producer,
+                                                gpointer           user_data,
+                                                GDestroyNotify     destroy) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+DexGenerator *dex_generator_new_coroutine      (DexScheduler      *scheduler,
+                                                DexCoroutineFunc   func,
+                                                gpointer           user_data,
+                                                GDestroyNotify     destroy) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+DexGenerator *dex_generator_new_fiber          (DexScheduler      *scheduler,
+                                                gsize              stack_size,
+                                                DexFiberFunc       func,
+                                                gpointer           user_data,
+                                                GDestroyNotify     destroy) G_GNUC_WARN_UNUSED_RESULT;
+
+DEX_AVAILABLE_IN_1_3
+DexFuture    *dex_generator_next               (DexGenerator      *self) G_GNUC_WARN_UNUSED_RESULT;
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (DexGenerator, dex_unref)
 
