@@ -20,6 +20,7 @@ examples = {
            'dbus': {'extra-sources': dbus_ping_pong, 'disable': not have_gdbus_codegen},
      'echo-bench': {},
            'host': {},
+     'generators': {},
           'httpd': {'dependencies': libsoup_dep},
   'infinite-loop': {},
        'tcp-echo': {},

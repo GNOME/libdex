@@ -51,6 +51,7 @@ content_files = [
   "terminology.md",
   "integration.md",
   "deferred.md",
+  "generators.md",
   "graphs.md",
   "aio.md",
   "schedulers.md",
