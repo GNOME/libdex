@@ -6,6 +6,7 @@ libdex_sources = [
   'dex-block.c',
   'dex-cancellable.c',
   'dex-channel.c',
+  'dex-thunk.c',
   'dex-deferred.c',
   'dex-delayed.c',
   'dex-enums.c',
