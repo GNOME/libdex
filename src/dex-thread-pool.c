@@ -21,9 +21,11 @@
 #include "config.h"
 
 #include "dex-error.h"
+#include "dex-thunk-private.h"
 #include "dex-object-private.h"
 #include "dex-promise.h"
 #include "dex-thread-pool.h"
+#include "dex-thread-storage-private.h"
 #include "dex-waiter-private.h"
 
 /**
@@ -56,12 +58,10 @@ typedef enum
 
 typedef struct
 {
-  char           *thread_name;
-  DexThreadFunc   thread_func;
-  gpointer        user_data;
-  GDestroyNotify  user_data_destroy;
-  DexPromise     *promise;
-  guint           close_request : 1;
+  char       *thread_name;
+  DexThunk   *thunk;
+  DexPromise *promise;
+  guint       close_request : 1;
 } DexThreadPoolItem;
 
 struct _DexThreadPool
@@ -92,8 +92,7 @@ dex_thread_pool_item_free (DexThreadPoolItem *item)
   if (item == NULL)
     return;
 
-  if (item->user_data_destroy != NULL)
-    item->user_data_destroy (item->user_data);
+  g_clear_pointer (&item->thunk, dex_thunk_unref);
 
   dex_clear (&item->promise);
   g_clear_pointer (&item->thread_name, g_free);
@@ -120,7 +119,7 @@ dex_thread_pool_worker (gpointer data)
           break;
         }
 
-      future = item->thread_func (item->user_data);
+      future = dex_thunk_invoke (item->thunk);
 
       if (future != NULL)
         {
@@ -283,6 +282,9 @@ dex_thread_pool_get_n_threads (DexThreadPool *pool)
  *
  * Queues blocking work to run on one of the pool's reusable threads.
  *
+ * Callback data is freed on the submitting thread's scheduler, or the default
+ * scheduler if there is none. This may happen after the future completes.
+ *
  * The provided @thread_name is applied to the returned future using
  * `dex_future_set_static_name()` so that tracing and debugging tools can
  * identify the work item. It does not rename the underlying OS worker thread.
@@ -299,6 +301,8 @@ dex_thread_pool_submit (DexThreadPool  *pool,
                         GDestroyNotify  user_data_destroy)
 {
   DexThreadPoolItem *item;
+  DexThreadStorage *storage;
+  DexScheduler *scheduler;
   DexPromise *promise;
 
   dex_return_error_if_fail (DEX_IS_THREAD_POOL (pool));
@@ -309,14 +313,16 @@ dex_thread_pool_submit (DexThreadPool  *pool,
   else
     thread_name = "[dex-thread-pool]";
 
+  storage = dex_thread_storage_peek ();
+  scheduler = storage != NULL && storage->scheduler != NULL
+            ? storage->scheduler : dex_scheduler_get_default ();
+
   promise = dex_promise_new ();
   dex_future_set_static_name (DEX_FUTURE (promise), thread_name);
 
   item = g_new0 (DexThreadPoolItem, 1);
   item->thread_name = g_strdup (thread_name);
-  item->thread_func = thread_func;
-  item->user_data = user_data;
-  item->user_data_destroy = user_data_destroy;
+  item->thunk = dex_thunk_new (G_CALLBACK (thread_func), user_data, user_data_destroy, scheduler);
   item->promise = dex_ref (promise);
 
   g_mutex_lock (&pool->mutex);
@@ -364,7 +370,7 @@ dex_thread_pool_push_close_requests (DexThreadPool *pool)
 typedef struct
 {
   DexThreadPool *pool;
-  DexPromise *promise;
+  DexPromise    *promise;
 } DexThreadPoolCloseState;
 
 static gpointer

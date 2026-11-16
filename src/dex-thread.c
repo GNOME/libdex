@@ -23,6 +23,8 @@
 #include <gobject/gvaluecollector.h>
 
 #include "dex-block-private.h"
+#include "dex-thunk-private.h"
+#include "dex-error.h"
 #include "dex-future-private.h"
 #include "dex-promise.h"
 #include "dex-thread.h"
@@ -31,17 +33,17 @@
 
 typedef struct _ThreadSpawn
 {
-  DexScheduler   *scheduler;
-  DexPromise     *promise;
-  DexThreadFunc   thread_func;
-  gpointer        thread_func_data;
+  DexScheduler *scheduler;
+  DexPromise   *promise;
+  DexThunk     *thunk;
 } ThreadSpawn;
 
 static DexFuture *
 propagate_future (DexFuture *completed,
                   gpointer   user_data)
 {
-  DexPromise *promise = user_data;
+  ThreadSpawn *state = user_data;
+  DexPromise *promise = state->promise;
   const GValue *value;
   GError *error = NULL;
 
@@ -53,47 +55,43 @@ propagate_future (DexFuture *completed,
   return dex_future_new_true ();
 }
 
-static DexFuture *
-do_nothing (DexFuture *completed,
-            gpointer   user_data)
+static void
+thread_spawn_free (gpointer data)
 {
-  /* This function passes through the result but the main point
-   * is that the user_data_destroy is called from this thread.
-   */
-  return dex_ref (completed);
+  ThreadSpawn *state = data;
+
+  g_clear_pointer (&state->thunk, dex_thunk_unref);
+  dex_clear (&state->scheduler);
+  dex_clear (&state->promise);
+  g_free (state);
 }
 
 static gpointer
 dex_trampoline_thread (gpointer data)
 {
   ThreadSpawn *state = data;
+  DexScheduler *scheduler;
   DexFuture *future;
 
   g_assert (state != NULL);
-  g_assert (state->thread_func != NULL);
+  g_assert (state->thunk != NULL);
   g_assert (DEX_IS_SCHEDULER (state->scheduler));
   g_assert (DEX_IS_PROMISE (state->promise));
 
-  future = state->thread_func (state->thread_func_data);
+  future = dex_thunk_invoke (state->thunk);
+  if (future == NULL)
+    future = dex_future_new_reject (DEX_ERROR, DEX_ERROR_NO_RESULT,
+                                    "Thread callback returned NULL");
 
+  scheduler = dex_ref (state->scheduler);
   dex_future_disown_full (dex_block_new (g_steal_pointer (&future),
-                                         state->scheduler,
+                                         scheduler,
                                          DEX_BLOCK_KIND_FINALLY,
                                          propagate_future,
-                                         dex_ref (state->promise),
-                                         dex_unref),
-                          state->scheduler);
-
-  dex_clear (&state->scheduler);
-  dex_clear (&state->promise);
-
-  /* Thread func data is cleaned up in calling thread (or main thread)
-   * instead of here so that we don't risk data races on finalizers.
-   */
-  state->thread_func = NULL;
-  state->thread_func_data = NULL;
-
-  g_free (state);
+                                         state,
+                                         thread_spawn_free),
+                          scheduler);
+  dex_unref (scheduler);
 
   return NULL;
 }
@@ -109,7 +107,9 @@ dex_trampoline_thread (gpointer data)
  * Spawns a new thread named @thread_name running @thread_func with
  * @user_data passed to it.
  *
- * @thread_func must return a [class@Dex.Future].
+ * @thread_func must return a [class@Dex.Future]. Callback data remains alive
+ * until that future completes, even if the returned thread future is dropped.
+ * Destruction is queued on the captured scheduler and may run after completion.
  *
  * If this function is called from a thread that is not running a
  * [class@Dex.Scheduler] then the default scheduler will be used
@@ -151,19 +151,13 @@ dex_thread_spawn (const char     *thread_name,
 
   state = g_new0 (ThreadSpawn, 1);
   state->scheduler = dex_ref (scheduler);
-  state->thread_func = thread_func;
-  state->thread_func_data = user_data;
+  state->thunk = dex_thunk_new (G_CALLBACK (thread_func), user_data, user_data_destroy, scheduler);
   state->promise = dex_promise_new ();
 
   dex_future_set_static_name (DEX_FUTURE (state->promise),
                               g_intern_string (thread_name));
 
-  ret = dex_block_new (dex_ref (state->promise),
-                       scheduler,
-                       DEX_BLOCK_KIND_FINALLY,
-                       do_nothing,
-                       user_data,
-                       user_data_destroy);
+  ret = dex_ref (state->promise);
 
   g_thread_unref (g_thread_new (thread_name, dex_trampoline_thread, state));
 
