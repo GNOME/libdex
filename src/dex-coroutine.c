@@ -20,6 +20,7 @@
 #include "config.h"
 
 #include "dex-coroutine.h"
+#include "dex-thunk-private.h"
 #include "dex-coroutine-private.h"
 #include "dex-error.h"
 #include "dex-future-private.h"
@@ -74,10 +75,8 @@ struct _DexCoroutine
 {
   DexFuture              parent_instance;
   GList                  link;
-  DexCoroutineFunc       func;
+  DexThunk              *thunk;
   DexCoroutineContext    context;
-  gpointer               user_data;
-  GDestroyNotify         user_data_destroy;
   DexCoroutineScheduler *coroutine_scheduler;
   int                    cancelled;
   DexCoroutineQueue      queue : 2;
@@ -208,18 +207,7 @@ dex_coroutine_class_init (DexCoroutineClass *coroutine_class)
 static void
 dex_coroutine_clear_user_data (DexCoroutine *coroutine)
 {
-  GDestroyNotify user_data_destroy;
-  gpointer user_data;
-
-  if (coroutine->user_data_destroy == NULL)
-    return;
-
-  user_data_destroy = coroutine->user_data_destroy;
-  user_data = g_steal_pointer (&coroutine->user_data);
-
-  coroutine->user_data_destroy = NULL;
-  coroutine->user_data = NULL;
-  user_data_destroy (user_data);
+  g_clear_pointer (&coroutine->thunk, dex_thunk_unref);
 }
 
 static void
@@ -394,7 +382,7 @@ dex_coroutine_resume (DexCoroutine *coroutine)
 
   g_assert (!coroutine->context.pending || coroutine->context.pc > 0);
 
-  if ((future = coroutine->func (&coroutine->context, coroutine->user_data)))
+  if ((future = dex_thunk_invoke_coroutine (coroutine->thunk, &coroutine->context)))
     {
       if (dex_future_is_pending (future))
         dex_coroutine_wait_for (coroutine, g_steal_pointer (&future), TRUE);
@@ -640,9 +628,7 @@ dex_coroutine_new (DexCoroutineFunc func,
   g_return_val_if_fail (func != NULL, NULL);
 
   coroutine = (DexCoroutine *)dex_object_create_instance (DEX_TYPE_COROUTINE);
-  coroutine->func = func;
-  coroutine->user_data = user_data;
-  coroutine->user_data_destroy = user_data_destroy;
+  coroutine->thunk = dex_thunk_new (G_CALLBACK (func), user_data, user_data_destroy, NULL);
 
   return coroutine;
 }

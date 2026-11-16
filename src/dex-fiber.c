@@ -270,6 +270,7 @@ dex_fiber_finalize (DexObject *object)
   g_assert (fiber->link.next == NULL);
   g_assert (fiber->stack == NULL);
 
+  g_clear_pointer (&fiber->thunk, dex_thunk_unref);
   dex_fiber_context_clear (&fiber->context);
 
   DEX_OBJECT_CLASS (dex_fiber_parent_class)->finalize (object);
@@ -318,7 +319,7 @@ dex_fiber_start (DexFiber *fiber)
   fiber->begin_time = DEX_PROFILER_CURRENT_TIME;
 #endif
 
-  future = fiber->func (fiber->func_data);
+  future = dex_thunk_invoke (fiber->thunk);
 
   g_assert (future != (DexFuture *)fiber);
 
@@ -337,13 +338,12 @@ dex_fiber_start (DexFiber *fiber)
       if (name == NULL)
         error = g_error_new (DEX_ERROR,
                              DEX_ERROR_FIBER_EXITED,
-                             "The fiber function at %p exited without a result",
-                             fiber->func);
+                             "The fiber exited without a result");
       else
         error = g_error_new (DEX_ERROR,
                              DEX_ERROR_FIBER_EXITED,
-                             "The fiber %s with function at %p exited without a result",
-                             name, fiber->func);
+                             "The fiber %s exited without a result",
+                             name);
 
       dex_future_complete (DEX_FUTURE (fiber), NULL, g_steal_pointer (&error));
     }
@@ -385,22 +385,7 @@ dex_fiber_start (DexFiber *fiber)
     }
 #endif
 
-  /* Free func data if necessary
-   *
-   * TODO: We probably want to be able associate this data with a maincontext that
-   * will free it up so things like GtkWidget are freed on main thread.
-   */
-  if (fiber->func_data_destroy)
-    {
-      GDestroyNotify func_data_destroy = fiber->func_data_destroy;
-      gpointer func_data = fiber->func_data;
-
-      fiber->func = NULL;
-      fiber->func_data = NULL;
-      fiber->func_data_destroy = NULL;
-
-      func_data_destroy (func_data);
-    }
+  g_clear_pointer (&fiber->thunk, dex_thunk_unref);
 
   /* Now suspend, resuming the scheduler */
   dex_fiber_context_switch (&fiber->context, &fiber->fiber_scheduler->context);
@@ -417,9 +402,7 @@ dex_fiber_new (DexFiberFunc   func,
   g_return_val_if_fail (func != NULL, NULL);
 
   fiber = (DexFiber *)dex_object_create_instance (DEX_TYPE_FIBER);
-  fiber->func = func;
-  fiber->func_data = func_data;
-  fiber->func_data_destroy = func_data_destroy;
+  fiber->thunk = dex_thunk_new (G_CALLBACK (func), func_data, func_data_destroy, NULL);
   fiber->stack_size = stack_size;
 
 #ifdef HAVE_SYSPROF

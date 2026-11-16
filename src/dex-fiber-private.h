@@ -31,6 +31,7 @@
 #endif
 
 #include "dex-fiber.h"
+#include "dex-thunk-private.h"
 #include "dex-fiber-context-private.h"
 #include "dex-future-private.h"
 #include "dex-scheduler.h"
@@ -72,7 +73,7 @@ struct _DexFiber
   gint64 begin_time;
   gint64 registration_time;
   gint64 runnable_begin_time;
-  guint profiler_id;
+  guint  profiler_id;
 #endif
 
   /* The assigned stack */
@@ -82,9 +83,7 @@ struct _DexFiber
   DexFiberScheduler *fiber_scheduler;
 
   /* Origin function/data for the fiber */
-  DexFiberFunc   func;
-  gpointer       func_data;
-  GDestroyNotify func_data_destroy;
+  DexThunk *thunk;
 
   /* Used to hook into the fiber during creation */
   DexFiberContextStart hook;
