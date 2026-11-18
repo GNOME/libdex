@@ -39,16 +39,10 @@ struct _DexTestFooClass
 static void dex_test_dbus_foo_iface_init (DexTestDbusFooIface *iface);
 
 #define DEX_TEST_TYPE_FOO (dex_test_foo_get_type ())
-G_DECLARE_FINAL_TYPE (DexTestFoo,
-                      dex_test_foo,
-                      DEX_TEST, FOO,
-                      DexTestDbusFooSkeleton)
+G_DECLARE_FINAL_TYPE (DexTestFoo, dex_test_foo, DEX_TEST, FOO, DexTestDbusFooSkeleton)
 
-G_DEFINE_TYPE_WITH_CODE (DexTestFoo,
-                         dex_test_foo,
-                         DEX_TEST_DBUS_TYPE_FOO_SKELETON,
-                         G_IMPLEMENT_INTERFACE (DEX_TEST_DBUS_TYPE_FOO,
-                                                dex_test_dbus_foo_iface_init));
+G_DEFINE_TYPE_WITH_CODE (DexTestFoo, dex_test_foo, DEX_TEST_DBUS_TYPE_FOO_SKELETON,
+                         G_IMPLEMENT_INTERFACE (DEX_TEST_DBUS_TYPE_FOO, dex_test_dbus_foo_iface_init));
 
 static GDBusConnection *
 get_new_session_connection_sync (void)
@@ -64,7 +58,9 @@ get_new_session_connection_sync (void)
   connection = g_dbus_connection_new_for_address_sync (session_address,
                                                        G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT |
                                                        G_DBUS_CONNECTION_FLAGS_MESSAGE_BUS_CONNECTION,
-                                                       NULL, NULL, &error);
+                                                       NULL,
+                                                       NULL,
+                                                       &error);
   g_assert_no_error (error);
   g_assert_nonnull (connection);
 
@@ -155,11 +151,11 @@ dex_test_foo_class_init (DexTestFooClass *klass G_GNUC_UNUSED)
 
 typedef struct _FooServiceData
 {
-  GMainLoop *main_loop;
+  GMainLoop  *main_loop;
   DexTestFoo *foo;
-  guint own_name_id;
-  guint timeout_id;
-  gboolean acquired;
+  guint       own_name_id;
+  guint       timeout_id;
+  gboolean    acquired;
 } FooServiceData;
 
 static gboolean
@@ -248,16 +244,19 @@ run_foo_service_in_thread (GTask        *task,
   g_assert_nonnull (connection);
 
   data.own_name_id =
-    g_bus_own_name_on_connection (connection, "org.example.Foo",
+    g_bus_own_name_on_connection (connection,
+                                  "org.example.Foo",
                                   G_BUS_NAME_OWNER_FLAGS_ALLOW_REPLACEMENT |
                                   G_BUS_NAME_OWNER_FLAGS_REPLACE,
                                   bus_name_acquired_cb,
                                   bus_name_lost_cb,
-                                  &data, NULL);
+                                  &data,
+                                  NULL);
 
   g_cancellable_connect (cancellable,
                          G_CALLBACK (foo_service_cancelled_cb),
-                         &data, NULL);
+                         &data,
+                         NULL);
   if (!g_cancellable_is_cancelled (cancellable))
     g_main_loop_run (main_loop);
 
@@ -364,7 +363,8 @@ test_gdbus_method_call_simple (void)
                                             G_DBUS_PROXY_FLAGS_NONE,
                                             "org.example.Foo",
                                             "/org/example/foo",
-                                            NULL, &error);
+                                            NULL,
+                                            &error);
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
@@ -404,7 +404,8 @@ test_gdbus_method_call_result (void)
                                             G_DBUS_PROXY_FLAGS_NONE,
                                             "org.example.Foo",
                                             "/org/example/foo",
-                                            NULL, &error);
+                                            NULL,
+                                            &error);
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
@@ -452,7 +453,8 @@ test_gdbus_method_call_cancel (void)
                                             G_DBUS_PROXY_FLAGS_NONE,
                                             "org.example.Foo",
                                             "/org/example/foo",
-                                            NULL, &error);
+                                            NULL,
+                                            &error);
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
@@ -465,7 +467,9 @@ test_gdbus_method_call_cancel (void)
                              dex_test_dbus_foo_call_foo_future (proxy),
                              NULL);
 
-  dex_promise_reject (promise, g_error_new_literal (G_IO_ERROR, G_IO_ERROR_CANCELLED, "Cancelled"));
+  dex_promise_reject (promise, g_error_new_literal (G_IO_ERROR,
+                                                    G_IO_ERROR_CANCELLED,
+                                                    "Cancelled"));
 
   while (dex_future_get_status (future) == DEX_FUTURE_STATUS_PENDING)
     g_main_context_iteration (NULL, TRUE);
@@ -503,7 +507,8 @@ test_gdbus_method_call_complex (void)
                                             G_DBUS_PROXY_FLAGS_NONE,
                                             "org.example.Foo",
                                             "/org/example/foo",
-                                            NULL, &error);
+                                            NULL,
+                                            &error);
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
@@ -512,7 +517,7 @@ test_gdbus_method_call_complex (void)
   g_free (name);
 
   future = dex_test_dbus_foo_call_bar_future (proxy,
-                                              (const gchar * []) {
+                                              (const gchar *[]) {
                                                 "foo",
                                                 "bar",
                                                 NULL,
@@ -533,11 +538,11 @@ test_gdbus_method_call_complex (void)
     gboolean bar;
 
     g_assert_nonnull (result);
-    g_assert_cmpint (result->o1, == , 42);
+    g_assert_cmpint (result->o1, ==, 42);
 
     g_assert_nonnull (result->o2);
     g_assert_true (g_variant_lookup (result->o2, "foo", "u", &foo));
-    g_assert_cmpint (foo, == , 3);
+    g_assert_cmpint (foo, ==, 3);
     g_assert_true (g_variant_lookup (result->o2, "bar", "b", &bar));
     g_assert_true (!bar);
   }
@@ -630,7 +635,8 @@ test_gdbus_signal_wait_simple (void)
                                             G_DBUS_PROXY_FLAGS_NONE,
                                             "org.example.Foo",
                                             "/org/example/foo",
-                                            NULL, &error);
+                                            NULL,
+                                            &error);
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
@@ -654,11 +660,11 @@ test_gdbus_signal_wait_simple (void)
     gboolean bar;
 
     g_assert_nonnull (result);
-    g_assert_cmpint (result->s1, == , 11);
+    g_assert_cmpint (result->s1, ==, 11);
 
     g_assert_nonnull (result->s2);
     g_assert_true (g_variant_lookup (result->s2, "foo", "u", &foo));
-    g_assert_cmpint (foo, == , 3);
+    g_assert_cmpint (foo, ==, 3);
     g_assert_true (g_variant_lookup (result->s2, "bar", "b", &bar));
     g_assert_true (!bar);
   }
@@ -692,7 +698,8 @@ test_gdbus_signal_wait_cancel (void)
                                             G_DBUS_PROXY_FLAGS_NONE,
                                             "org.example.Foo",
                                             "/org/example/foo",
-                                            NULL, &error);
+                                            NULL,
+                                            &error);
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
@@ -705,7 +712,9 @@ test_gdbus_signal_wait_cancel (void)
                              dex_test_dbus_foo_wait_baz_future (proxy),
                              NULL);
 
-  dex_promise_reject (promise, g_error_new_literal (G_IO_ERROR, G_IO_ERROR_CANCELLED, "Cancelled"));
+  dex_promise_reject (promise, g_error_new_literal (G_IO_ERROR,
+                                                    G_IO_ERROR_CANCELLED,
+                                                    "Cancelled"));
 
   while (dex_future_get_status (future) == DEX_FUTURE_STATUS_PENDING)
     g_main_context_iteration (NULL, TRUE);
@@ -743,7 +752,8 @@ test_gdbus_signal_monitor_basic (void)
                                             G_DBUS_PROXY_FLAGS_NONE,
                                             "org.example.Foo",
                                             "/org/example/foo",
-                                            NULL, &error);
+                                            NULL,
+                                            &error);
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
@@ -803,7 +813,8 @@ test_gdbus_signal_monitor_cancel (void)
                                             G_DBUS_PROXY_FLAGS_NONE,
                                             "org.example.Foo",
                                             "/org/example/foo",
-                                            NULL, &error);
+                                            NULL,
+                                            &error);
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
@@ -818,7 +829,9 @@ test_gdbus_signal_monitor_cancel (void)
                              dex_test_dbus_foo_signal_monitor_next_foo_bar (signal_monitor),
                              NULL);
 
-  dex_promise_reject (promise, g_error_new_literal (G_IO_ERROR, G_IO_ERROR_CANCELLED, "Cancelled"));
+  dex_promise_reject (promise, g_error_new_literal (G_IO_ERROR,
+                                                    G_IO_ERROR_CANCELLED,
+                                                    "Cancelled"));
 
   while (dex_future_get_status (future) == DEX_FUTURE_STATUS_PENDING)
     g_main_context_iteration (NULL, TRUE);
@@ -898,10 +911,10 @@ fiber_basic (gpointer user_data)
     g_assert_no_error (error);
     g_assert_nonnull (baz_result);
 
-    g_assert_cmpint (baz_result->s1, == , 11);
+    g_assert_cmpint (baz_result->s1, ==, 11);
     g_assert_nonnull (baz_result->s2);
     g_assert_true (g_variant_lookup (baz_result->s2, "foo", "u", &foo));
-    g_assert_cmpint (foo, == , 3);
+    g_assert_cmpint (foo, ==, 3);
     g_assert_true (g_variant_lookup (baz_result->s2, "bar", "b", &bar));
     g_assert_true (!bar);
 
@@ -1030,7 +1043,8 @@ test_gdbus_fiber_service (void)
                                             G_DBUS_PROXY_FLAGS_NONE,
                                             "org.example.Foo",
                                             "/org/example/foo",
-                                            NULL, &error);
+                                            NULL,
+                                            &error);
   g_assert_no_error (error);
   g_assert_nonnull (proxy);
 
@@ -1040,6 +1054,7 @@ test_gdbus_fiber_service (void)
 
   {
     gboolean done = FALSE;
+
     dex_test_dbus_foo_call_fiber (proxy, NULL, call_fiber_cb, &done);
 
     while (!done)
