@@ -92,6 +92,7 @@ class HeaderCodeGenerator:
         if m.deprecated:
             self.outfile.write("G_GNUC_DEPRECATED ")
         self.outfile.write(
+            "G_GNUC_WARN_UNUSED_RESULT\n"
             "DexFuture * %s_call_%s_future (\n"
             "    %s *proxy" % (i.name_lower, m.name_lower, i.camel_name)
         )
@@ -113,6 +114,7 @@ class HeaderCodeGenerator:
         if i.deprecated:
             self.outfile.write("G_GNUC_DEPRECATED ")
         self.outfile.write(
+            "G_GNUC_WARN_UNUSED_RESULT\n"
             "DexFuture * %s_proxy_new_future (\n"
             "    GDBusConnection     *connection,\n"
             "    GDBusProxyFlags      flags,\n"
@@ -169,6 +171,7 @@ class HeaderCodeGenerator:
         if s.deprecated:
             self.outfile.write("G_GNUC_DEPRECATED ")
         self.outfile.write(
+            "G_GNUC_WARN_UNUSED_RESULT\n"
             "DexFuture * %s_wait_%s_future (%s *proxy);\n"
             % (i.name_lower, s.name_lower, i.camel_name)
         )
@@ -236,6 +239,7 @@ class HeaderCodeGenerator:
         )
         for s in i.signals:
             self.outfile.write(
+                "G_GNUC_WARN_UNUSED_RESULT\n"
                 "DexFuture *\n"
                 "%s_signal_monitor_next_%s (%sSignalMonitor *self);\n\n"
                 % (i.name_lower, s.name_lower, i.camel_name)
