@@ -119,3 +119,27 @@ producer data. Production errors come through pulls.
 Fiber and coroutine producers clean up on their captured scheduler, including
 when closed before the first pull. Ordinary factories clean up on the closing
 thread, or the thread finishing an active callback.
+
+## Adapters
+
+`dex_generator_zipv()` borrows an array of generators and takes its own reference
+to each source. It yields `DexTuple` rows. C callers can use
+`dex_generator_zip()` with a NULL-terminated argument list; that form consumes
+its arguments. Each tuple copies its values, so it remains valid after the
+input generators are released. `dex_tuple_get_value_at()` borrows a value from the
+tuple.
+
+Zip pulls one generator at a time, from left to right, and stops at the shortest.
+Like [Python's `zip()`](https://docs.python.org/3/library/functions.html#zip),
+an earlier generator may advance once before a later one ends. Zero inputs
+yield no rows; one input yields one-value rows.
+
+`dex_generator_map()` calls a synchronous callback for each input. The callback
+initializes an output `GValue`, which can have any type. Leaving it
+uninitialized fails with `DEX_ERROR_NO_RESULT`. `dex_generator_filter()` calls
+a synchronous predicate and yields the original value when it returns `TRUE`.
+Source rejection ends either adapter.
+
+Callbacks receive a borrowed `GValue` valid for the call. The adapters keep
+callback data until cleanup and close their sources when they end, fail, or
+close.

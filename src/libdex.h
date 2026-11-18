@@ -35,6 +35,7 @@
 # include "dex-closure.h"
 # include "dex-deferred.h"
 # include "dex-generator.h"
+# include "dex-tuple.h"
 # include "dex-delayed.h"
 # include "dex-enums.h"
 # include "dex-error.h"

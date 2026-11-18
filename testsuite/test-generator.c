@@ -1447,6 +1447,292 @@ test_empty_adapters (void)
       }
 }
 
+typedef struct
+{
+  int       position;
+  int       length;
+  int      *order;
+  int      *order_length;
+  int       id;
+  gboolean  strings;
+} FunctionalSource;
+
+static DexFuture *
+functional_next (gpointer data)
+{
+  FunctionalSource *state = data;
+
+  if (state->order != NULL)
+    state->order[(*state->order_length)++] = state->id;
+
+  if (state->position == state->length)
+    return NULL;
+
+  if (state->strings)
+    {
+      GValue value = G_VALUE_INIT;
+      DexFuture *future;
+
+      g_value_init (&value, G_TYPE_STRING);
+      g_value_set_string (&value, state->position++ == 0 ? NULL : "two");
+      future = dex_future_new_for_value (&value);
+      g_value_unset (&value);
+      return future;
+    }
+
+  return dex_future_new_for_int (state->position++);
+}
+
+static void
+test_functional_zip (void)
+{
+  int order[16] = { 0 };
+  int order_length = 0;
+  FunctionalSource a = { .length = 2, .order = order, .order_length = &order_length, .id = 1 };
+  FunctionalSource b = { .length = 1, .order = order, .order_length = &order_length, .id = 2, .strings = TRUE };
+  DexGenerator *sources[2];
+  DexGenerator *zip;
+  DexTuple *tuple = NULL;
+  DexTuple *saved;
+  GError *error = NULL;
+
+  sources[0] = dex_generator_new (functional_next, &a, NULL);
+  sources[1] = dex_generator_new (functional_next, &b, NULL);
+  zip = dex_generator_zipv (sources, 2);
+  dex_unref (sources[0]);
+  dex_unref (sources[1]);
+  g_assert_cmpint (order_length, ==, 0);
+
+  g_assert_true (dex_generator_await_next_boxed (zip, DEX_TYPE_TUPLE,
+                                                  (gpointer *)&tuple, &error));
+  g_assert_no_error (error);
+  g_assert_cmpuint (dex_tuple_get_size (tuple), ==, 2);
+  g_assert_cmpint (g_value_get_int (dex_tuple_get_value_at (tuple, 0)), ==, 0);
+  g_assert_null (g_value_get_string (dex_tuple_get_value_at (tuple, 1)));
+  g_assert_null (dex_tuple_get_value_at (tuple, 2));
+  g_assert_cmpint (order_length, ==, 2);
+  g_assert_cmpint (order[0], ==, 1);
+  g_assert_cmpint (order[1], ==, 2);
+  saved = dex_tuple_ref (tuple);
+  dex_tuple_unref (tuple);
+
+  g_assert_false (dex_generator_await_next_boxed (zip, DEX_TYPE_TUPLE,
+                                                   (gpointer *)&tuple, &error));
+  g_assert_no_error (error);
+  g_assert_cmpint (order_length, ==, 4);
+  g_assert_cmpint (order[2], ==, 1);
+  g_assert_cmpint (order[3], ==, 2);
+  g_assert_cmpint (g_value_get_int (dex_tuple_get_value_at (saved, 0)), ==, 0);
+  dex_tuple_unref (saved);
+  g_assert_true (dex_await_boolean (dex_generator_close_after_drain (zip), NULL));
+  dex_unref (zip);
+
+  zip = dex_generator_zipv (NULL, 0);
+  g_assert_false (dex_generator_await_next_boxed (zip, DEX_TYPE_TUPLE,
+                                                   (gpointer *)&tuple, NULL));
+  dex_unref (zip);
+
+  a.position = 0;
+  a.order = NULL;
+  zip = dex_generator_zip (dex_generator_new (functional_next, &a, NULL), NULL);
+  g_assert_true (dex_generator_await_next_boxed (zip, DEX_TYPE_TUPLE,
+                                                  (gpointer *)&tuple, NULL));
+  g_assert_cmpuint (dex_tuple_get_size (tuple), ==, 1);
+  dex_tuple_unref (tuple);
+  dex_unref (zip);
+}
+
+typedef struct
+{
+  int      calls;
+  int      destroyed;
+  gboolean no_result;
+} FunctionalCallback;
+
+static void
+functional_destroy (gpointer data)
+{
+  FunctionalCallback *state = data;
+
+  state->destroyed++;
+}
+
+static void
+functional_map (const GValue *value,
+                GValue       *result,
+                gpointer      data)
+{
+  FunctionalCallback *state = data;
+
+  state->calls++;
+  if (!state->no_result)
+    {
+      g_value_init (result, G_TYPE_BOOLEAN);
+      g_value_set_boolean (result, g_value_get_int (value) == 0);
+    }
+}
+
+static gboolean
+functional_filter (const GValue *value,
+                   gpointer      data)
+{
+  FunctionalCallback *state = data;
+
+  state->calls++;
+  return g_value_get_int (value) != 0;
+}
+
+static void
+test_functional_transform (void)
+{
+  FunctionalSource source = { .length = 2 };
+  FunctionalCallback callback = { 0 };
+  DexGenerator *generator;
+  gboolean result;
+  int number;
+  GError *error = NULL;
+
+  generator = dex_generator_map (dex_generator_new (functional_next, &source, NULL),
+                                 functional_map,
+                                 &callback,
+                                 functional_destroy);
+  g_assert_cmpint (source.position, ==, 0);
+  g_assert_cmpint (callback.calls, ==, 0);
+  g_assert_true (dex_generator_await_next_boolean (generator, &result, NULL));
+  g_assert_true (result);
+  g_assert_true (dex_generator_await_next_boolean (generator, &result, NULL));
+  g_assert_false (result);
+  g_assert_false (dex_generator_await_next_boolean (generator, &result, NULL));
+  g_assert_true (dex_await_boolean (dex_generator_close_after_drain (generator), NULL));
+  g_assert_cmpint (callback.destroyed, ==, 1);
+  dex_unref (generator);
+
+  source.position = 0;
+  callback.calls = callback.destroyed = 0;
+  generator = dex_generator_filter (dex_generator_new (functional_next, &source, NULL),
+                                    functional_filter,
+                                    &callback,
+                                    functional_destroy);
+  g_assert_true (dex_generator_await_next_int (generator, &number, NULL));
+  g_assert_cmpint (number, ==, 1);
+  g_assert_false (dex_generator_await_next_int (generator, &number, NULL));
+  g_assert_cmpint (callback.calls, ==, 2);
+  g_assert_true (dex_await_boolean (dex_generator_close_after_drain (generator), NULL));
+  dex_unref (generator);
+
+  source.position = 0;
+  callback.no_result = TRUE;
+  generator = dex_generator_map (dex_generator_new (functional_next, &source, NULL),
+                                 functional_map,
+                                 &callback,
+                                 NULL);
+  g_assert_false (dex_generator_await_next_boolean (generator, &result, &error));
+  g_assert_error (error, DEX_ERROR, DEX_ERROR_NO_RESULT);
+  g_clear_error (&error);
+  dex_unref (generator);
+}
+
+static void
+test_functional_pending_source (void)
+{
+  State source = { 0 };
+  FunctionalCallback callback = { 0 };
+  DexPromise *promise;
+  DexGenerator *generator;
+  DexFuture *pull;
+  DexFuture *drain;
+
+  promise = dex_promise_new ();
+  source.item = dex_ref (promise);
+  generator = dex_generator_map (dex_generator_new (ordinary, &source, destroy_state),
+                                 functional_map,
+                                 &callback,
+                                 functional_destroy);
+  pull = dex_generator_next (generator);
+  while (source.calls == 0)
+    g_assert_true (dex_fiber_yield (NULL));
+  g_assert_true (dex_future_is_pending (pull));
+  dex_promise_resolve_int (promise, 0);
+  g_assert_true (dex_await_boolean (pull, NULL));
+  g_assert_cmpint (callback.calls, ==, 1);
+  g_assert_true (dex_await_boolean (dex_generator_close_after_drain (generator), NULL));
+  g_assert_cmpint (callback.destroyed, ==, 1);
+  dex_unref (generator);
+  dex_unref (promise);
+
+  source = (State) { 0 };
+  callback = (FunctionalCallback) { 0 };
+  promise = dex_promise_new ();
+  source.item = dex_ref (promise);
+  generator = dex_generator_map (dex_generator_new (ordinary, &source, destroy_state),
+                                 functional_map,
+                                 &callback,
+                                 functional_destroy);
+  pull = dex_generator_next (generator);
+  while (source.calls == 0)
+    g_assert_true (dex_fiber_yield (NULL));
+  dex_unref (pull);
+  drain = dex_generator_close_after_drain (generator);
+  dex_promise_resolve_int (promise, 0);
+  g_assert_true (dex_await_boolean (drain, NULL));
+  g_assert_cmpint (callback.destroyed, ==, 1);
+  g_assert_cmpint (source.destroyed, ==, 1);
+  dex_unref (generator);
+  dex_unref (promise);
+}
+
+static void
+test_functional_errors_and_close (void)
+{
+  State source = { 0 };
+  FunctionalCallback callback = { 0 };
+  DexGenerator *generator;
+  DexGenerator *inputs[1];
+  DexTuple *tuple = NULL;
+  GValue result = G_VALUE_INIT;
+  GError *error = NULL;
+
+  source.item = dex_future_new_reject (G_IO_ERROR,
+                                       G_IO_ERROR_FAILED,
+                                       "source failed");
+  inputs[0] = dex_generator_new (ordinary, &source, destroy_state);
+  generator = dex_generator_zipv (inputs, 1);
+  dex_unref (inputs[0]);
+  g_assert_false (dex_generator_await_next_boxed (generator, DEX_TYPE_TUPLE,
+                                                   (gpointer *)&tuple, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_clear_error (&error);
+  g_assert_true (dex_await_boolean (dex_generator_close_after_drain (generator), NULL));
+  g_assert_cmpint (source.destroyed, ==, 1);
+  dex_unref (generator);
+
+  source = (State) { 0 };
+  source.item = dex_future_new_reject (G_IO_ERROR,
+                                       G_IO_ERROR_FAILED,
+                                       "source failed");
+  generator = dex_generator_map (dex_generator_new (ordinary, &source, destroy_state),
+                                 functional_map,
+                                 &callback,
+                                 NULL);
+  g_assert_false (dex_generator_await_next (generator, &result, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_clear_error (&error);
+  g_assert_cmpint (callback.calls, ==, 0);
+  dex_unref (generator);
+
+  source = (State) { 0 };
+  generator = dex_generator_map (dex_generator_new (ordinary, &source, destroy_state),
+                                 functional_map,
+                                 &callback,
+                                 functional_destroy);
+  g_assert_true (dex_await_boolean (dex_generator_close_after_drain (generator), NULL));
+  g_assert_cmpint (source.calls, ==, 0);
+  g_assert_cmpint (source.destroyed, ==, 1);
+  g_assert_cmpint (callback.calls, ==, 0);
+  g_assert_cmpint (callback.destroyed, ==, 1);
+  dex_unref (generator);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -1454,6 +1740,10 @@ main (int argc, char *argv[])
   g_test_init (&argc, &argv, NULL);
   dex_test_add_func ("/generator/typed-yields", test_typed_yields);
   dex_test_add_func ("/generator/empty-adapters", test_empty_adapters);
+  dex_test_add_func ("/generator/functional-zip", test_functional_zip);
+  dex_test_add_func ("/generator/functional-transform", test_functional_transform);
+  dex_test_add_func ("/generator/functional-pending-source", test_functional_pending_source);
+  dex_test_add_func ("/generator/functional-errors-and-close", test_functional_errors_and_close);
   g_test_add_func ("/generator/ordinary", test_ordinary);
   g_test_add_func ("/generator/ordinary-errors", test_ordinary_errors);
   dex_test_add_func ("/generator/foreign-pull", test_foreign_pull);
