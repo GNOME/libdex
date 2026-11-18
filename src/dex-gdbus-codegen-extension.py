@@ -22,6 +22,15 @@
 # gdbus-codegen --extension-path=path/to/dex-gdbus-codegen-extension.py
 
 
+def validate_signal_counts(ifaces):
+    for i in ifaces:
+        if len(i.signals) > 31:
+            raise ValueError(
+                f"{i.camel_name} has {len(i.signals)} signals; "
+                "signal monitors support at most 31"
+            )
+
+
 def init(args, options):
     # We can require a certain glib version which will support at least
     # some version of the codegen, but we might also have a newer version
@@ -34,6 +43,7 @@ def init(args, options):
 
 class HeaderCodeGenerator:
     def __init__(self, generator):
+        validate_signal_counts(generator.ifaces)
         self.ifaces = generator.ifaces
         self.outfile = generator.outfile
         self.symbol_decorator = generator.symbol_decorator
@@ -188,8 +198,8 @@ class HeaderCodeGenerator:
         )
         for n, s in enumerate(i.signals):
             self.outfile.write(
-                "  %s%s_SIGNAL_%s = (%d << 0),\n"
-                % (i.ns_upper, i.name_upper, s.name_upper, n + 1)
+                "  %s%s_SIGNAL_%s = (1 << %d),\n"
+                % (i.ns_upper, i.name_upper, s.name_upper, n)
             )
         self.outfile.write(
             "} %sSignals;\n\n"
@@ -260,6 +270,7 @@ class HeaderCodeGenerator:
 
 class CodeGenerator:
     def __init__(self, generator):
+        validate_signal_counts(generator.ifaces)
         self.ifaces = generator.ifaces
         self.outfile = generator.outfile
         self.symbol_decoration_define = generator.symbol_decoration_define
@@ -357,8 +368,8 @@ class CodeGenerator:
             for a in m.out_args:
                 if a.copy_func:
                     self.outfile.write(
-                        "  n->%s = r->%s ? %s (r->%s) : NULL;\n"
-                        % (a.name, a.name, a.copy_func, a.name)
+                        "  n->%s = r->%s ? %s (%sr->%s) : NULL;\n"
+                        % (a.name, a.name, a.copy_func, "(gchar **) " if a.copy_func == "g_strdupv" else "", a.name)
                     )
                 else:
                     self.outfile.write("  n->%s = r->%s;\n" % (a.name, a.name))
@@ -563,8 +574,8 @@ class CodeGenerator:
             for a in s.args:
                 if a.copy_func:
                     self.outfile.write(
-                        "  n->%s = r->%s ? %s (r->%s) : NULL;\n"
-                        % (a.name, a.name, a.copy_func, a.name)
+                        "  n->%s = r->%s ? %s (%sr->%s) : NULL;\n"
+                        % (a.name, a.name, a.copy_func, "(gchar **) " if a.copy_func == "g_strdupv" else "", a.name)
                     )
                 else:
                     self.outfile.write("  n->%s = r->%s;\n" % (a.name, a.name))
@@ -627,8 +638,8 @@ class CodeGenerator:
         for a in s.args:
             if a.copy_func:
                 self.outfile.write(
-                    "  signal->%s = arg_%s ? %s (arg_%s) : NULL;\n"
-                    % (a.name, a.name, a.copy_func, a.name)
+                    "  signal->%s = arg_%s ? %s (%sarg_%s) : NULL;\n"
+                    % (a.name, a.name, a.copy_func, "(gchar **) " if a.copy_func == "g_strdupv" else "", a.name)
                 )
             else:
                 self.outfile.write("  signal->%s = arg_%s;\n" % (a.name, a.name))
@@ -762,8 +773,8 @@ class CodeGenerator:
             for a in s.args:
                 if a.copy_func:
                     self.outfile.write(
-                        "  signal->%s = arg_%s ? %s (arg_%s) : NULL;\n"
-                        % (a.name, a.name, a.copy_func, a.name)
+                        "  signal->%s = arg_%s ? %s (%sarg_%s) : NULL;\n"
+                        % (a.name, a.name, a.copy_func, "(gchar **) " if a.copy_func == "g_strdupv" else "", a.name)
                     )
                 else:
                     self.outfile.write("  signal->%s = arg_%s;\n" % (a.name, a.name))

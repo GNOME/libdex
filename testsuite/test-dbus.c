@@ -20,6 +20,8 @@
 
 #include <libdex.h>
 #include <stdint.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "dex-fiber-private.h"
 #include "dex-test-dbus-foo.h"
@@ -120,9 +122,21 @@ handle_fiber (DexTestDbusFoo        *object,
   return G_DBUS_METHOD_INVOCATION_HANDLED;
 }
 
+static gboolean
+handle_exchange_fd (DexTestDbusFoo        *object,
+                    GDBusMethodInvocation *invocation,
+                    GUnixFDList           *fd_list,
+                    GVariant              *input)
+{
+  dex_test_dbus_foo_complete_exchange_fd (object, invocation, fd_list, input);
+
+  return G_DBUS_METHOD_INVOCATION_HANDLED;
+}
+
 static void
 dex_test_dbus_foo_iface_init (DexTestDbusFooIface *iface)
 {
+  iface->handle_exchange_fd = handle_exchange_fd;
   iface->handle_foo = handle_foo;
   iface->handle_bar = handle_bar;
   iface->handle_emit_foo_bar = handle_emit_foo_bar;
@@ -536,6 +550,65 @@ test_gdbus_method_call_complex (void)
 }
 
 static void
+test_gdbus_signal_arrays (void)
+{
+  DexTestDbusFoo *proxy = g_object_new (DEX_TEST_DBUS_TYPE_FOO_PROXY, NULL);
+  DexTestDbusFooSignalMonitor *monitor;
+  DexTestDbusFooArraysSignal *copy;
+  DexTestDbusFooArraysSignal *result;
+  DexFuture *wait;
+  DexFuture *next;
+  GError *error = NULL;
+  char **strings = g_strsplit ("first,second", ",", -1);
+  char **paths = g_strsplit ("/first,/second", ",", -1);
+
+  g_assert_cmpuint (DEX_TEST_DBUS_FOO_SIGNAL_ARRAYS & DEX_TEST_DBUS_FOO_SIGNAL_BAZ, ==, 0);
+  g_assert_cmpuint (DEX_TEST_DBUS_FOO_SIGNAL_ARRAYS & DEX_TEST_DBUS_FOO_SIGNAL_FOO_BAR, ==, 0);
+
+  monitor = dex_test_dbus_foo_signal_monitor_new (proxy, DEX_TEST_DBUS_FOO_SIGNAL_ARRAYS);
+  wait = dex_test_dbus_foo_wait_arrays_future (proxy);
+  g_signal_emit_by_name (proxy, "arrays", strings, paths);
+  g_free (strings[0]);
+  strings[0] = g_strdup ("changed");
+  g_signal_emit_by_name (proxy, "arrays", strings, paths);
+  g_strfreev (strings);
+  g_strfreev (paths);
+
+  result = g_value_get_boxed (dex_future_get_value (wait, &error));
+  g_assert_no_error (error);
+  g_assert_cmpstr (result->strings[0], ==, "first");
+  g_assert_cmpstr (result->paths[1], ==, "/second");
+  copy = dex_test_dbus_foo_arrays_signal_copy (result);
+  dex_clear (&wait);
+  g_assert_cmpstr (copy->strings[1], ==, "second");
+  g_assert_cmpstr (copy->paths[0], ==, "/first");
+  dex_test_dbus_foo_arrays_signal_free (copy);
+
+  next = dex_test_dbus_foo_signal_monitor_next_arrays (monitor);
+  result = g_value_get_boxed (dex_future_get_value (next, &error));
+  g_assert_no_error (error);
+  g_assert_cmpstr (result->strings[0], ==, "first");
+  dex_clear (&next);
+  next = dex_test_dbus_foo_signal_monitor_next_arrays (monitor);
+  result = g_value_get_boxed (dex_future_get_value (next, &error));
+  g_assert_no_error (error);
+  g_assert_cmpstr (result->strings[0], ==, "changed");
+  dex_clear (&next);
+
+  next = dex_test_dbus_foo_signal_monitor_next_arrays (monitor);
+  dex_test_dbus_foo_signal_monitor_cancel (monitor);
+  g_assert_null (dex_future_get_value (next, &error));
+  g_assert_nonnull (error);
+  g_clear_error (&error);
+  dex_clear (&next);
+  wait = dex_test_dbus_foo_wait_arrays_future (proxy);
+  dex_clear (&wait);
+  g_signal_emit_by_name (proxy, "arrays", NULL, NULL);
+  g_object_unref (monitor);
+  g_object_unref (proxy);
+}
+
+static void
 test_gdbus_signal_wait_simple (void)
 {
   GTask *foo_service;
@@ -782,6 +855,33 @@ fiber_basic (gpointer user_data)
   g_assert_nonnull (proxy);
 
   {
+    DexTestDbusFooExchangeFdResult *result;
+    DexTestDbusFooExchangeFdResult *copy;
+    GUnixFDList *fds = g_unix_fd_list_new ();
+    int fd = open ("/dev/null", O_RDWR);
+    int handle;
+    int received;
+
+    g_assert_cmpint (fd, >=, 0);
+    handle = g_unix_fd_list_append (fds, fd, &error);
+    close (fd);
+    g_assert_no_error (error);
+    result = dex_await_boxed (dex_test_dbus_foo_call_exchange_fd_future (proxy,
+                                                                         g_variant_new_handle (handle),
+                                                                         fds),
+                              &error);
+    g_assert_no_error (error);
+    g_object_unref (fds);
+    copy = dex_test_dbus_foo_exchange_fd_result_copy (result);
+    dex_test_dbus_foo_exchange_fd_result_free (result);
+    received = g_unix_fd_list_get (copy->fd_list, g_variant_get_handle (copy->output), &error);
+    g_assert_no_error (error);
+    g_assert_cmpint (fcntl (received, F_GETFD), >=, 0);
+    close (received);
+    dex_test_dbus_foo_exchange_fd_result_free (copy);
+  }
+
+  {
     gboolean foo_result;
 
     foo_result = dex_await_boolean (dex_test_dbus_foo_call_foo_future (proxy), &error);
@@ -969,6 +1069,7 @@ main (int argc,
 {
   dex_init ();
   g_test_init (&argc, &argv, NULL);
+  g_test_add_func ("/Dex/TestSuite/GDBus/signal/arrays", test_gdbus_signal_arrays);
   g_test_add_func ("/Dex/TestSuite/GDBus/proxy/create", test_gdbus_proxy_create);
   g_test_add_func ("/Dex/TestSuite/GDBus/method_call/simple", test_gdbus_method_call_simple);
   g_test_add_func ("/Dex/TestSuite/GDBus/method_call/result", test_gdbus_method_call_result);

@@ -20,6 +20,15 @@
     </method>
     <signal name="FooBar">
     </signal>
+    <signal name="Arrays">
+      <arg type="as" name="strings"/>
+      <arg type="ao" name="paths"/>
+    </signal>
+    <method name="ExchangeFd">
+      <annotation name="org.gtk.GDBus.C.UnixFD" value="true"/>
+      <arg type="h" name="input" direction="in"/>
+      <arg type="h" name="output" direction="out"/>
+    </method>
     <method name="Fiber">
     </method>
   </interface>
