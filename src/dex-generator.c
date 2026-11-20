@@ -20,6 +20,9 @@
 
 #include "config.h"
 
+#include "dex-channel.h"
+#include "dex-channel-private.h"
+#include "dex-closure.h"
 #include "dex-generator.h"
 #include "dex-thunk-private.h"
 #include "dex-block-private.h"
@@ -46,6 +49,7 @@ typedef struct
   DexFuture       *drain;
   DexPromise      *gate;
   DexFuture       *worker;
+  DexChannel      *close_channel;
   DexWeakRef       pull;
   gpointer         pull_identity;
   GError          *error;
@@ -110,6 +114,7 @@ generator_state_unref (gpointer data)
   dex_clear (&state->drain);
   dex_clear (&state->gate);
   dex_clear (&state->worker);
+  dex_clear (&state->close_channel);
   g_clear_error (&state->error);
   g_mutex_clear (&state->mutex);
   g_free (state);
@@ -149,6 +154,7 @@ generator_state_close (GeneratorState *state)
   DexFuture *pull;
   DexFuture *worker;
   DexPromise *gate;
+  DexChannel *close_channel;
   gboolean cleanup;
 
   g_mutex_lock (&state->mutex);
@@ -161,8 +167,15 @@ generator_state_close (GeneratorState *state)
   pull = generator_detach_pull (state);
   gate = g_steal_pointer (&state->gate);
   worker = state->worker ? dex_ref (state->worker) : NULL;
+  close_channel = g_steal_pointer (&state->close_channel);
   cleanup = state->scheduler == NULL && !state->active;
   g_mutex_unlock (&state->mutex);
+
+  if (close_channel != NULL)
+    {
+      dex_channel_close_receive (close_channel);
+      dex_unref (close_channel);
+    }
 
   if (pull != NULL)
     {
@@ -745,6 +758,112 @@ dex_generator_new_coroutine (DexScheduler     *scheduler,
   g_return_val_if_fail (func != NULL, NULL);
 
   return generator_new_adapter (scheduler, G_CALLBACK (func), user_data, destroy);
+}
+
+DEX_DEFINE_CLOSURE_TYPE (GeneratorChannelState, generator_channel_state,
+                         DEX_DEFINE_CLOSURE_POINTER (DexChannel *, channel, dex_unref),
+                         DEX_DEFINE_CLOSURE_POINTER (DexFuture *, completion, dex_unref),
+                         DEX_DEFINE_CLOSURE_POINTER (DexFuture *, received, dex_unref))
+
+static void
+generator_channel_state_destroy (gpointer data)
+{
+  GeneratorChannelState *state = data;
+
+  dex_channel_close_receive (state->channel);
+  generator_channel_state_free (state);
+}
+
+static DexFuture *
+generator_channel_complete (DexFuture *future,
+                            gpointer   data)
+{
+  dex_channel_close_send (data);
+  return dex_ref (future);
+}
+
+static DexFuture *
+generator_channel_coroutine (DexCoroutineContext *context,
+                             gpointer             data)
+{
+  GeneratorChannelState *state = data;
+  GError *error = NULL;
+
+  DEX_COROUTINE_BEGIN (context);
+
+  for (;;)
+    {
+      state->received = dex_channel_receive (state->channel);
+      DEX_COROUTINE_SUSPEND (dex_ref (state->received), &error);
+
+      if (error != NULL)
+        {
+          if (g_error_matches (error, DEX_ERROR, DEX_ERROR_CHANNEL_CLOSED) &&
+              !_dex_channel_receiver_has_item (state->received))
+            break;
+          return dex_future_new_for_error (error);
+        }
+
+      DEX_COROUTINE_YIELD_VALUE (dex_future_get_value (state->received, NULL), &error);
+      if (error != NULL)
+        return dex_future_new_for_error (error);
+
+      dex_clear (&state->received);
+    }
+
+  g_clear_error (&error);
+
+  if (state->completion != NULL)
+    {
+      DEX_COROUTINE_SUSPEND (dex_ref (state->completion), &error);
+      if (error != NULL)
+        return dex_future_new_for_error (error);
+    }
+
+  return dex_future_new_true ();
+
+  DEX_COROUTINE_END;
+}
+
+/**
+ * dex_generator_new_for_channel:
+ * @channel: (transfer full): channel providing the values
+ * @completion: (transfer full) (nullable): producer completion, or %NULL
+ *
+ * Creates a generator which yields values received from @channel. When
+ * @completion finishes, the send side closes. Buffered values are yielded
+ * before the completion result determines exhaustion or failure. Closing the
+ * generator closes the receive side and discards @completion.
+ *
+ * Returns: (transfer full): a generator
+ * Since: 1.3
+ */
+DexGenerator *
+dex_generator_new_for_channel (DexChannel *channel,
+                               DexFuture  *completion)
+{
+  GeneratorChannelState *state;
+  DexGenerator *generator;
+
+  g_return_val_if_fail (DEX_IS_CHANNEL (channel), NULL);
+  g_return_val_if_fail (completion == NULL || DEX_IS_FUTURE (completion), NULL);
+
+  state = generator_channel_state_new ();
+  state->channel = channel;
+
+  if (completion != NULL)
+    state->completion = dex_future_finally (completion,
+                                            generator_channel_complete,
+                                            dex_ref (channel),
+                                            (GDestroyNotify)dex_unref);
+
+  generator = dex_generator_new_coroutine (NULL,
+                                           generator_channel_coroutine,
+                                           state,
+                                           generator_channel_state_destroy);
+  generator->state->close_channel = dex_ref (channel);
+
+  return generator;
 }
 
 static DexFuture *

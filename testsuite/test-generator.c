@@ -1733,12 +1733,113 @@ test_functional_errors_and_close (void)
   dex_unref (generator);
 }
 
+static void
+test_channel_adapter (void)
+{
+  for (int fail = 0; fail < 2; fail++)
+    {
+      DexChannel *channel = dex_channel_new (0);
+      DexPromise *completion = dex_promise_new ();
+      DexGenerator *generator;
+      GError *error = NULL;
+      int value;
+
+      dex_unref (dex_channel_send (channel, dex_future_new_for_int (1)));
+      dex_unref (dex_channel_send (channel, dex_future_new_for_int (2)));
+      generator = dex_generator_new_for_channel (dex_ref (channel), dex_ref (completion));
+
+      if (fail)
+        dex_promise_reject (completion,
+                            g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED, "failed"));
+      else
+        dex_promise_resolve_boolean (completion, TRUE);
+
+      g_assert_true (dex_generator_await_next_int (generator, &value, &error));
+      g_assert_cmpint (value, ==, 1);
+      g_assert_true (dex_generator_await_next_int (generator, &value, &error));
+      g_assert_cmpint (value, ==, 2);
+      g_assert_false (dex_generator_await_next_int (generator, &value, &error));
+
+      if (fail)
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+      else
+        {
+          g_assert_no_error (error);
+          g_assert_true (dex_generator_is_exhausted (generator));
+        }
+
+      g_clear_error (&error);
+      dex_unref (generator);
+      dex_unref (completion);
+      dex_unref (channel);
+    }
+
+  {
+    DexChannel *channel = dex_channel_new (0);
+    DexGenerator *generator = dex_generator_new_for_channel (dex_ref (channel), NULL);
+    int value;
+
+    dex_channel_close_send (channel);
+    g_assert_false (dex_generator_await_next_int (generator, &value, NULL));
+    g_assert_true (dex_generator_is_exhausted (generator));
+    dex_unref (generator);
+    dex_unref (channel);
+  }
+
+  {
+    DexChannel *channel = dex_channel_new (0);
+    DexPromise *completion = dex_promise_new ();
+    DexGenerator *generator =
+      dex_generator_new_for_channel (dex_ref (channel), dex_ref (completion));
+
+    g_assert_true (dex_await_boolean (dex_generator_close_after_drain (generator), NULL));
+    g_assert_false (dex_channel_can_receive (channel));
+    dex_unref (generator);
+    dex_unref (completion);
+    dex_unref (channel);
+  }
+
+  {
+    DexChannel *channel = dex_channel_new (0);
+    DexGenerator *generator = dex_generator_new_for_channel (dex_ref (channel), NULL);
+    DexFuture *pull = dex_generator_next (generator);
+    DexFuture *drain;
+
+    dex_await (dex_timeout_new_msec (10), NULL);
+    drain = dex_generator_close_after_drain (generator);
+    g_assert_true (dex_await_boolean (dex_future_with_timeout_msec (drain, 1000), NULL));
+    dex_unref (pull);
+    dex_unref (generator);
+    dex_unref (channel);
+  }
+
+  {
+    DexChannel *channel = dex_channel_new (0);
+    DexGenerator *generator;
+    GError *error = NULL;
+
+    dex_unref (dex_channel_send (channel,
+                                 dex_future_new_reject (DEX_ERROR,
+                                                        DEX_ERROR_CHANNEL_CLOSED,
+                                                        "failed item")));
+    dex_channel_close_send (channel);
+    generator = dex_generator_new_for_channel (dex_ref (channel), NULL);
+
+    dex_await (dex_generator_next (generator), &error);
+    g_assert_error (error, DEX_ERROR, DEX_ERROR_CHANNEL_CLOSED);
+    g_clear_error (&error);
+    dex_unref (generator);
+    dex_unref (channel);
+  }
+}
+
 int
 main (int argc, char *argv[])
 {
   dex_init ();
   g_test_init (&argc, &argv, NULL);
   dex_test_add_func ("/generator/typed-yields", test_typed_yields);
+  dex_test_add_func ("/generator/channel-adapter", test_channel_adapter);
   dex_test_add_func ("/generator/empty-adapters", test_empty_adapters);
   dex_test_add_func ("/generator/functional-zip", test_functional_zip);
   dex_test_add_func ("/generator/functional-transform", test_functional_transform);

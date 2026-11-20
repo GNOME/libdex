@@ -7,6 +7,7 @@ libdex 1.3.alpha (unreleased)
    detection and shared prerequisites
  * New DexGenerator API for pull-based producers, with typed yield and consume
    helpers, explicit shutdown, and zip, map, and filter adapters
+ * New push-based DexGenerator API using DexChannel to deliver items
  * New DexTuple boxed type for the values produced by zipped generators
  * Add dex_file_test(), dex_file_get_contents_bytes(), and
    DEX_COROUTINE_SUSPEND_FD

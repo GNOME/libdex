@@ -24,6 +24,7 @@
 # error "Only <libdex.h> can be included directly."
 #endif
 
+#include "dex-channel.h"
 #include "dex-coroutine.h"
 #include "dex-fiber.h"
 #include "dex-tuple.h"
@@ -171,6 +172,9 @@ DexGenerator *dex_generator_new_coroutine      (DexScheduler            *schedul
                                                 DexCoroutineFunc         func,
                                                 gpointer                 user_data,
                                                 GDestroyNotify           destroy) G_GNUC_WARN_UNUSED_RESULT;
+DEX_AVAILABLE_IN_1_3
+DexGenerator *dex_generator_new_for_channel    (DexChannel              *channel,
+                                                DexFuture               *completion) G_GNUC_WARN_UNUSED_RESULT;
 DEX_AVAILABLE_IN_1_3
 DexGenerator *dex_generator_new_fiber          (DexScheduler            *scheduler,
                                                 gsize                    stack_size,

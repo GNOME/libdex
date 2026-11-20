@@ -25,6 +25,7 @@
 
 #include "dex-error.h"
 #include "dex-channel.h"
+#include "dex-channel-private.h"
 #include "dex-future-private.h"
 #include "dex-object-private.h"
 #include "dex-promise.h"
@@ -43,6 +44,7 @@ typedef struct _DexChannelReceiver
   DexFuture  parent_instance;
   GList      link;
   DexFuture *awaiting;
+  guint      has_item : 1;
 } DexChannelReceiver;
 
 typedef struct _DexChannelReceiverClass
@@ -140,6 +142,21 @@ static inline DexChannelReceiver *
 dex_channel_receiver_new (void)
 {
   return (DexChannelReceiver *)dex_object_create_instance (dex_channel_receiver_type);
+}
+
+gboolean
+_dex_channel_receiver_has_item (DexFuture *future)
+{
+  DexChannelReceiver *receiver = (DexChannelReceiver *)future;
+  gboolean has_item;
+
+  g_return_val_if_fail (DEX_IS_CHANNEL_RECEIVER (future), FALSE);
+
+  dex_object_lock (receiver);
+  has_item = receiver->has_item;
+  dex_object_unlock (receiver);
+
+  return has_item;
 }
 
 struct _DexChannel
@@ -351,6 +368,7 @@ dex_channel_one_receive_and_unlock (DexChannel *channel)
        */
       dex_object_lock (recv);
       recv->awaiting = dex_ref (item->future);
+      recv->has_item = TRUE;
       dex_object_unlock (recv);
 
       dex_future_chain (item->future, DEX_FUTURE (recv));
